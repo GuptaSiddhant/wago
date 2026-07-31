@@ -1,4 +1,4 @@
-name: Sanity check
+name: Build Wago
 
 on:
   workflow_dispatch:
@@ -23,7 +23,7 @@ permissions:
   contents: read # Grants permission to create GitHub Releases
 
 jobs:
-  sanity-check:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -54,14 +54,14 @@ jobs:
           goarch: ${{ inputs.arch }}
 
       - name: Upload binary (windows)
-        if: ${{ inputs.os == "windows" }}
+        if: ${{ inputs.os == 'windows' }}
         uses: actions/upload-artifact@7
         with:
           id: wago-${{ inputs.os }}-${{ inputs.arch }}
           name: wago-${{ inputs.os }}-${{ inputs.arch }}.exe
 
       - name: Upload binary
-        if: ${{ inputs.os != "windows" }}
+        if: ${{ inputs.os != 'windows' }}
         uses: actions/upload-artifact@7
         with:
           id: wago-${{ inputs.os }}-${{ inputs.arch }}
