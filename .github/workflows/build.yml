@@ -1,0 +1,68 @@
+name: Sanity check
+
+on:
+  workflow_dispatch:
+    inputs:
+      os:
+        description: Operating System
+        required: true
+        type: choice
+        options:
+          - darwin
+          - linux
+          - windows
+      arch:
+        description: CPU Architecture
+        required: true
+        type: choice
+        options:
+          - arm64
+          - amd64
+
+permissions:
+  contents: read # Grants permission to create GitHub Releases
+
+jobs:
+  sanity-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Set up NUB
+        uses: nubjs/setup-nub@v0
+        with:
+          working-directory: ./frontend/
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: nub install; nub run build
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Setup server
+        run: go mod tidy
+
+      - name: Build server
+        run: go build -trimpath -lfdflags="-s -w" .
+        env:
+          CGO_ENABLED: 0
+          goos: ${{ inputs.os }}
+          goarch: ${{ inputs.arch }}
+
+      - name: Upload binary (windows)
+        if: ${{ inputs.os == "windows" }}
+        uses: actions/upload-artifact@7
+        with:
+          id: wago-${{ inputs.os }}-${{ inputs.arch }}
+          name: wago-${{ inputs.os }}-${{ inputs.arch }}.exe
+
+      - name: Upload binary
+        if: ${{ inputs.os != "windows" }}
+        uses: actions/upload-artifact@7
+        with:
+          id: wago-${{ inputs.os }}-${{ inputs.arch }}
+          name: wago-${{ inputs.os }}-${{ inputs.arch }}
