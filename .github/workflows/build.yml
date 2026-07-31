@@ -57,4 +57,8 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           id: wago-${{ inputs.os }}-${{ inputs.arch }}-${{ github.sha }}
-          name: wago-${{ inputs.os }}-${{ inputs.arch }}${{ inputs.os == 'windows' && '.exe' || '' }}
+          name: wago-${{ inputs.os }}-${{ inputs.arch }}-${{ github.sha }}${{ inputs.os == 'windows' && '.exe' || '' }}
+          path: wago${{ inputs.os == 'windows' && '.exe' || '' }}
+          retention-days: 7
+          if-no-files-found: error
+          overwrite: true
