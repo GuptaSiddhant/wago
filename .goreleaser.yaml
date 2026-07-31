@@ -1,0 +1,47 @@
+version: 2
+project_name: wago
+
+before:
+  hooks:
+    # 1. Build the React UI into frontend/dist first so Go can embed it
+    - cd frontend && nub install && nub run build
+    - go mod tidy
+
+builds:
+  - id: wago
+    main: ./main.go
+    binary: wago
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      # Optional: ignore windows on arm64 if not needed
+      - goos: windows
+        goarch: arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+
+archives:
+  - format: zip
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"

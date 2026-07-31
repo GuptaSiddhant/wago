@@ -1,3 +1,4 @@
 .env*
 !.env.sample
 pb_data
+ui/dist

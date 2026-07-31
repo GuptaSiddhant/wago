@@ -1,12 +1,12 @@
 package store
 
 import (
-	"os"
+	"fmt"
 
 	"github.com/pocketbase/pocketbase/core"
 )
 
-func EnsureSuperuser(app core.App) error {
+func EnsureSuperuser(app core.App, email, password string) error {
 	superusersCol, err := app.FindCollectionByNameOrId(core.CollectionNameSuperusers)
 	if err != nil {
 		return err
@@ -16,11 +16,9 @@ func EnsureSuperuser(app core.App) error {
 		return nil
 	}
 
-	email := os.Getenv("ADMIN_EMAIL")
 	if email == "" {
 		email = "admin@wago.local"
 	}
-	password := os.Getenv("ADMIN_PASSWORD")
 	if password == "" {
 		password = "Password123"
 	}
@@ -30,5 +28,10 @@ func EnsureSuperuser(app core.App) error {
 	record.Set("password", password)
 	record.Set("passwordConfirm", password)
 
-	return app.Save(record)
+	err = app.Save(record)
+	if err != nil {
+		fmt.Printf("Created new superuser/admin: '%s'", email)
+	}
+
+	return err
 }
