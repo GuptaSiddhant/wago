@@ -29,11 +29,11 @@ builds:
       - -s -w -X main.version={{.Version}}
 
 archives:
-  - format: zip
+  - formats: ["zip"]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
       - README.md
-      - LICENSE
+      - LICENSE.md
 
 checksum:
   name_template: "checksums.txt"
