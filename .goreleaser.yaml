@@ -3,8 +3,7 @@ project_name: wago
 
 before:
   hooks:
-    # 1. Build the React UI into frontend/dist first so Go can embed it
-    - cd frontend && nub install && nub run build
+    - "sh -c 'cd frontend && npm install && npm run build'"
     - go mod tidy
 
 builds:
