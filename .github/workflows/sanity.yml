@@ -1,0 +1,38 @@
+name: Sanity check
+
+on:
+  push:
+
+permissions:
+  contents: read # Grants permission to create GitHub Releases
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js/NUB (for React frontend)
+        uses: nubjs/setup-nub@v0
+        with:
+          working-directory: ./frontend/
+
+      - name: Setup frontend
+        working-directory: ./frontend
+        run: nub install
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: nub run lint; nub run build
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Setup server
+        run: go mod tidy
+
+      - name: Build server
+        run: go build -gcflags='all=-N -l' .
