@@ -2,3 +2,4 @@
 !.env.sample
 pb_data
 ui/dist
+tmp
