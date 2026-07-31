@@ -47,22 +47,14 @@ jobs:
         run: go mod tidy
 
       - name: Build server
-        run: go build -trimpath -lfdflags="-s -w" .
+        run: go build -trimpath .
         env:
           CGO_ENABLED: 0
           goos: ${{ inputs.os }}
           goarch: ${{ inputs.arch }}
 
-      - name: Upload binary (windows)
-        if: ${{ inputs.os == 'windows' }}
-        uses: actions/upload-artifact@v7
-        with:
-          id: wago-${{ inputs.os }}-${{ inputs.arch }}
-          name: wago-${{ inputs.os }}-${{ inputs.arch }}.exe
-
       - name: Upload binary
-        if: ${{ inputs.os != 'windows' }}
         uses: actions/upload-artifact@v7
         with:
           id: wago-${{ inputs.os }}-${{ inputs.arch }}
-          name: wago-${{ inputs.os }}-${{ inputs.arch }}
+          name: wago-${{ inputs.os }}-${{ inputs.arch }}${{ inputs.os == 'windows' && ".exe" || "" }}
