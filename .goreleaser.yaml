@@ -3,7 +3,7 @@ project_name: wago
 
 before:
   hooks:
-    - "sh -c 'cd frontend && npm install && npm run build'"
+    - "sh -c 'cd frontend && nub install && nub run build'"
     - go mod tidy
 
 builds:
