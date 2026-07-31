@@ -13,7 +13,7 @@ permissions:
   contents: read # Grants permission to create GitHub Releases
 
 jobs:
-  goreleaser:
+  sanity-check:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
