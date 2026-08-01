@@ -3,7 +3,7 @@ project_name: wago
 
 before:
   hooks:
-    - "sh -c 'cd frontend && nub install && nub run build'"
+    - "sh -c 'nub install && nub run build:frontend'" # Build frontend assets
     - go mod tidy
 
 builds:
@@ -38,5 +38,7 @@ changelog:
   sort: asc
   filters:
     exclude:
+      - "^chore:"
       - "^docs:"
       - "^test:"
+      - "^ci:"

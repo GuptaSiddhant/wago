@@ -1,5 +1,7 @@
+.DS_Store
 .env*
 !.env.sample
 pb_data
-ui/dist
+frontend/dist
 tmp
+node_modules

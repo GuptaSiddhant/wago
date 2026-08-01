@@ -19,28 +19,19 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v6
 
-      - name: Set up Node.js/NUB (for React frontend)
+      - name: Set up Nub
         uses: nubjs/setup-nub@v0
-        with:
-          working-directory: ./frontend/
-
-      - name: Setup frontend
-        working-directory: ./frontend
-        run: nub install
-
-      - name: Build frontend
-        working-directory: ./frontend
-        run: nub run lint; nub run build
 
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
-          go-version-file: 'go.mod'
+          go-version-file: "go.mod"
 
-      - name: Setup server
-        run: go mod tidy
+      - name: Setup deps
+        run: nub run setup
+
+      - name: Lint
+        run: nub run lint:frontend
 
       - name: Build server
-        run: go build .
-        env:
-          CGO_ENABLED: 0
+        run: nub run build

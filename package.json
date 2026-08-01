@@ -1,0 +1,23 @@
+{
+  "name": "wago",
+  "private": true,
+  "workspaces": [
+    "./frontend"
+  ],
+  "scripts": {
+    "setup": "go mod tidy && nub install",
+    "build": "CGO_ENABLED=0 go build -trimpath -gcflags='all=-N -l' -o ./tmp/wago .",
+    "prebuild": "nub run --filter frontend build",
+    "dev": "air",
+    "dev:frontend": "nub run --filter frontend dev",
+    "lint:frontend": "nub run --filter frontend lint",
+    "serve": "./tmp/wago serve"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "nub",
+      "version": "^0.6.0",
+      "onFail": "warn"
+    }
+  }
+}

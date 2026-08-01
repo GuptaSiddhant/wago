@@ -29,36 +29,33 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v6
 
-      - name: Set up NUB
+      - name: Set up Nub
         uses: nubjs/setup-nub@v0
-        with:
-          working-directory: ./frontend/
-
-      - name: Build frontend
-        working-directory: ./frontend
-        run: nub install; nub run build
 
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
-          go-version-file: 'go.mod'
+          go-version-file: "go.mod"
 
-      - name: Setup server
-        run: go mod tidy
+      - name: Setup deps
+        run: nub run setup && nub run build:frontend
+
+      - name: Generate filename
+        id: filename
+        run: echo "FILEPATH=./tmp/wago-${{ inputs.os }}-${{ inputs.arch }}${{ inputs.os == 'windows' && '.exe' || '' }}"  >> "$GITHUB_OUTPUT"
 
       - name: Build server
-        run: go build -trimpath .
+        run: go build -trimpath -o ${{ steps.filename.outputs.FILEPATH }} .
         env:
           CGO_ENABLED: 0
-          goos: ${{ inputs.os }}
-          goarch: ${{ inputs.arch }}
+          GOOS: ${{ inputs.os }}
+          GOARCH: ${{ inputs.arch }}
 
       - name: Upload binary
         uses: actions/upload-artifact@v7
         with:
-          id: wago-${{ inputs.os }}-${{ inputs.arch }}-${{ github.sha }}
-          name: wago-${{ inputs.os }}-${{ inputs.arch }}-${{ github.sha }}${{ inputs.os == 'windows' && '.exe' || '' }}
-          path: wago${{ inputs.os == 'windows' && '.exe' || '' }}
+          path: ${{ steps.filename.outputs.FILEPATH }}
           retention-days: 7
           if-no-files-found: error
           overwrite: true
+          archive: false
