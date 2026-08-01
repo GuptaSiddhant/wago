@@ -16,13 +16,6 @@ func EnsureSuperuser(app core.App, email, password string) error {
 		return nil
 	}
 
-	if email == "" {
-		email = "admin@wago.local"
-	}
-	if password == "" {
-		password = "Password123"
-	}
-
 	record := core.NewRecord(superusersCol)
 	record.Set("email", email)
 	record.Set("password", password)

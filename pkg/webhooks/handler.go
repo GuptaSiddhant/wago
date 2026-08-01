@@ -3,7 +3,6 @@ package webhooks
 import (
 	"log"
 	"net/http"
-	"os"
 
 	"guptasiddhant/wago/pkg/store"
 
@@ -11,16 +10,8 @@ import (
 )
 
 // HandleVerification returns the handler for GET /api/wa/webhook
-func HandleVerification() func(re *core.RequestEvent) error {
+func HandleVerification(verifyToken string) func(re *core.RequestEvent) error {
 	return func(re *core.RequestEvent) error {
-		verifyToken := os.Getenv("WA_VERIFY_TOKEN")
-
-		// If secret is not configured, reject cleanly
-		if verifyToken == "" {
-			log.Println("❌ Webhook error: WA_VERIFY_TOKEN environment variable is missing")
-			return re.String(http.StatusInternalServerError, "Webhook verification unconfigured")
-		}
-
 		mode := re.Request.URL.Query().Get("hub.mode")
 		token := re.Request.URL.Query().Get("hub.verify_token")
 		challenge := re.Request.URL.Query().Get("hub.challenge")
@@ -35,7 +26,7 @@ func HandleVerification() func(re *core.RequestEvent) error {
 }
 
 // HandleIncomingMessage returns the handler for POST /api/wa/webhook
-func HandleIncomingMessage(app core.App) func(re *core.RequestEvent) error {
+func HandleIncomingMessage() func(re *core.RequestEvent) error {
 	return func(re *core.RequestEvent) error {
 		var payload MetaWebhookPayload
 		if err := re.BindBody(&payload); err != nil {
@@ -55,7 +46,9 @@ func HandleIncomingMessage(app core.App) func(re *core.RequestEvent) error {
 				for _, msg := range val.Messages {
 					if msg.Type == "text" {
 						// Save record using store layer
-						err := store.SaveIncomingMessage(app, msg.From, senderName, val.Metadata.DisplayPhoneNumber, msg.Text.Body, msg.ID, val)
+						err := store.SaveIncomingMessage(
+							re.App, msg.From, senderName, val.Metadata.DisplayPhoneNumber, msg.Text.Body, msg.ID, val,
+						)
 						if err != nil {
 							log.Printf("Failed to save message: %v", err)
 						}

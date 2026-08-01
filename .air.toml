@@ -18,7 +18,8 @@ tmp_dir = "tmp"
     "pb_public",
     "pb_hooks",
     ".git",
-    "frontend"
+    "frontend",
+    "tests"
   ]
   exclude_regex = ["_test\\.go$"]
   include_ext = ["go", "tpl", "tmpl", "html"]
