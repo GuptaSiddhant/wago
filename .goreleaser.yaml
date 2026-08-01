@@ -3,7 +3,7 @@ project_name: wago
 
 before:
   hooks:
-    - "sh -c 'nub install && nub run build:frontend'" # Build frontend assets
+    - "sh -c 'nub install && nub run prebuild'" # Build frontend assets
     - go mod tidy
 
 builds:
