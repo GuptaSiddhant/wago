@@ -9,7 +9,7 @@
     "dev": "air",
     "serve": "./tmp/wago serve",
     "build": "CGO_ENABLED=0 go build -trimpath -gcflags='all=-N -l' -o ./tmp/wago .",
-    "prebuild": "nub rub build:frontend",
+    "prebuild": "nub run build:frontend",
     "build:frontend": "nub run --filter frontend build",
     "dev:frontend": "nub run --filter frontend dev",
     "lint:frontend": "nub run --filter frontend lint"
