@@ -12,7 +12,7 @@ type AppConfig struct {
 	AdminEmail            string
 	AdminPassword         string
 	WA_WebhookVerifyToken string
-	Headless              bool
+	MetaAppSecret         string
 }
 
 // Helper to load environment variables
@@ -26,13 +26,13 @@ func LoadAppConfig() (*AppConfig, error) {
 
 	waWebhookVerifyToken := getRequiredEnv("WA_WEBHOOK_VERIFY_TOKEN")
 
-	headless := parseEnvBool("HEADLESS", false)
+	metaAppSecret := getEnvOrDefault("META_APP_SECRET", "")
 
 	cfg := &AppConfig{
 		AdminEmail:            adminEmail,
 		AdminPassword:         adminPassword,
 		WA_WebhookVerifyToken: waWebhookVerifyToken,
-		Headless:              headless,
+		MetaAppSecret:         metaAppSecret,
 	}
 
 	return cfg, nil

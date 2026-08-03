@@ -10,9 +10,10 @@ import (
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 
-	"guptasiddhant/wago/pkg/store"
-	"guptasiddhant/wago/pkg/utils"
-	"guptasiddhant/wago/pkg/webhooks"
+	"github.com/guptasiddhant/wago/pkg/api"
+	"github.com/guptasiddhant/wago/pkg/store"
+	"github.com/guptasiddhant/wago/pkg/utils"
+	"github.com/guptasiddhant/wago/pkg/webhooks"
 )
 
 //go:embed all:frontend/dist
@@ -23,7 +24,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Env Config Error: %v", err)
 	}
-	log.Printf("headless %v", cfg)
 
 	app := SetupApp(cfg)
 
@@ -50,18 +50,19 @@ func handleOnServe(cfg *utils.AppConfig) func(se *core.ServeEvent) error {
 			return fmt.Errorf("Failed to setup collections: %w", err)
 		}
 
+		// Register Wago API routes
+		api.Register(se.Router, se.App)
+
 		// Register Webhook endpoints
 		se.Router.GET("/api/wa/webhook", webhooks.HandleVerification(cfg.WA_WebhookVerifyToken))
-		se.Router.POST("/api/wa/webhook", webhooks.HandleIncomingMessage())
+		se.Router.POST("/api/wa/webhook", webhooks.HandleIncomingMessage(cfg.MetaAppSecret))
 
-		if !cfg.Headless {
-			// Serve embedded React SPA from root /
-			frontendSubFS, err := fs.Sub(frontendFS, "frontend/dist")
-			if err != nil {
-				panic(err)
-			}
-			se.Router.GET("/{path...}", apis.Static(frontendSubFS, true))
+		// Serve embedded React SPA from root /
+		frontendSubFS, err := fs.Sub(frontendFS, "frontend/dist")
+		if err != nil {
+			panic(err)
 		}
+		se.Router.GET("/{path...}", apis.Static(frontendSubFS, true))
 
 		return se.Next()
 	}
