@@ -19,6 +19,9 @@ func Register(r *router.Router[*core.RequestEvent], app core.App) {
 
 	authed.GET("/auth/me", HandleMe(app))
 	authed.GET("/inbox", HandleInbox(app))
+	authed.GET("/contacts", HandleContacts(app))
+	authed.GET("/team", HandleTeam(app))
+	authed.GET("/accounts", HandleAccounts(app))
 	authed.GET("/conversations/{id}/messages", HandleConversationMessages(app))
 	authed.POST("/conversations/{id}/assign", HandleConversationAssign(app))
 	authed.POST("/conversations/{id}/read", HandleConversationRead(app))

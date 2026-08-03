@@ -77,7 +77,7 @@ func HandleMe(app core.App) func(e *core.RequestEvent) error {
 func buildSession(app core.App, result *store.AuthResult) (*sessionResponse, error) {
 	rec := result.Record
 
-	var orgs []orgSummary
+	orgs := []orgSummary{}
 	var err error
 
 	if result.IsAdmin {
