@@ -16,14 +16,18 @@ type waAccountDTO struct {
 	DisplayName   string `json:"display_name"`
 	PhoneNumberID string `json:"phone_number_id"`
 	Status        string `json:"status"`
+	TeamID        string `json:"team_id,omitempty"`
+	TeamName      string `json:"team_name,omitempty"`
 }
 
 // teamMemberDTO is an org member listing for the settings page.
 type teamMemberDTO struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
-	Role  string `json:"role"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Role     string `json:"role"`
+	TeamID   string `json:"team_id,omitempty"`
+	TeamName string `json:"team_name,omitempty"`
 }
 
 // HandleContacts lists contacts for the current org.
@@ -92,12 +96,7 @@ func HandleTeam(app core.App) func(e *core.RequestEvent) error {
 			if err != nil {
 				continue
 			}
-			items = append(items, teamMemberDTO{
-				ID:    user.Id,
-				Name:  user.GetString("name"),
-				Email: user.Email(),
-				Role:  m.GetString("role"),
-			})
+			items = append(items, teamMemberFromRecords(app, user, m))
 		}
 
 		return e.JSON(http.StatusOK, map[string]any{"items": items})
@@ -120,14 +119,311 @@ func HandleAccounts(app core.App) func(e *core.RequestEvent) error {
 
 		items := make([]waAccountDTO, 0, len(records))
 		for _, r := range records {
-			items = append(items, waAccountDTO{
-				ID:            r.Id,
-				DisplayName:   r.GetString("display_name"),
-				PhoneNumberID: r.GetString("phone_number_id"),
-				Status:        r.GetString("status"),
-			})
+			items = append(items, waAccountFromRecord(app, r))
 		}
 
 		return e.JSON(http.StatusOK, map[string]any{"items": items})
+	}
+}
+
+func waAccountFromRecord(app core.App, r *core.Record) waAccountDTO {
+	dto := waAccountDTO{
+		ID:            r.Id,
+		DisplayName:   r.GetString("display_name"),
+		PhoneNumberID: r.GetString("phone_number_id"),
+		Status:        r.GetString("status"),
+	}
+	if teamID := r.GetString("team"); teamID != "" {
+		dto.TeamID = teamID
+		if team, err := app.FindRecordById("teams", teamID); err == nil {
+			dto.TeamName = team.GetString("name")
+		}
+	}
+	return dto
+}
+
+func countConversationsFor(app core.App, collectionName, field, orgID, refID string) (int, error) {
+	records, err := app.FindRecordsByFilter(collectionName,
+		"org = {:org} && "+field+" = {:ref}", "", 500, 0,
+		store.DbxParams(map[string]any{"org": orgID, "ref": refID}))
+	if err != nil {
+		return 0, err
+	}
+	return len(records), nil
+}
+
+// HandleContactCreate creates a contact in the current org.
+func HandleContactCreate(app core.App) func(e *core.RequestEvent) error {
+	return func(e *core.RequestEvent) error {
+		access, apiErr := orgAccessFromRequest(e, app)
+		if apiErr != nil {
+			return apiErr
+		}
+		if !access.CanManageData() {
+			return e.ForbiddenError("only the owner or a superadmin can manage contacts", nil)
+		}
+
+		var body struct {
+			Name  string `json:"name" form:"name"`
+			Phone string `json:"phone" form:"phone"`
+		}
+		if err := e.BindBody(&body); err != nil {
+			return e.BadRequestError("Invalid request body", err)
+		}
+		body.Phone = strings.TrimSpace(body.Phone)
+		body.Name = strings.TrimSpace(body.Name)
+		if body.Phone == "" {
+			return e.BadRequestError("phone is required", nil)
+		}
+
+		if existing, err := store.FindContactByPhone(app, access.OrgID, body.Phone); err == nil {
+			return e.JSON(http.StatusOK, contactDTO{
+				ID:    existing.Id,
+				Name:  existing.GetString("name"),
+				Phone: existing.GetString("phone"),
+			})
+		}
+
+		contact, err := store.UpsertContact(app, access.OrgID, body.Phone, body.Name)
+		if err != nil {
+			return e.InternalServerError("failed to create contact", err)
+		}
+		return e.JSON(http.StatusOK, contactDTO{
+			ID:    contact.Id,
+			Name:  contact.GetString("name"),
+			Phone: contact.GetString("phone"),
+		})
+	}
+}
+
+// HandleContactUpdate updates a contact in the current org.
+func HandleContactUpdate(app core.App) func(e *core.RequestEvent) error {
+	return func(e *core.RequestEvent) error {
+		access, apiErr := orgAccessFromRequest(e, app)
+		if apiErr != nil {
+			return apiErr
+		}
+		if !access.CanManageData() {
+			return e.ForbiddenError("only the owner or a superadmin can manage contacts", nil)
+		}
+
+		contact, err := app.FindRecordById("contacts", e.Request.PathValue("id"))
+		if err != nil || contact.GetString("org") != access.OrgID {
+			return e.NotFoundError("contact not found", nil)
+		}
+
+		var body struct {
+			Name  string `json:"name" form:"name"`
+			Phone string `json:"phone" form:"phone"`
+		}
+		if err := e.BindBody(&body); err != nil {
+			return e.BadRequestError("Invalid request body", err)
+		}
+		if strings.TrimSpace(body.Phone) == "" && strings.TrimSpace(body.Name) == "" {
+			return e.BadRequestError("nothing to update", nil)
+		}
+		if phone := strings.TrimSpace(body.Phone); phone != "" {
+			contact.Set("phone", phone)
+		}
+		if strings.TrimSpace(body.Name) != "" {
+			contact.Set("name", strings.TrimSpace(body.Name))
+		}
+		if err := app.Save(contact); err != nil {
+			return e.InternalServerError("failed to update contact", err)
+		}
+		return e.JSON(http.StatusOK, contactDTO{
+			ID:    contact.Id,
+			Name:  contact.GetString("name"),
+			Phone: contact.GetString("phone"),
+		})
+	}
+}
+
+// HandleContactDelete deletes a contact that has no conversation history.
+func HandleContactDelete(app core.App) func(e *core.RequestEvent) error {
+	return func(e *core.RequestEvent) error {
+		access, apiErr := orgAccessFromRequest(e, app)
+		if apiErr != nil {
+			return apiErr
+		}
+		if !access.CanManageData() {
+			return e.ForbiddenError("only the owner or a superadmin can manage contacts", nil)
+		}
+
+		contact, err := app.FindRecordById("contacts", e.Request.PathValue("id"))
+		if err != nil || contact.GetString("org") != access.OrgID {
+			return e.NotFoundError("contact not found", nil)
+		}
+
+		count, err := countConversationsFor(app, "conversations", "contact", access.OrgID, contact.Id)
+		if err != nil {
+			return e.InternalServerError("Failed to check conversations", err)
+		}
+		if count > 0 {
+			return e.BadRequestError("cannot delete a contact with conversation history", nil)
+		}
+
+		if err := app.Delete(contact); err != nil {
+			return e.InternalServerError("failed to delete contact", err)
+		}
+		return e.JSON(http.StatusOK, map[string]any{"id": contact.Id})
+	}
+}
+
+// HandleAccountCreate connects a WhatsApp number to the current org.
+func HandleAccountCreate(app core.App) func(e *core.RequestEvent) error {
+	return func(e *core.RequestEvent) error {
+		access, apiErr := orgAccessFromRequest(e, app)
+		if apiErr != nil {
+			return apiErr
+		}
+		if !access.CanManageData() {
+			return e.ForbiddenError("only the owner or a superadmin can manage numbers", nil)
+		}
+
+		var body struct {
+			DisplayName   string `json:"display_name" form:"display_name"`
+			PhoneNumberID string `json:"phone_number_id" form:"phone_number_id"`
+			AccessToken   string `json:"access_token" form:"access_token"`
+			VerifyToken   string `json:"verify_token" form:"verify_token"`
+			Status        string `json:"status" form:"status"`
+			TeamID        string `json:"team_id" form:"team_id"`
+		}
+		if err := e.BindBody(&body); err != nil {
+			return e.BadRequestError("Invalid request body", err)
+		}
+		body.PhoneNumberID = strings.TrimSpace(body.PhoneNumberID)
+		if body.PhoneNumberID == "" {
+			return e.BadRequestError("phone_number_id is required", nil)
+		}
+		if body.Status == "" {
+			body.Status = "disconnected"
+		}
+		if body.Status != "connected" && body.Status != "disconnected" {
+			return e.BadRequestError("invalid status", nil)
+		}
+		teamID := ""
+		if body.TeamID != "" {
+			var err error
+			teamID, err = resolveTeam(app, access, store.RoleAgent, body.TeamID)
+			if err != nil {
+				return e.BadRequestError(err.Error(), nil)
+			}
+		}
+
+		if _, err := store.FindWhatsAppAccountByPhoneNumberID(app, body.PhoneNumberID); err == nil {
+			return e.BadRequestError("a number with this phone_number_id already exists", nil)
+		}
+
+		accountsCol, err := app.FindCollectionByNameOrId("whatsapp_accounts")
+		if err != nil {
+			return e.InternalServerError("accounts collection not found", err)
+		}
+		acc := core.NewRecord(accountsCol)
+		acc.Set("org", access.OrgID)
+		acc.Set("display_name", body.DisplayName)
+		acc.Set("phone_number_id", body.PhoneNumberID)
+		acc.Set("access_token", body.AccessToken)
+		acc.Set("verify_token", body.VerifyToken)
+		acc.Set("status", body.Status)
+		acc.Set("team", teamID)
+		if err := app.Save(acc); err != nil {
+			return e.BadRequestError("failed to create number", err)
+		}
+
+		return e.JSON(http.StatusOK, waAccountFromRecord(app, acc))
+	}
+}
+
+// HandleAccountUpdate updates a WhatsApp number in the current org.
+func HandleAccountUpdate(app core.App) func(e *core.RequestEvent) error {
+	return func(e *core.RequestEvent) error {
+		access, apiErr := orgAccessFromRequest(e, app)
+		if apiErr != nil {
+			return apiErr
+		}
+		if !access.CanManageData() {
+			return e.ForbiddenError("only the owner or a superadmin can manage numbers", nil)
+		}
+
+		acc, err := app.FindRecordById("whatsapp_accounts", e.Request.PathValue("id"))
+		if err != nil || acc.GetString("org") != access.OrgID {
+			return e.NotFoundError("number not found", nil)
+		}
+
+		var body struct {
+			DisplayName   string `json:"display_name" form:"display_name"`
+			PhoneNumberID string `json:"phone_number_id" form:"phone_number_id"`
+			AccessToken   string `json:"access_token" form:"access_token"`
+			VerifyToken   string `json:"verify_token" form:"verify_token"`
+			Status        string `json:"status" form:"status"`
+			TeamID        string `json:"team_id" form:"team_id"`
+		}
+		if err := e.BindBody(&body); err != nil {
+			return e.BadRequestError("Invalid request body", err)
+		}
+
+		if body.PhoneNumberID != "" {
+			acc.Set("phone_number_id", strings.TrimSpace(body.PhoneNumberID))
+		}
+		if body.DisplayName != "" {
+			acc.Set("display_name", body.DisplayName)
+		}
+		if body.AccessToken != "" {
+			acc.Set("access_token", body.AccessToken)
+		}
+		if body.VerifyToken != "" {
+			acc.Set("verify_token", body.VerifyToken)
+		}
+		if body.Status != "" {
+			if body.Status != "connected" && body.Status != "disconnected" {
+				return e.BadRequestError("invalid status", nil)
+			}
+			acc.Set("status", body.Status)
+		}
+		if body.TeamID != "" {
+			teamID, err := resolveTeam(app, access, store.RoleAgent, body.TeamID)
+			if err != nil {
+				return e.BadRequestError(err.Error(), nil)
+			}
+			acc.Set("team", teamID)
+		}
+
+		if err := app.Save(acc); err != nil {
+			return e.BadRequestError("failed to update number", err)
+		}
+
+		return e.JSON(http.StatusOK, waAccountFromRecord(app, acc))
+	}
+}
+
+// HandleAccountDelete disconnects a WhatsApp number with no conversation history.
+func HandleAccountDelete(app core.App) func(e *core.RequestEvent) error {
+	return func(e *core.RequestEvent) error {
+		access, apiErr := orgAccessFromRequest(e, app)
+		if apiErr != nil {
+			return apiErr
+		}
+		if !access.CanManageData() {
+			return e.ForbiddenError("only the owner or a superadmin can manage numbers", nil)
+		}
+
+		acc, err := app.FindRecordById("whatsapp_accounts", e.Request.PathValue("id"))
+		if err != nil || acc.GetString("org") != access.OrgID {
+			return e.NotFoundError("number not found", nil)
+		}
+
+		count, err := countConversationsFor(app, "conversations", "whatsapp_account", access.OrgID, acc.Id)
+		if err != nil {
+			return e.InternalServerError("Failed to check conversations", err)
+		}
+		if count > 0 {
+			return e.BadRequestError("cannot delete a number that has conversations", nil)
+		}
+
+		if err := app.Delete(acc); err != nil {
+			return e.InternalServerError("failed to delete number", err)
+		}
+		return e.JSON(http.StatusOK, map[string]any{"id": acc.Id})
 	}
 }

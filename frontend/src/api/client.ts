@@ -8,8 +8,10 @@ import type {
   SendMessagePayload,
   SendMessageResult,
   Session,
+  TeamDTO,
   TeamMemberDTO,
   WaAccountDTO,
+  WaAccountInput,
 } from './types'
 
 const API_BASE = '/api/wa'
@@ -107,6 +109,7 @@ export async function createTeamMember(input: {
   email: string
   name: string
   role: string
+  team_id?: string
 }): Promise<CreateTeamMemberResult> {
   return apiFetch<CreateTeamMemberResult>('/team', {
     method: 'POST',
@@ -116,7 +119,7 @@ export async function createTeamMember(input: {
 
 export async function updateTeamMember(
   userId: string,
-  input: { role?: string; name?: string },
+  input: { role?: string; name?: string; team_id?: string },
 ): Promise<TeamMemberDTO> {
   return apiFetch<TeamMemberDTO>(`/team/${userId}`, {
     method: 'PATCH',
@@ -126,6 +129,76 @@ export async function updateTeamMember(
 
 export async function deleteTeamMember(userId: string): Promise<{ id: string }> {
   return apiFetch<{ id: string }>(`/team/${userId}`, {
+    method: 'DELETE',
+  })
+}
+
+export async function listTeams(): Promise<ListResponse<TeamDTO>> {
+  return apiFetch<ListResponse<TeamDTO>>('/teams')
+}
+
+export async function createTeam(name: string): Promise<TeamDTO> {
+  return apiFetch<TeamDTO>('/teams', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  })
+}
+
+export async function updateTeam(teamId: string, name: string): Promise<TeamDTO> {
+  return apiFetch<TeamDTO>(`/teams/${teamId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+  })
+}
+
+export async function deleteTeam(teamId: string): Promise<{ id: string }> {
+  return apiFetch<{ id: string }>(`/teams/${teamId}`, {
+    method: 'DELETE',
+  })
+}
+
+export async function createContact(input: { name: string; phone: string }): Promise<ContactDTO> {
+  return apiFetch<ContactDTO>('/contacts', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export async function updateContact(
+  contactId: string,
+  input: { name?: string; phone?: string },
+): Promise<ContactDTO> {
+  return apiFetch<ContactDTO>(`/contacts/${contactId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  })
+}
+
+export async function deleteContact(contactId: string): Promise<{ id: string }> {
+  return apiFetch<{ id: string }>(`/contacts/${contactId}`, {
+    method: 'DELETE',
+  })
+}
+
+export async function createAccount(input: WaAccountInput): Promise<WaAccountDTO> {
+  return apiFetch<WaAccountDTO>('/accounts', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export async function updateAccount(
+  accountId: string,
+  input: WaAccountInput,
+): Promise<WaAccountDTO> {
+  return apiFetch<WaAccountDTO>(`/accounts/${accountId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  })
+}
+
+export async function deleteAccount(accountId: string): Promise<{ id: string }> {
+  return apiFetch<{ id: string }>(`/accounts/${accountId}`, {
     method: 'DELETE',
   })
 }

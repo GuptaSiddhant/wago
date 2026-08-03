@@ -100,6 +100,12 @@ func UpsertConversation(app core.App, orgID, contactID, accountID string, ts tim
 		return conv, nil
 	}
 
+	// Route new conversations to the whatsapp account's team, if any.
+	teamID := ""
+	if account, err := app.FindRecordById("whatsapp_accounts", accountID); err == nil {
+		teamID = account.GetString("team")
+	}
+
 	convCol, err := app.FindCollectionByNameOrId("conversations")
 	if err != nil {
 		return nil, err
@@ -108,6 +114,7 @@ func UpsertConversation(app core.App, orgID, contactID, accountID string, ts tim
 	conv.Set("org", orgID)
 	conv.Set("contact", contactID)
 	conv.Set("whatsapp_account", accountID)
+	conv.Set("team", teamID)
 	conv.Set("status", "open")
 	conv.Set("unread_count", 0)
 	conv.Set("last_message_at", ts)

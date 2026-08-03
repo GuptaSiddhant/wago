@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"net/http"
 	"slices"
 	"strings"
@@ -16,13 +17,36 @@ func canManageOwner(access *store.OrgAccess) bool {
 	return access.IsAdmin || access.Role == store.RoleOwner
 }
 
-func teamMemberFromRecords(user, member *core.Record) teamMemberDTO {
-	return teamMemberDTO{
+func teamMemberFromRecords(app core.App, user, member *core.Record) teamMemberDTO {
+	dto := teamMemberDTO{
 		ID:    user.Id,
 		Name:  user.GetString("name"),
 		Email: user.Email(),
 		Role:  member.GetString("role"),
 	}
+	if teamID := member.GetString("team"); teamID != "" {
+		dto.TeamID = teamID
+		if team, err := app.FindRecordById("teams", teamID); err == nil {
+			dto.TeamName = team.GetString("name")
+		}
+	}
+	return dto
+}
+
+// resolveTeam validates that the requested team belongs to the org and returns
+// its id. An empty teamID is allowed for the owner role.
+func resolveTeam(app core.App, access *store.OrgAccess, role, teamID string) (string, error) {
+	teamID = strings.TrimSpace(teamID)
+	if role == store.RoleOwner {
+		return "", nil
+	}
+	if teamID == "" {
+		return "", errors.New("a team is required for this role")
+	}
+	if _, err := store.FindTeamInOrg(app, access.OrgID, teamID); err != nil {
+		return "", errors.New("team does not belong to this organization")
+	}
+	return teamID, nil
 }
 
 // HandleTeamCreate adds a user to the org as a member.
@@ -37,9 +61,10 @@ func HandleTeamCreate(app core.App) func(e *core.RequestEvent) error {
 		}
 
 		var body struct {
-			Email string `json:"email" form:"email"`
-			Name  string `json:"name" form:"name"`
-			Role  string `json:"role" form:"role"`
+			Email  string `json:"email" form:"email"`
+			Name   string `json:"name" form:"name"`
+			Role   string `json:"role" form:"role"`
+			TeamID string `json:"team_id" form:"team_id"`
 		}
 		if err := e.BindBody(&body); err != nil {
 			return e.BadRequestError("Invalid request body", err)
@@ -58,6 +83,10 @@ func HandleTeamCreate(app core.App) func(e *core.RequestEvent) error {
 		if body.Role == store.RoleOwner && !canManageOwner(access) {
 			return e.ForbiddenError("only the owner or a superadmin can assign the owner role", nil)
 		}
+		teamID, err := resolveTeam(app, access, body.Role, body.TeamID)
+		if err != nil {
+			return e.BadRequestError(err.Error(), nil)
+		}
 
 		user, err := store.FindUserByEmail(app, body.Email)
 		generatedPassword := ""
@@ -73,15 +102,19 @@ func HandleTeamCreate(app core.App) func(e *core.RequestEvent) error {
 		if err != nil {
 			return e.InternalServerError("failed to add member", err)
 		}
+		member.Set("team", teamID)
+		if err := app.Save(member); err != nil {
+			return e.InternalServerError("failed to add member", err)
+		}
 
 		return e.JSON(http.StatusOK, map[string]any{
-			"member":             teamMemberFromRecords(user, member),
+			"member":             teamMemberFromRecords(app, user, member),
 			"generated_password": generatedPassword,
 		})
 	}
 }
 
-// HandleTeamUpdate changes a member's role (and optionally their display name).
+// HandleTeamUpdate changes a member's role, team, or display name.
 func HandleTeamUpdate(app core.App) func(e *core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
 		access, apiErr := orgAccessFromRequest(e, app)
@@ -93,14 +126,18 @@ func HandleTeamUpdate(app core.App) func(e *core.RequestEvent) error {
 		}
 
 		userID := e.Request.PathValue("id")
+		if userID == e.Auth.Id {
+			return e.ForbiddenError("you cannot change your own role or information", nil)
+		}
 		member, err := store.FindOrgMembership(app, access.OrgID, userID)
 		if err != nil {
 			return e.NotFoundError("member not found", nil)
 		}
 
 		var body struct {
-			Role string `json:"role" form:"role"`
-			Name string `json:"name" form:"name"`
+			Role   string `json:"role" form:"role"`
+			Name   string `json:"name" form:"name"`
+			TeamID string `json:"team_id" form:"team_id"`
 		}
 		if err := e.BindBody(&body); err != nil {
 			return e.BadRequestError("Invalid request body", err)
@@ -111,6 +148,7 @@ func HandleTeamUpdate(app core.App) func(e *core.RequestEvent) error {
 			return e.ForbiddenError("admins cannot modify the organization owner", nil)
 		}
 
+		nextRole := currentRole
 		if body.Role != "" {
 			if !slices.Contains(store.AllRoles, body.Role) {
 				return e.BadRequestError("invalid role", nil)
@@ -127,7 +165,23 @@ func HandleTeamUpdate(app core.App) func(e *core.RequestEvent) error {
 					return e.BadRequestError("cannot demote the last owner of the organization", nil)
 				}
 			}
-			member.Set("role", body.Role)
+			nextRole = body.Role
+		}
+
+		nextTeam := member.GetString("team")
+		if body.TeamID != "" {
+			nextTeam = body.TeamID
+		}
+		teamID, err := resolveTeam(app, access, nextRole, nextTeam)
+		if err != nil {
+			return e.BadRequestError(err.Error(), nil)
+		}
+
+		if nextRole != currentRole {
+			member.Set("role", nextRole)
+		}
+		if teamID != member.GetString("team") {
+			member.Set("team", teamID)
 		}
 
 		user, err := app.FindRecordById("users", userID)
@@ -145,7 +199,7 @@ func HandleTeamUpdate(app core.App) func(e *core.RequestEvent) error {
 			return e.InternalServerError("failed to update member", err)
 		}
 
-		return e.JSON(http.StatusOK, teamMemberFromRecords(user, member))
+		return e.JSON(http.StatusOK, teamMemberFromRecords(app, user, member))
 	}
 }
 
@@ -161,6 +215,9 @@ func HandleTeamDelete(app core.App) func(e *core.RequestEvent) error {
 		}
 
 		userID := e.Request.PathValue("id")
+		if userID == e.Auth.Id {
+			return e.ForbiddenError("you cannot remove yourself from the organization", nil)
+		}
 		member, err := store.FindOrgMembership(app, access.OrgID, userID)
 		if err != nil {
 			return e.NotFoundError("member not found", nil)

@@ -28,6 +28,12 @@ export interface AccountDTO {
   display_name: string
 }
 
+export interface TeamDTO {
+  id: string
+  name: string
+  member_count: number
+}
+
 export interface MessageDTO {
   id: string
   wamid: string
@@ -61,6 +67,8 @@ export interface TeamMemberDTO {
   name: string
   email: string
   role: string
+  team_id?: string
+  team_name?: string
 }
 
 export interface CreateTeamMemberResult {
@@ -73,6 +81,17 @@ export interface WaAccountDTO {
   display_name: string
   phone_number_id: string
   status: string
+  team_id?: string
+  team_name?: string
+}
+
+export interface WaAccountInput {
+  display_name?: string
+  phone_number_id?: string
+  access_token?: string
+  verify_token?: string
+  status?: string
+  team_id?: string
 }
 
 export interface ListResponse<T> {

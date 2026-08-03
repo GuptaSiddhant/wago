@@ -46,7 +46,7 @@ func HandleSendMessage(app core.App) func(e *core.RequestEvent) error {
 		if err != nil {
 			return e.NotFoundError("conversation not found", nil)
 		}
-		if conv.GetString("org") != access.OrgID {
+		if conv.GetString("org") != access.OrgID || !access.CanViewTeam(conv.GetString("team")) {
 			return e.ForbiddenError("you don't have access to this conversation", nil)
 		}
 

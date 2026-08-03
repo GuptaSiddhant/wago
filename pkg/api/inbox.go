@@ -115,6 +115,12 @@ func HandleInbox(app core.App) func(e *core.RequestEvent) error {
 
 		params := map[string]any{"org": access.OrgID}
 		filter := "org = {:org}"
+		if !access.CanSeeAllConversations() {
+			// Agents/viewers only see conversations routed to their team plus
+			// conversations that aren't routed to any team yet.
+			params["team"] = access.TeamID
+			filter += " && (team = {:team} || team = null)"
+		}
 		if search != "" {
 			params["q"] = search
 			filter += " && (contact.name ~ {:q} || contact.phone ~ {:q})"
@@ -162,7 +168,7 @@ func HandleConversationMessages(app core.App) func(e *core.RequestEvent) error {
 		if err != nil {
 			return e.NotFoundError("conversation not found", nil)
 		}
-		if conv.GetString("org") != access.OrgID {
+		if conv.GetString("org") != access.OrgID || !access.CanViewTeam(conv.GetString("team")) {
 			return e.ForbiddenError("you don't have access to this conversation", nil)
 		}
 
@@ -208,7 +214,7 @@ func HandleConversationAssign(app core.App) func(e *core.RequestEvent) error {
 		if err != nil {
 			return e.NotFoundError("conversation not found", nil)
 		}
-		if conv.GetString("org") != access.OrgID {
+		if conv.GetString("org") != access.OrgID || !access.CanViewTeam(conv.GetString("team")) {
 			return e.ForbiddenError("you don't have access to this conversation", nil)
 		}
 
@@ -248,7 +254,7 @@ func HandleConversationRead(app core.App) func(e *core.RequestEvent) error {
 		if err != nil {
 			return e.NotFoundError("conversation not found", nil)
 		}
-		if conv.GetString("org") != access.OrgID {
+		if conv.GetString("org") != access.OrgID || !access.CanViewTeam(conv.GetString("team")) {
 			return e.ForbiddenError("you don't have access to this conversation", nil)
 		}
 
