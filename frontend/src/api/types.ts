@@ -63,6 +63,11 @@ export interface TeamMemberDTO {
   role: string
 }
 
+export interface CreateTeamMemberResult {
+  member: TeamMemberDTO
+  generated_password: string
+}
+
 export interface WaAccountDTO {
   id: string
   display_name: string

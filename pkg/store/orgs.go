@@ -1,8 +1,10 @@
 package store
 
 import (
+	"crypto/rand"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
@@ -134,4 +136,52 @@ func FindOrgMembership(app core.App, orgID, userID string) (*core.Record, error)
 	return app.FindFirstRecordByFilter("org_members",
 		"org = {:org} && user = {:user}",
 		dbx.Params{"org": orgID, "user": userID})
+}
+
+// FindUserByEmail returns a user record by email.
+func FindUserByEmail(app core.App, email string) (*core.Record, error) {
+	return app.FindAuthRecordByEmail("users", email)
+}
+
+// CreateUser creates a new user record with the given credentials.
+func CreateUser(app core.App, email, name, password string) (*core.Record, error) {
+	usersCol, err := app.FindCollectionByNameOrId("users")
+	if err != nil {
+		return nil, err
+	}
+	user := core.NewRecord(usersCol)
+	user.Set("email", email)
+	user.Set("password", password)
+	user.Set("passwordConfirm", password)
+	if name != "" {
+		user.Set("name", name)
+	}
+	if err := app.Save(user); err != nil {
+		return nil, fmt.Errorf("failed to create user: %w", err)
+	}
+	return user, nil
+}
+
+// CountRoleMembers returns how many members of the org hold the given role.
+func CountRoleMembers(app core.App, orgID, role string) (int, error) {
+	records, err := app.FindRecordsByFilter("org_members",
+		"org = {:org} && role = {:role}", "", 500, 0,
+		DbxParams(map[string]any{"org": orgID, "role": role}))
+	if err != nil {
+		return 0, err
+	}
+	return len(records), nil
+}
+
+// GeneratePassword returns a random 16-character password for new users.
+func GeneratePassword() string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return fmt.Sprintf("wago-%d", time.Now().UnixNano())
+	}
+	for i := range b {
+		b[i] = charset[int(b[i])%len(charset)]
+	}
+	return string(b)
 }

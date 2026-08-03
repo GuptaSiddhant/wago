@@ -24,6 +24,7 @@ export interface SelectOption {
 
 export interface WSelectProps {
   label?: ReactNode
+  ariaLabel?: string
   options: SelectOption[]
   selectedKey?: Key | null
   onSelectionChange?: (key: Key | null) => void
@@ -36,6 +37,7 @@ export interface WSelectProps {
 
 export function SelectField({
   label,
+  ariaLabel,
   options,
   selectedKey,
   onSelectionChange,
@@ -50,7 +52,7 @@ export function SelectField({
       selectedKey={selectedKey}
       onSelectionChange={(key: Key) => onSelectionChange?.(key)}
       isDisabled={isDisabled}
-      aria-label={typeof label === 'string' ? label : undefined}
+      aria-label={ariaLabel ?? (typeof label === 'string' ? label : undefined)}
       className={`flex flex-col gap-1.5 ${className}`}
     >
       {label != null ? (

@@ -2,6 +2,7 @@ import { ApiError, getStoredOrgId, getStoredSession } from '../lib/authStore'
 import type {
   ContactDTO,
   ConversationsResponse,
+  CreateTeamMemberResult,
   ListResponse,
   MessagesResponse,
   SendMessagePayload,
@@ -100,6 +101,33 @@ export async function listContacts(filters: ContactFilters = {}): Promise<ListRe
 
 export async function listTeam(): Promise<ListResponse<TeamMemberDTO>> {
   return apiFetch<ListResponse<TeamMemberDTO>>('/team')
+}
+
+export async function createTeamMember(input: {
+  email: string
+  name: string
+  role: string
+}): Promise<CreateTeamMemberResult> {
+  return apiFetch<CreateTeamMemberResult>('/team', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export async function updateTeamMember(
+  userId: string,
+  input: { role?: string; name?: string },
+): Promise<TeamMemberDTO> {
+  return apiFetch<TeamMemberDTO>(`/team/${userId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  })
+}
+
+export async function deleteTeamMember(userId: string): Promise<{ id: string }> {
+  return apiFetch<{ id: string }>(`/team/${userId}`, {
+    method: 'DELETE',
+  })
 }
 
 export async function listAccounts(): Promise<ListResponse<WaAccountDTO>> {
