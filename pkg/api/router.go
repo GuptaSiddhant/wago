@@ -35,6 +35,7 @@ func Register(r *router.Router[*core.RequestEvent], app core.App) {
 	authed.POST("/accounts", HandleAccountCreate(app))
 	authed.PATCH("/accounts/{id}", HandleAccountUpdate(app))
 	authed.DELETE("/accounts/{id}", HandleAccountDelete(app))
+	authed.GET("/conversations/{id}", HandleConversationDetail(app))
 	authed.GET("/conversations/{id}/messages", HandleConversationMessages(app))
 	authed.POST("/conversations/{id}/assign", HandleConversationAssign(app))
 	authed.POST("/conversations/{id}/read", HandleConversationRead(app))

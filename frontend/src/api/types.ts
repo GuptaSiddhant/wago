@@ -21,6 +21,15 @@ export interface ContactDTO {
   id: string
   name: string
   phone: string
+  tags?: string[]
+  notes?: string
+}
+
+export interface ContactInput {
+  name?: string
+  phone?: string
+  tags?: string[]
+  notes?: string
 }
 
 export interface AccountDTO {
@@ -56,6 +65,13 @@ export interface ConversationDTO {
 
 export interface ConversationsResponse {
   items: ConversationDTO[]
+}
+
+export interface ConversationDetailDTO extends ConversationDTO {
+  in_window: boolean
+  assignee_name?: string
+  team_id?: string
+  team_name?: string
 }
 
 export interface MessagesResponse {

@@ -12,9 +12,22 @@ import (
 )
 
 type contactDTO struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Phone string `json:"phone"`
+	ID    string   `json:"id"`
+	Name  string   `json:"name"`
+	Phone string   `json:"phone"`
+	Tags  []string `json:"tags"`
+	Notes string   `json:"notes"`
+}
+
+// contactToDTO maps a contacts record into its wire representation.
+func contactToDTO(contact *core.Record) contactDTO {
+	return contactDTO{
+		ID:    contact.Id,
+		Name:  contact.GetString("name"),
+		Phone: contact.GetString("phone"),
+		Tags:  contact.GetStringSlice("tags"),
+		Notes: contact.GetString("notes"),
+	}
 }
 
 type accountDTO struct {
@@ -54,11 +67,7 @@ func conversationToDTO(app core.App, conv *core.Record) (*conversationDTO, error
 
 	contact, err := app.FindRecordById("contacts", conv.GetString("contact"))
 	if err == nil {
-		dto.Contact = contactDTO{
-			ID:    contact.Id,
-			Name:  contact.GetString("name"),
-			Phone: contact.GetString("phone"),
-		}
+		dto.Contact = contactToDTO(contact)
 	}
 
 	acc, err := app.FindRecordById("whatsapp_accounts", conv.GetString("whatsapp_account"))
@@ -198,6 +207,63 @@ func HandleConversationMessages(app core.App) func(e *core.RequestEvent) error {
 	}
 }
 
+// conversationDetailDTO extends the list representation with the full contact,
+// assignee/team context, and the Meta service-window state.
+type conversationDetailDTO struct {
+	conversationDTO
+	AssigneeName string `json:"assignee_name,omitempty"`
+	TeamID       string `json:"team_id,omitempty"`
+	TeamName     string `json:"team_name,omitempty"`
+	InWindow     bool   `json:"in_window"`
+}
+
+// HandleConversationDetail returns full detail for a single conversation,
+// including the contact (tags/notes) and the 24h service-window state.
+func HandleConversationDetail(app core.App) func(e *core.RequestEvent) error {
+	return func(e *core.RequestEvent) error {
+		access, apiErr := orgAccessFromRequest(e, app)
+		if apiErr != nil {
+			return apiErr
+		}
+
+		convID := e.Request.PathValue("id")
+		conv, err := app.FindRecordById("conversations", convID)
+		if err != nil {
+			return e.NotFoundError("conversation not found", nil)
+		}
+		if conv.GetString("org") != access.OrgID || !access.CanViewTeam(conv.GetString("team")) {
+			return e.ForbiddenError("you don't have access to this conversation", nil)
+		}
+
+		base, err := conversationToDTO(app, conv)
+		if err != nil {
+			return e.InternalServerError("Failed to load conversation", err)
+		}
+
+		dto := &conversationDetailDTO{conversationDTO: *base}
+
+		if assigneeID := conv.GetString("assignee"); assigneeID != "" {
+			if u, err := app.FindRecordById("users", assigneeID); err == nil {
+				dto.AssigneeName = u.GetString("name")
+			}
+		}
+		if teamID := conv.GetString("team"); teamID != "" {
+			dto.TeamID = teamID
+			if team, err := app.FindRecordById("teams", teamID); err == nil {
+				dto.TeamName = team.GetString("name")
+			}
+		}
+
+		inWindow, err := isWithinServiceWindow(app, convID)
+		if err != nil {
+			return e.InternalServerError("Failed to check service window", err)
+		}
+		dto.InWindow = inWindow
+
+		return e.JSON(http.StatusOK, dto)
+	}
+}
+
 // HandleConversationAssign assigns a conversation to a user.
 func HandleConversationAssign(app core.App) func(e *core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
@@ -219,25 +285,35 @@ func HandleConversationAssign(app core.App) func(e *core.RequestEvent) error {
 		}
 
 		var body struct {
-			UserID string `json:"user_id" form:"user_id"`
+			UserID     string `json:"user_id" form:"user_id"`
+			RoundRobin bool   `json:"round_robin" form:"round_robin"`
 		}
 		if err := e.BindBody(&body); err != nil {
 			return e.BadRequestError("Invalid request body", err)
 		}
 
-		if body.UserID != "" {
-			// ensure the target user is a member of this org
-			if _, err := store.FindOrgMembership(app, access.OrgID, body.UserID); err != nil {
-				return e.BadRequestError("target user is not a member of this org", nil)
+		var target string
+		if body.RoundRobin {
+			assignee, err := store.AssignConversationRR(app, conv)
+			if err != nil {
+				return e.InternalServerError("Failed to pick a round-robin assignee", err)
+			}
+			target = assignee
+		} else {
+			if body.UserID != "" {
+				// ensure the target user is a member of this org
+				if _, err := store.FindOrgMembership(app, access.OrgID, body.UserID); err != nil {
+					return e.BadRequestError("target user is not a member of this org", nil)
+				}
+				target = body.UserID
+			}
+			conv.Set("assignee", target)
+			if err := app.Save(conv); err != nil {
+				return e.InternalServerError("Failed to assign conversation", err)
 			}
 		}
 
-		conv.Set("assignee", body.UserID)
-		if err := app.Save(conv); err != nil {
-			return e.InternalServerError("Failed to assign conversation", err)
-		}
-
-		return e.JSON(http.StatusOK, map[string]any{"id": conv.Id, "assignee_id": body.UserID})
+		return e.JSON(http.StatusOK, map[string]any{"id": conv.Id, "assignee_id": target})
 	}
 }
 

@@ -1,8 +1,10 @@
 import { ApiError, getStoredOrgId, getStoredSession } from '../lib/authStore'
 import type {
   ContactDTO,
+  ContactInput,
   ConversationsResponse,
   CreateTeamMemberResult,
+  ConversationDetailDTO,
   ListResponse,
   MessagesResponse,
   SendMessagePayload,
@@ -86,6 +88,10 @@ export async function listMessages(conversationId: string): Promise<MessagesResp
   return apiFetch<MessagesResponse>(`/conversations/${conversationId}/messages`)
 }
 
+export async function getConversation(conversationId: string): Promise<ConversationDetailDTO> {
+  return apiFetch<ConversationDetailDTO>(`/conversations/${conversationId}`)
+}
+
 export interface ContactFilters {
   search?: string
   limit?: number
@@ -157,17 +163,14 @@ export async function deleteTeam(teamId: string): Promise<{ id: string }> {
   })
 }
 
-export async function createContact(input: { name: string; phone: string }): Promise<ContactDTO> {
+export async function createContact(input: ContactInput): Promise<ContactDTO> {
   return apiFetch<ContactDTO>('/contacts', {
     method: 'POST',
     body: JSON.stringify(input),
   })
 }
 
-export async function updateContact(
-  contactId: string,
-  input: { name?: string; phone?: string },
-): Promise<ContactDTO> {
+export async function updateContact(contactId: string, input: ContactInput): Promise<ContactDTO> {
   return apiFetch<ContactDTO>(`/contacts/${contactId}`, {
     method: 'PATCH',
     body: JSON.stringify(input),
@@ -214,6 +217,15 @@ export async function assignConversation(
   return apiFetch(`/conversations/${conversationId}/assign`, {
     method: 'POST',
     body: JSON.stringify({ user_id: userId }),
+  })
+}
+
+export async function assignRoundRobin(
+  conversationId: string,
+): Promise<{ id: string; assignee_id: string }> {
+  return apiFetch(`/conversations/${conversationId}/assign`, {
+    method: 'POST',
+    body: JSON.stringify({ round_robin: true }),
   })
 }
 

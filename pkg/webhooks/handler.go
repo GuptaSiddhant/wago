@@ -102,10 +102,19 @@ func processChange(app core.App, change wawh.Change) {
 	}
 
 	ts := time.Now()
-	conv, err := store.UpsertConversation(app, orgID, contact.Id, account.Id, ts)
+	conv, created, err := store.UpsertConversation(app, orgID, contact.Id, account.Id, ts)
 	if err != nil {
 		log.Printf("Failed to upsert conversation: %v", err)
 		return
+	}
+
+	// New conversations are auto-assigned round-robin to an eligible agent.
+	if created {
+		if assignee, err := store.AssignConversationRR(app, conv); err != nil {
+			log.Printf("Failed to round-robin assign conversation %s: %v", conv.Id, err)
+		} else if assignee != "" {
+			log.Printf("Round-robin assigned conversation %s to %s", conv.Id, assignee)
+		}
 	}
 
 	for _, msg := range val.Messages {

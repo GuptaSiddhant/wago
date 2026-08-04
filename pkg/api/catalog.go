@@ -65,11 +65,7 @@ func HandleContacts(app core.App) func(e *core.RequestEvent) error {
 
 		items := make([]contactDTO, 0, len(records))
 		for _, r := range records {
-			items = append(items, contactDTO{
-				ID:    r.Id,
-				Name:  r.GetString("name"),
-				Phone: r.GetString("phone"),
-			})
+			items = append(items, contactToDTO(r))
 		}
 
 		return e.JSON(http.StatusOK, map[string]any{"items": items})
@@ -164,8 +160,10 @@ func HandleContactCreate(app core.App) func(e *core.RequestEvent) error {
 		}
 
 		var body struct {
-			Name  string `json:"name" form:"name"`
-			Phone string `json:"phone" form:"phone"`
+			Name  string   `json:"name" form:"name"`
+			Phone string   `json:"phone" form:"phone"`
+			Tags  []string `json:"tags" form:"tags"`
+			Notes *string  `json:"notes" form:"notes"`
 		}
 		if err := e.BindBody(&body); err != nil {
 			return e.BadRequestError("Invalid request body", err)
@@ -177,34 +175,35 @@ func HandleContactCreate(app core.App) func(e *core.RequestEvent) error {
 		}
 
 		if existing, err := store.FindContactByPhone(app, access.OrgID, body.Phone); err == nil {
-			return e.JSON(http.StatusOK, contactDTO{
-				ID:    existing.Id,
-				Name:  existing.GetString("name"),
-				Phone: existing.GetString("phone"),
-			})
+			return e.JSON(http.StatusOK, contactToDTO(existing))
 		}
 
 		contact, err := store.UpsertContact(app, access.OrgID, body.Phone, body.Name)
 		if err != nil {
 			return e.InternalServerError("failed to create contact", err)
 		}
-		return e.JSON(http.StatusOK, contactDTO{
-			ID:    contact.Id,
-			Name:  contact.GetString("name"),
-			Phone: contact.GetString("phone"),
-		})
+		if body.Tags != nil {
+			contact.Set("tags", body.Tags)
+		}
+		if body.Notes != nil {
+			contact.Set("notes", *body.Notes)
+		}
+		if body.Tags != nil || body.Notes != nil {
+			if err := app.Save(contact); err != nil {
+				return e.InternalServerError("failed to save contact", err)
+			}
+		}
+		return e.JSON(http.StatusOK, contactToDTO(contact))
 	}
 }
 
-// HandleContactUpdate updates a contact in the current org.
+// HandleContactUpdate updates a contact in the current org. Name and phone are
+// restricted to owners/superadmins; agents may edit tags and notes.
 func HandleContactUpdate(app core.App) func(e *core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
 		access, apiErr := orgAccessFromRequest(e, app)
 		if apiErr != nil {
 			return apiErr
-		}
-		if !access.CanManageData() {
-			return e.ForbiddenError("only the owner or a superadmin can manage contacts", nil)
 		}
 
 		contact, err := app.FindRecordById("contacts", e.Request.PathValue("id"))
@@ -213,29 +212,42 @@ func HandleContactUpdate(app core.App) func(e *core.RequestEvent) error {
 		}
 
 		var body struct {
-			Name  string `json:"name" form:"name"`
-			Phone string `json:"phone" form:"phone"`
+			Name  string   `json:"name" form:"name"`
+			Phone string   `json:"phone" form:"phone"`
+			Tags  []string `json:"tags" form:"tags"`
+			Notes *string  `json:"notes" form:"notes"`
 		}
 		if err := e.BindBody(&body); err != nil {
 			return e.BadRequestError("Invalid request body", err)
 		}
-		if strings.TrimSpace(body.Phone) == "" && strings.TrimSpace(body.Name) == "" {
+
+		name, phone := strings.TrimSpace(body.Name), strings.TrimSpace(body.Phone)
+		if name == "" && phone == "" && body.Tags == nil && body.Notes == nil {
 			return e.BadRequestError("nothing to update", nil)
 		}
-		if phone := strings.TrimSpace(body.Phone); phone != "" {
+		if (name != "" || phone != "") && !access.CanManageData() {
+			return e.ForbiddenError("only the owner or a superadmin can edit contact name or phone", nil)
+		}
+		if (body.Tags != nil || body.Notes != nil) && !access.CanAssign() {
+			return e.ForbiddenError("your role cannot edit contact details", nil)
+		}
+
+		if phone != "" {
 			contact.Set("phone", phone)
 		}
-		if strings.TrimSpace(body.Name) != "" {
-			contact.Set("name", strings.TrimSpace(body.Name))
+		if name != "" {
+			contact.Set("name", name)
+		}
+		if body.Tags != nil {
+			contact.Set("tags", body.Tags)
+		}
+		if body.Notes != nil {
+			contact.Set("notes", *body.Notes)
 		}
 		if err := app.Save(contact); err != nil {
 			return e.InternalServerError("failed to update contact", err)
 		}
-		return e.JSON(http.StatusOK, contactDTO{
-			ID:    contact.Id,
-			Name:  contact.GetString("name"),
-			Phone: contact.GetString("phone"),
-		})
+		return e.JSON(http.StatusOK, contactToDTO(contact))
 	}
 }
 
