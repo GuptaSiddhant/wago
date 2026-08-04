@@ -5,6 +5,9 @@ import type {
   ConversationsResponse,
   CreateTeamMemberResult,
   ConversationDetailDTO,
+  InviteDTO,
+  InviteInfo,
+  InviteInput,
   ListResponse,
   MessagesResponse,
   SendMessagePayload,
@@ -136,6 +139,38 @@ export async function updateTeamMember(
 export async function deleteTeamMember(userId: string): Promise<{ id: string }> {
   return apiFetch<{ id: string }>(`/team/${userId}`, {
     method: 'DELETE',
+  })
+}
+
+export async function createInvite(input: InviteInput): Promise<InviteDTO> {
+  return apiFetch<InviteDTO>('/invites', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export async function listInvites(): Promise<ListResponse<InviteDTO>> {
+  return apiFetch<ListResponse<InviteDTO>>('/invites')
+}
+
+export async function revokeInvite(inviteId: string): Promise<{ id: string; status: string }> {
+  return apiFetch<{ id: string; status: string }>(`/invites/${inviteId}`, {
+    method: 'DELETE',
+  })
+}
+
+export async function inviteInfo(token: string): Promise<InviteInfo> {
+  return apiFetch<InviteInfo>(`/invites/info?t=${encodeURIComponent(token)}`)
+}
+
+export async function acceptInvite(input: {
+  token: string
+  name: string
+  password: string
+}): Promise<{ email: string }> {
+  return apiFetch<{ email: string }>('/invites/accept', {
+    method: 'POST',
+    body: JSON.stringify(input),
   })
 }
 

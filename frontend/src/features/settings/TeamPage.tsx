@@ -4,16 +4,19 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { DialogTrigger } from 'react-aria-components'
 import { Pencil, Plus, Trash2, Users } from 'lucide-react'
 import {
+  createInvite,
   createTeam,
-  createTeamMember,
   deleteTeam,
   deleteTeamMember,
+  listInvites,
   listTeam,
   listTeams,
+  revokeInvite,
   updateTeam,
   updateTeamMember,
 } from '../../api/client'
 import { useSession } from '../../lib/session'
+import { formatDate } from '../../lib/format'
 import { Avatar } from '../../components/ui/Avatar'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
@@ -22,7 +25,7 @@ import { ModalDialog } from '../../components/ui/Modal'
 import { SelectField } from '../../components/ui/Select'
 import { Spinner } from '../../components/ui/Spinner'
 import { TextField } from '../../components/ui/TextField'
-import type { TeamDTO, TeamMemberDTO } from '../../api/types'
+import type { InviteDTO, TeamDTO, TeamMemberDTO } from '../../api/types'
 
 const roleOptions = [
   { id: 'owner', label: 'Owner' },
@@ -44,15 +47,15 @@ function roleTone(role: string): 'amber' | 'blue' | 'green' | 'zinc' {
   }
 }
 
-function AddMemberDialog({ teams }: { teams: TeamDTO[] }) {
+function InviteDialog({ teams }: { teams: TeamDTO[] }) {
   const { session, org } = useSession()
   const queryClient = useQueryClient()
   const [email, setEmail] = useState('')
-  const [name, setName] = useState('')
   const [role, setRole] = useState('agent')
   const [teamId, setTeamId] = useState<string | null>(null)
-  const [generatedPassword, setGeneratedPassword] = useState('')
+  const [invite, setInvite] = useState<InviteDTO | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
   const canAssignOwner = session?.isAdmin === true || org?.role === 'owner'
   const roleOptionsFiltered = canAssignOwner ? roleOptions : roleOptions.filter((o) => o.id !== 'owner')
@@ -61,18 +64,18 @@ function AddMemberDialog({ teams }: { teams: TeamDTO[] }) {
   const teamOptions = teams.map((t) => ({ id: t.id, label: t.name }))
 
   const createMutation = useMutation({
-    mutationFn: createTeamMember,
+    mutationFn: createInvite,
     onSuccess: (result) => {
-      setGeneratedPassword(result.generated_password ?? '')
+      setInvite(result)
       setEmail('')
-      setName('')
       setRole('agent')
       setTeamId(null)
       setError(null)
-      void queryClient.invalidateQueries({ queryKey: ['team', org?.id ?? ''] })
+      setCopied(false)
+      void queryClient.invalidateQueries({ queryKey: ['invites', org?.id ?? ''] })
     },
     onError: (err) => {
-      setError(err instanceof Error ? err.message : 'Failed to add member')
+      setError(err instanceof Error ? err.message : 'Failed to create invite')
     },
   })
 
@@ -87,29 +90,50 @@ function AddMemberDialog({ teams }: { teams: TeamDTO[] }) {
       return
     }
     setError(null)
-    setGeneratedPassword('')
+    setInvite(null)
     createMutation.mutate({
       email: email.trim(),
-      name: name.trim(),
       role,
       team_id: needsTeam && teamId ? teamId : undefined,
     })
   }
 
+  const joinUrl = invite?.token ? `${window.location.origin}/join?t=${invite.token}` : ''
+
+  async function copyLink() {
+    if (!joinUrl) return
+    try {
+      await navigator.clipboard.writeText(joinUrl)
+      setCopied(true)
+    } catch {
+      // clipboards can fail; ignore
+    }
+  }
+
   return (
-    <ModalDialog title="Add member">
-      {generatedPassword ? (
-        <div>
+    <ModalDialog title="Invite member">
+      {invite ? (
+        <div className="space-y-3">
           <p className="text-sm text-zinc-300">
-            <span className="font-medium text-amber-300">Temporary password:</span>{' '}
-            <code className="rounded bg-zinc-800 px-1.5 py-0.5 font-mono text-amber-200">
-              {generatedPassword}
-            </code>
+            Invite sent to <span className="font-medium text-zinc-100">{invite.email}</span>.
           </p>
-          <p className="mt-1 text-xs text-zinc-500">
-            Share it with {email || 'the new member'} so they can sign in.
+          <div>
+            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-zinc-500">
+              Invite link
+            </span>
+            <div className="flex items-center gap-2">
+              <code className="min-w-0 flex-1 truncate rounded-lg bg-zinc-800 px-3 py-2 font-mono text-xs text-emerald-300">
+                {joinUrl}
+              </code>
+              <Button type="button" size="sm" variant="secondary" onPress={copyLink}>
+                {copied ? 'Copied' : 'Copy'}
+              </Button>
+            </div>
+          </div>
+          <p className="text-xs text-zinc-500">
+            Share this link with {invite.email}. It expires in 7 days.
           </p>
-          <div className="mt-4 flex justify-end">
+          <div className="mt-2 flex justify-end">
             <Button variant="secondary" slot="close">
               Done
             </Button>
@@ -124,7 +148,6 @@ function AddMemberDialog({ teams }: { teams: TeamDTO[] }) {
             onChange={setEmail}
             placeholder="teammate@example.com"
           />
-          <TextField label="Name" value={name} onChange={setName} placeholder="Full name" />
           <div>
             <span className="mb-1.5 block text-sm font-medium text-zinc-300">Role</span>
             <SelectField
@@ -153,7 +176,7 @@ function AddMemberDialog({ teams }: { teams: TeamDTO[] }) {
               Cancel
             </Button>
             <Button type="submit" isDisabled={createMutation.isPending}>
-              {createMutation.isPending ? 'Adding…' : 'Add member'}
+              {createMutation.isPending ? 'Inviting…' : 'Create invite'}
             </Button>
           </div>
         </form>
@@ -296,6 +319,99 @@ function TeamsSection({
   )
 }
 
+function inviteStatusTone(status: string): 'green' | 'amber' | 'zinc' {
+  switch (status) {
+    case 'pending':
+      return 'green'
+    default:
+      return 'zinc'
+  }
+}
+
+function InvitesSection({
+  invites,
+  canManage,
+  revokePending,
+  onRevoke,
+}: {
+  invites: InviteDTO[]
+  canManage: boolean
+  revokePending: boolean
+  onRevoke: (inv: InviteDTO) => void
+}) {
+  const pending = invites.filter((i) => i.status === 'pending')
+  const past = invites.filter((i) => i.status !== 'pending')
+
+  return (
+    <div className="mb-6">
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
+          Pending invites
+        </h2>
+      </div>
+      {pending.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-zinc-800 px-4 py-3 text-sm text-zinc-500">
+          No pending invites. Invite people by email — they'll get a join link to set their own
+          password and sign in.
+        </p>
+      ) : (
+        <table className="w-full border-collapse text-left text-sm">
+          <thead>
+            <tr className="border-b border-zinc-800 text-xs uppercase tracking-wider text-zinc-500">
+              <th className="py-2.5 pr-4 font-medium">Email</th>
+              <th className="py-2.5 pr-4 font-medium">Role</th>
+              <th className="py-2.5 pr-4 font-medium">Team</th>
+              <th className="py-2.5 pr-4 font-medium">Expires</th>
+              {canManage ? <th className="py-2.5 pl-4 text-right font-medium">Actions</th> : null}
+            </tr>
+          </thead>
+          <tbody>
+            {pending.map((i) => (
+              <tr key={i.id} className="border-b border-zinc-800/60">
+                <td className="py-3 pr-4 text-zinc-100">{i.email}</td>
+                <td className="py-3 pr-4">
+                  <Badge tone={inviteStatusTone(i.status)}>{i.role}</Badge>
+                </td>
+                <td className="py-3 pr-4 text-zinc-400">{i.team_name ?? '—'}</td>
+                <td className="py-3 pr-4 text-zinc-400">{formatDate(i.expires_at)}</td>
+                {canManage ? (
+                  <td className="py-3 pl-4 text-right">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      aria-label={`Revoke invite for ${i.email}`}
+                      onPress={() => onRevoke(i)}
+                      isDisabled={revokePending}
+                    >
+                      <Trash2 size={16} className="text-zinc-500 hover:text-red-400" />
+                    </Button>
+                  </td>
+                ) : null}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {past.length > 0 ? (
+        <>
+          <h3 className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wider text-zinc-600">
+            Accepted & revoked
+          </h3>
+          <ul className="space-y-1">
+            {past.map((i) => (
+              <li key={i.id} className="flex items-center gap-2 text-sm text-zinc-500">
+                <span className="truncate">{i.email}</span>
+                <Badge tone={inviteStatusTone(i.status)}>{i.status}</Badge>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+    </div>
+  )
+}
+
 export function TeamPage() {
   const { session, org } = useSession()
   const queryClient = useQueryClient()
@@ -315,6 +431,11 @@ export function TeamPage() {
   const teamsQuery = useQuery({
     queryKey: ['teams', orgId],
     queryFn: listTeams,
+    enabled: orgId !== '',
+  })
+  const invitesQuery = useQuery({
+    queryKey: ['invites', orgId],
+    queryFn: listInvites,
     enabled: orgId !== '',
   })
 
@@ -337,9 +458,22 @@ export function TeamPage() {
     },
   })
 
+  const revokeMutation = useMutation({
+    mutationFn: revokeInvite,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['invites', orgId] })
+    },
+  })
+
   const members = teamQuery.data?.items ?? []
   const teams = teamsQuery.data?.items ?? []
   const teamOptions = teams.map((t) => ({ id: t.id, label: t.name }))
+  const invites = invitesQuery.data?.items ?? []
+
+  function handleRevokeInvite(inv: InviteDTO) {
+    if (!window.confirm(`Revoke the invite for ${inv.email}?`)) return
+    revokeMutation.mutate(inv.id)
+  }
 
   function handleRoleChange(m: TeamMemberDTO, role: string) {
     if (m.role === role) return
@@ -378,9 +512,9 @@ export function TeamPage() {
           <DialogTrigger>
             <Button size="sm">
               <Plus size={14} />
-              Add member
+              Invite member
             </Button>
-            <AddMemberDialog teams={teams} />
+            <InviteDialog teams={teams} />
           </DialogTrigger>
         ) : null}
       </header>
@@ -393,6 +527,13 @@ export function TeamPage() {
         ) : (
           <TeamsSection teams={teams} canManage={canManage} onTeamDialog={setTeamDialog} />
         )}
+
+        <InvitesSection
+          invites={invites}
+          canManage={canManage}
+          revokePending={revokeMutation.isPending}
+          onRevoke={handleRevokeInvite}
+        />
 
         {teamQuery.isLoading ? (
           <div className="flex justify-center py-16">

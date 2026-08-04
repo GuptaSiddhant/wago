@@ -12,6 +12,8 @@ func Register(r *router.Router[*core.RequestEvent], app core.App) {
 
 	// public routes
 	group.POST("/auth/login", HandleLogin(app))
+	group.POST("/invites/accept", HandleInviteAccept(app))
+	group.GET("/invites/info", HandleInviteInfo(app))
 
 	// authenticated routes (regular users + superusers)
 	authed := group.Group("")
@@ -27,6 +29,9 @@ func Register(r *router.Router[*core.RequestEvent], app core.App) {
 	authed.POST("/team", HandleTeamCreate(app))
 	authed.PATCH("/team/{id}", HandleTeamUpdate(app))
 	authed.DELETE("/team/{id}", HandleTeamDelete(app))
+	authed.GET("/invites", HandleInvitesList(app))
+	authed.POST("/invites", HandleInviteCreate(app))
+	authed.DELETE("/invites/{id}", HandleInviteRevoke(app))
 	authed.GET("/teams", HandleTeamsList(app))
 	authed.POST("/teams", HandleTeamsCreate(app))
 	authed.PATCH("/teams/{id}", HandleTeamsUpdate(app))

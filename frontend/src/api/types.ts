@@ -114,6 +114,33 @@ export interface ListResponse<T> {
   items: T[]
 }
 
+export interface InviteDTO {
+  id: string
+  email: string
+  role: string
+  team_id?: string
+  team_name?: string
+  status: string
+  expires_at: string
+  created_at: string
+  token?: string
+}
+
+export interface InviteInput {
+  email: string
+  role: string
+  team_id?: string
+}
+
+export interface InviteInfo {
+  email: string
+  role: string
+  status: string
+  org_name: string
+  team_name?: string
+  expired: boolean
+}
+
 export interface SendMessageResult {
   id: string
   wamid: string
