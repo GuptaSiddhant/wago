@@ -61,6 +61,6 @@ func FindWhatsAppAccountByPhoneNumberID(app core.App, phoneNumberID string) (*co
 }
 
 // FindWhatsAppAccountByID finds an account by its record id.
-func FindWhatsAppAccountByID(app core.App, id string) (*core.Record, error) {
-	return app.FindRecordById("whatsapp_accounts", id)
+func FindWhatsAppAccountByID(app core.App, orgID, id string) (*core.Record, error) {
+	return FindOrgRecord(app, orgID, "whatsapp_accounts", id)
 }

@@ -177,11 +177,11 @@ func HandleConversationMessages(app core.App) func(e *core.RequestEvent) error {
 		}
 
 		convID := e.Request.PathValue("id")
-		conv, err := app.FindRecordById("conversations", convID)
+		conv, err := store.FindOrgRecord(app, access.OrgID, "conversations", convID)
 		if err != nil {
 			return e.NotFoundError("conversation not found", nil)
 		}
-		if conv.GetString("org") != access.OrgID || !access.CanViewTeam(conv.GetString("team")) {
+		if !access.CanViewTeam(conv.GetString("team")) {
 			return e.ForbiddenError("you don't have access to this conversation", nil)
 		}
 
@@ -231,11 +231,11 @@ func HandleConversationDetail(app core.App) func(e *core.RequestEvent) error {
 		}
 
 		convID := e.Request.PathValue("id")
-		conv, err := app.FindRecordById("conversations", convID)
+		conv, err := store.FindOrgRecord(app, access.OrgID, "conversations", convID)
 		if err != nil {
 			return e.NotFoundError("conversation not found", nil)
 		}
-		if conv.GetString("org") != access.OrgID || !access.CanViewTeam(conv.GetString("team")) {
+		if !access.CanViewTeam(conv.GetString("team")) {
 			return e.ForbiddenError("you don't have access to this conversation", nil)
 		}
 
@@ -280,11 +280,11 @@ func HandleConversationAssign(app core.App) func(e *core.RequestEvent) error {
 		}
 
 		convID := e.Request.PathValue("id")
-		conv, err := app.FindRecordById("conversations", convID)
+		conv, err := store.FindOrgRecord(app, access.OrgID, "conversations", convID)
 		if err != nil {
 			return e.NotFoundError("conversation not found", nil)
 		}
-		if conv.GetString("org") != access.OrgID || !access.CanViewTeam(conv.GetString("team")) {
+		if !access.CanViewTeam(conv.GetString("team")) {
 			return e.ForbiddenError("you don't have access to this conversation", nil)
 		}
 
@@ -330,15 +330,15 @@ func HandleConversationRead(app core.App) func(e *core.RequestEvent) error {
 		}
 
 		convID := e.Request.PathValue("id")
-		conv, err := app.FindRecordById("conversations", convID)
+		conv, err := store.FindOrgRecord(app, access.OrgID, "conversations", convID)
 		if err != nil {
 			return e.NotFoundError("conversation not found", nil)
 		}
-		if conv.GetString("org") != access.OrgID || !access.CanViewTeam(conv.GetString("team")) {
+		if !access.CanViewTeam(conv.GetString("team")) {
 			return e.ForbiddenError("you don't have access to this conversation", nil)
 		}
 
-		if err := store.MarkConversationRead(app, convID); err != nil {
+		if err := store.MarkConversationRead(app, access.OrgID, convID); err != nil {
 			return e.InternalServerError("Failed to mark conversation as read", err)
 		}
 

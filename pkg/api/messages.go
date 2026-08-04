@@ -42,19 +42,19 @@ func HandleSendMessage(app core.App) func(e *core.RequestEvent) error {
 			return e.BadRequestError("conversation_id is required", nil)
 		}
 
-		conv, err := app.FindRecordById("conversations", body.ConversationID)
+		conv, err := store.FindOrgRecord(app, access.OrgID, "conversations", body.ConversationID)
 		if err != nil {
 			return e.NotFoundError("conversation not found", nil)
 		}
-		if conv.GetString("org") != access.OrgID || !access.CanViewTeam(conv.GetString("team")) {
+		if !access.CanViewTeam(conv.GetString("team")) {
 			return e.ForbiddenError("you don't have access to this conversation", nil)
 		}
 
-		account, err := store.FindWhatsAppAccountByID(app, conv.GetString("whatsapp_account"))
+		account, err := store.FindWhatsAppAccountByID(app, access.OrgID, conv.GetString("whatsapp_account"))
 		if err != nil {
 			return e.InternalServerError("whatsapp account not found", err)
 		}
-		contact, err := app.FindRecordById("contacts", conv.GetString("contact"))
+		contact, err := store.FindOrgRecord(app, access.OrgID, "contacts", conv.GetString("contact"))
 		if err != nil {
 			return e.InternalServerError("contact not found", err)
 		}

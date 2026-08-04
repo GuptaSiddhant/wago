@@ -206,8 +206,8 @@ func HandleContactUpdate(app core.App) func(e *core.RequestEvent) error {
 			return apiErr
 		}
 
-		contact, err := app.FindRecordById("contacts", e.Request.PathValue("id"))
-		if err != nil || contact.GetString("org") != access.OrgID {
+		contact, err := store.FindOrgRecord(app, access.OrgID, "contacts", e.Request.PathValue("id"))
+		if err != nil {
 			return e.NotFoundError("contact not found", nil)
 		}
 
@@ -262,8 +262,8 @@ func HandleContactDelete(app core.App) func(e *core.RequestEvent) error {
 			return e.ForbiddenError("only the owner or a superadmin can manage contacts", nil)
 		}
 
-		contact, err := app.FindRecordById("contacts", e.Request.PathValue("id"))
-		if err != nil || contact.GetString("org") != access.OrgID {
+		contact, err := store.FindOrgRecord(app, access.OrgID, "contacts", e.Request.PathValue("id"))
+		if err != nil {
 			return e.NotFoundError("contact not found", nil)
 		}
 
@@ -358,8 +358,8 @@ func HandleAccountUpdate(app core.App) func(e *core.RequestEvent) error {
 			return e.ForbiddenError("only the owner or a superadmin can manage numbers", nil)
 		}
 
-		acc, err := app.FindRecordById("whatsapp_accounts", e.Request.PathValue("id"))
-		if err != nil || acc.GetString("org") != access.OrgID {
+		acc, err := store.FindOrgRecord(app, access.OrgID, "whatsapp_accounts", e.Request.PathValue("id"))
+		if err != nil {
 			return e.NotFoundError("number not found", nil)
 		}
 
@@ -420,8 +420,8 @@ func HandleAccountDelete(app core.App) func(e *core.RequestEvent) error {
 			return e.ForbiddenError("only the owner or a superadmin can manage numbers", nil)
 		}
 
-		acc, err := app.FindRecordById("whatsapp_accounts", e.Request.PathValue("id"))
-		if err != nil || acc.GetString("org") != access.OrgID {
+		acc, err := store.FindOrgRecord(app, access.OrgID, "whatsapp_accounts", e.Request.PathValue("id"))
+		if err != nil {
 			return e.NotFoundError("number not found", nil)
 		}
 

@@ -135,8 +135,8 @@ func IncrementConversationUnread(app core.App, convID string) error {
 }
 
 // MarkConversationRead resets the unread counter to zero.
-func MarkConversationRead(app core.App, convID string) error {
-	conv, err := app.FindRecordById("conversations", convID)
+func MarkConversationRead(app core.App, orgID, convID string) error {
+	conv, err := FindOrgRecord(app, orgID, "conversations", convID)
 	if err != nil {
 		return err
 	}

@@ -132,8 +132,8 @@ func HandleInviteRevoke(app core.App) func(e *core.RequestEvent) error {
 			return e.ForbiddenError("your role cannot manage invites", nil)
 		}
 
-		inv, err := app.FindRecordById("invites", e.Request.PathValue("id"))
-		if err != nil || inv.GetString("org") != access.OrgID {
+		inv, err := store.FindOrgRecord(app, access.OrgID, "invites", e.Request.PathValue("id"))
+		if err != nil {
 			return e.NotFoundError("invite not found", nil)
 		}
 		if inv.GetString("status") != store.InviteStatusPending {
