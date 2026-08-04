@@ -26,6 +26,7 @@ export interface InboxFilters {
   assignee?: string
   unassigned?: boolean
   status?: string
+  contact?: string
   limit?: number
   offset?: number
 }
@@ -81,6 +82,7 @@ export async function listConversations(filters: InboxFilters): Promise<Conversa
   if (filters.assignee) params.set('assignee', filters.assignee)
   if (filters.unassigned) params.set('unassigned', 'true')
   if (filters.status) params.set('status', filters.status)
+  if (filters.contact) params.set('contact', filters.contact)
   if (filters.limit) params.set('limit', String(filters.limit))
   if (filters.offset) params.set('offset', String(filters.offset))
   const qs = params.toString()

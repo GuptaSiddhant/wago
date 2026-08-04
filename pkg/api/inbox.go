@@ -144,6 +144,10 @@ func HandleInbox(app core.App) func(e *core.RequestEvent) error {
 			params["status"] = status
 			filter += " && status = {:status}"
 		}
+		if contactID := strings.TrimSpace(q.Get("contact")); contactID != "" {
+			params["contact"] = contactID
+			filter += " && contact = {:contact}"
+		}
 
 		records, err := app.FindRecordsByFilter("conversations", filter, "-last_message_at", limit, offset,
 			store.DbxParams(params))

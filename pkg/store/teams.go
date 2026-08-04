@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/pocketbase/pocketbase/core"
-	"github.com/pocketbase/pocketbase/tools/types"
 )
 
 // ensureField adds a field to a collection if it doesn't already exist,
@@ -26,10 +25,10 @@ func EnsureTeamsCollection(app core.App) error {
 	col, err := app.FindCollectionByNameOrId("teams")
 	if err != nil {
 		col = core.NewBaseCollection("teams")
-		col.ListRule = types.Pointer("@request.auth.id != ''")
-		col.ViewRule = types.Pointer("@request.auth.id != ''")
-		col.CreateRule = types.Pointer("@request.auth.id != ''")
-		col.UpdateRule = types.Pointer("@request.auth.id != ''")
+		col.ListRule = nil
+		col.ViewRule = nil
+		col.CreateRule = nil
+		col.UpdateRule = nil
 		col.DeleteRule = nil
 
 		col.Fields.Add(

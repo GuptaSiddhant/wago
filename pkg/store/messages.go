@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/pocketbase/pocketbase/core"
-	"github.com/pocketbase/pocketbase/tools/types"
 )
 
 func EnsureMessagesCollection(app core.App) error {
@@ -21,11 +20,11 @@ func EnsureMessagesCollection(app core.App) error {
 	if _, err := app.FindCollectionByNameOrId("messages"); err != nil {
 		collection := core.NewBaseCollection("messages")
 
-		// Allow logged-in users to list, view, and create messages
-		collection.ListRule = types.Pointer("@request.auth.id != ''")
-		collection.ViewRule = types.Pointer("@request.auth.id != ''")
-		collection.CreateRule = types.Pointer("@request.auth.id != ''")
-		// Lock Update and Delete to Superusers only (nil = locked)
+		// Messages are scoped to org_id and only reachable through the scoped
+		// API (and PB superusers which always bypass rules).
+		collection.ListRule = nil
+		collection.ViewRule = nil
+		collection.CreateRule = nil
 		collection.UpdateRule = nil
 		collection.DeleteRule = nil
 

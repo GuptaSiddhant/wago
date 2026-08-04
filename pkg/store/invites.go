@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/pocketbase/pocketbase/core"
-	"github.com/pocketbase/pocketbase/tools/types"
 )
 
 const inviteTTL = 7 * 24 * time.Hour
@@ -35,10 +34,11 @@ func EnsureInvitesCollection(app core.App) error {
 
 	if _, err := app.FindCollectionByNameOrId("invites"); err != nil {
 		col := core.NewBaseCollection("invites")
-		col.ListRule = types.Pointer("@request.auth.id != ''")
-		col.ViewRule = types.Pointer("@request.auth.id != ''")
-		col.CreateRule = types.Pointer("@request.auth.id != ''")
-		// Invites are managed through the Wago API handlers only.
+		// Invites are managed through the Wago API handlers only and scoped
+		// to org_id (hidden from raw API access for non-superusers).
+		col.ListRule = nil
+		col.ViewRule = nil
+		col.CreateRule = nil
 		col.UpdateRule = nil
 		col.DeleteRule = nil
 

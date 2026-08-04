@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/pocketbase/pocketbase/core"
-	"github.com/pocketbase/pocketbase/tools/types"
 )
 
 func EnsureWhatsAppAccountsCollection(app core.App) error {
@@ -17,10 +16,10 @@ func EnsureWhatsAppAccountsCollection(app core.App) error {
 	if _, err := app.FindCollectionByNameOrId("whatsapp_accounts"); err != nil {
 		collection := core.NewBaseCollection("whatsapp_accounts")
 
-		collection.ListRule = types.Pointer("@request.auth.id != ''")
-		collection.ViewRule = types.Pointer("@request.auth.id != ''")
-		collection.CreateRule = types.Pointer("@request.auth.id != ''")
-		collection.UpdateRule = types.Pointer("@request.auth.id != ''")
+		collection.ListRule = nil
+		collection.ViewRule = nil
+		collection.CreateRule = nil
+		collection.UpdateRule = nil
 		collection.DeleteRule = nil
 
 		collection.Fields.Add(

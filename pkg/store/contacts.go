@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/pocketbase/pocketbase/core"
-	"github.com/pocketbase/pocketbase/tools/types"
 )
 
 func EnsureContactsCollection(app core.App) error {
@@ -17,12 +16,13 @@ func EnsureContactsCollection(app core.App) error {
 	if _, err := app.FindCollectionByNameOrId("contacts"); err != nil {
 		collection := core.NewBaseCollection("contacts")
 
-		// Allow logged-in users to list, view, and create contacts
-		collection.ListRule = types.Pointer("@request.auth.id != ''")
-		collection.ViewRule = types.Pointer("@request.auth.id != ''")
-		collection.CreateRule = types.Pointer("@request.auth.id != ''")
-		collection.UpdateRule = types.Pointer("@request.auth.id != ''")
-		// Lock Delete to Superusers only (nil = locked)
+		// Contacts are scoped to org_id and only reachable through the scoped
+		// API (and PB superusers which always bypass rules). Hidden from
+		// regular raw API access to prevent cross-org enumeration.
+		collection.ListRule = nil
+		collection.ViewRule = nil
+		collection.CreateRule = nil
+		collection.UpdateRule = nil
 		collection.DeleteRule = nil
 
 		collection.Fields.Add(

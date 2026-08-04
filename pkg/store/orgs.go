@@ -24,10 +24,13 @@ var AllRoles = []string{RoleOwner, RoleAdmin, RoleAgent, RoleViewer}
 func EnsureOrgsCollection(app core.App) error {
 	if _, err := app.FindCollectionByNameOrId("orgs"); err != nil {
 		col := core.NewBaseCollection("orgs")
-		col.ListRule = types.Pointer("@request.auth.id != ''")
-		col.ViewRule = types.Pointer("@request.auth.id != ''")
-		col.CreateRule = types.Pointer("@request.auth.id != ''")
-		col.UpdateRule = types.Pointer("@request.auth.id != ''")
+		// Orgs are only reachable through the scoped API (and PB superusers
+		// which always bypass rules). Hidden from regular raw API access so
+		// users can't enumerate other organizations.
+		col.ListRule = nil
+		col.ViewRule = nil
+		col.CreateRule = nil
+		col.UpdateRule = nil
 		col.DeleteRule = nil
 
 		col.Fields.Add(
@@ -57,10 +60,10 @@ func EnsureOrgMembersCollection(app core.App) error {
 	if _, err := app.FindCollectionByNameOrId("org_members"); err != nil {
 		collection := core.NewBaseCollection("org_members")
 
-		collection.ListRule = types.Pointer("@request.auth.id != ''")
-		collection.ViewRule = types.Pointer("@request.auth.id != ''")
-		collection.CreateRule = types.Pointer("@request.auth.id != ''")
-		collection.UpdateRule = types.Pointer("@request.auth.id != ''")
+		collection.ListRule = types.Pointer("user = @request.auth.id")
+		collection.ViewRule = types.Pointer("user = @request.auth.id")
+		collection.CreateRule = nil
+		collection.UpdateRule = nil
 		collection.DeleteRule = nil
 
 		collection.Fields.Add(
