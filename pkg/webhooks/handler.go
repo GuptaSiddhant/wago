@@ -1,14 +1,17 @@
 package webhooks
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/guptasiddhant/wago/pkg/notifications"
 	"github.com/guptasiddhant/wago/pkg/store"
 
+	"github.com/piusalfred/whatsapp/message"
 	wawh "github.com/piusalfred/whatsapp/webhooks"
 	"github.com/pocketbase/pocketbase/core"
 )
@@ -120,10 +123,11 @@ func processChange(app core.App, change wawh.Change, notifier *notifications.Not
 	}
 
 	for _, msg := range val.Messages {
-		if msg == nil || msg.Type != "text" || msg.Text == nil {
-			// @todo handle media + template messages in a follow-up
+		if msg == nil {
 			continue
 		}
+
+		body := messageBody(msg)
 
 		msgTS := ts
 		if sec, err := strconv.ParseInt(msg.Timestamp, 10, 64); err == nil {
@@ -132,7 +136,7 @@ func processChange(app core.App, change wawh.Change, notifier *notifications.Not
 
 		err := store.SaveIncomingMessage(
 			app, orgID, conv.Id, msg.From, senderName,
-			val.Metadata.DisplayPhoneNumber, msg.Text.Body, msg.ID, msgTS, val,
+			val.Metadata.DisplayPhoneNumber, body, msg.ID, msgTS, val,
 		)
 		if err != nil {
 			log.Printf("Failed to save message: %v", err)
@@ -143,6 +147,97 @@ func processChange(app core.App, change wawh.Change, notifier *notifications.Not
 		_ = store.IncrementConversationUnread(app, conv.Id)
 
 		// Notify the assigned agent (desktop push if active, email/WhatsApp if not).
-		notifier.Trigger(app, orgID, conv.Id, conv.GetString("assignee"), msg.Text.Body)
+		notifier.Trigger(app, orgID, conv.Id, conv.GetString("assignee"), body)
 	}
+}
+
+// messageBody renders a human-readable body for any inbound message type so
+// media, buttons, interactive replies, locations and other non-text messages
+// are shown (and notified on) instead of being silently dropped.
+func messageBody(m *wawh.Message) string {
+	switch {
+	case m == nil:
+		return ""
+	case m.Text != nil:
+		return m.Text.Body
+	case m.Image != nil:
+		return mediaBody("Image", m.Image)
+	case m.Video != nil:
+		return mediaBody("Video", m.Video)
+	case m.Audio != nil:
+		return mediaBody("Audio", m.Audio)
+	case m.Document != nil:
+		return mediaBody("Document", m.Document)
+	case m.Sticker != nil:
+		return mediaBody("Sticker", m.Sticker)
+	case m.Button != nil:
+		if m.Button.Text != "" {
+			return "Button: " + m.Button.Text
+		}
+		if m.Button.Payload != "" {
+			return "Button: " + m.Button.Payload
+		}
+		return "[Button]"
+	case m.Interactive != nil:
+		if r := m.Interactive.ButtonReply; r != nil {
+			if r.Title != "" {
+				return "Button reply: " + r.Title
+			}
+			return "Button reply: " + r.ID
+		}
+		if r := m.Interactive.ListReply; r != nil {
+			if r.Title != "" {
+				return "List reply: " + r.Title
+			}
+			return "List reply: " + r.ID
+		}
+		if r := m.Interactive.NFMReply; r != nil {
+			if r.Body != "" {
+				return "Flow reply: " + r.Body
+			}
+			return "[Flow reply]"
+		}
+		return "[Interactive: " + m.Interactive.Type + "]"
+	case m.Location != nil:
+		loc := fmt.Sprintf("Location: %.5f, %.5f", m.Location.Latitude, m.Location.Longitude)
+		if m.Location.Name != "" {
+			loc += " (" + m.Location.Name + ")"
+		}
+		return loc
+	case m.Contacts != nil && len(*m.Contacts) > 0:
+		if name := contactName((*m.Contacts)[0]); name != "" {
+			return "Contact: " + name
+		}
+		return "[Contact]"
+	case m.System != nil:
+		return "System: " + m.System.Body
+	case m.Reaction != nil:
+		if m.Reaction.Emoji != "" {
+			return "Reaction: " + m.Reaction.Emoji
+		}
+		return "[Reaction]"
+	default:
+		// Fall back to a bracketed type so nothing is lost silently.
+		return "[" + m.Type + "]"
+	}
+}
+
+func mediaBody(kind string, media *message.MediaInfo) string {
+	s := "[" + kind + "]"
+	if media.Caption != "" {
+		s += " " + media.Caption
+	} else if media.Filename != "" {
+		s += " " + media.Filename
+	}
+	return s
+}
+
+func contactName(c *message.Contact) string {
+	if c == nil || c.Name == nil {
+		return ""
+	}
+	if c.Name.FormattedName != "" {
+		return c.Name.FormattedName
+	}
+	return strings.TrimSpace(c.Name.FirstName + " " + c.Name.LastName)
 }
