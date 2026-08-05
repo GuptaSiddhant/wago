@@ -89,7 +89,14 @@ func HandleInviteCreate(app core.App) func(e *core.RequestEvent) error {
 			return e.BadRequestError("this email already has a pending invite", nil)
 		}
 
-		inv, err := store.CreateInvite(app, access.OrgID, body.Email, body.Role, teamID, e.Auth.Id)
+		// created_by is a relation to the users collection, and superusers are
+		// not users records, so leave it unset when a superadmin sends invites.
+		createdBy := e.Auth.Id
+		if e.Auth.IsSuperuser() {
+			createdBy = ""
+		}
+
+		inv, err := store.CreateInvite(app, access.OrgID, body.Email, body.Role, teamID, createdBy)
 		if err != nil {
 			return e.InternalServerError("failed to create invite", err)
 		}

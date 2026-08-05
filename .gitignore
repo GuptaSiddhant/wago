@@ -3,5 +3,10 @@
 !.env.sample
 pb_data
 frontend/dist
+frontend/e2e/.pb_data
 tmp
 node_modules
+frontend/test-results
+frontend/playwright-report
+frontend/blob-report
+frontend/.playwright/
