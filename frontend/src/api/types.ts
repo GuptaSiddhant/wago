@@ -207,6 +207,95 @@ export interface SendMessageResult {
   in_window: boolean
 }
 
+export interface TemplateButton {
+  type: 'QUICK_REPLY' | 'URL' | 'PHONE_NUMBER'
+  text: string
+  url?: string
+  phone_number?: string
+}
+
+export interface MessageTemplateDTO {
+  id: string
+  account_id: string
+  account_name?: string
+  meta_id?: string
+  name: string
+  language: string
+  category: string
+  header_type: string
+  header_text?: string
+  body: string
+  footer?: string
+  buttons?: TemplateButton[]
+  status: string
+  meta_error?: string
+  created?: string
+}
+
+export interface TemplateInput {
+  account_id: string
+  name: string
+  language: string
+  category: string
+  header_type: string
+  header_text?: string
+  body: string
+  footer?: string
+  buttons?: TemplateButton[]
+  example_values?: string[]
+}
+
+export interface TemplatesResponse {
+  items: MessageTemplateDTO[]
+  errors?: string[]
+}
+
+export interface BroadcastDTO {
+  id: string
+  name: string
+  status: string
+  account_id: string
+  account_name?: string
+  template_id: string
+  template_name?: string
+  rate_per_minute: number
+  batch_size: number
+  recipient_count: number
+  sent_count: number
+  failed_count: number
+  pending: number
+  sending: number
+  created?: string
+  started_at?: string
+  finished_at?: string
+}
+
+export interface BroadcastCreateInput {
+  name: string
+  account_id: string
+  template_id: string
+  params?: Record<string, unknown>[]
+  rate_per_minute: number
+  batch_size: number
+  contact_ids?: string[]
+  all_contacts?: boolean
+}
+
+export interface BroadcastRecipient {
+  id: string
+  name: string
+  phone: string
+  status: string
+  wamid?: string
+  error?: string
+  available?: string
+}
+
+export interface BroadcastDetail {
+  broadcast: BroadcastDTO
+  recipients: BroadcastRecipient[]
+}
+
 export interface TemplateParam {
   type: string
   text?: string

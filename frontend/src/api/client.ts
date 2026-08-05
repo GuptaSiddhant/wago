@@ -1,6 +1,9 @@
 import { ApiError, getStoredOrgId, getStoredSession } from '../lib/authStore'
 import type {
   AnalyticsResponse,
+  BroadcastCreateInput,
+  BroadcastDetail,
+  BroadcastDTO,
   ContactDTO,
   ContactInput,
   ConversationsResponse,
@@ -11,6 +14,7 @@ import type {
   InviteInput,
   ListResponse,
   MessagesResponse,
+  MessageTemplateDTO,
   NotificationsResponse,
   PhoneMetaResult,
   SendMessagePayload,
@@ -18,6 +22,8 @@ import type {
   Session,
   TeamDTO,
   TeamMemberDTO,
+  TemplateInput,
+  TemplatesResponse,
   WaAccountDTO,
   WaAccountInput,
 } from './types'
@@ -252,6 +258,94 @@ export async function accountMeta(accountId: string): Promise<PhoneMetaResult> {
 
 export async function analytics(range: string): Promise<AnalyticsResponse> {
   return apiFetch<AnalyticsResponse>(`/analytics?range=${range}`)
+}
+
+export async function listTemplates(): Promise<TemplatesResponse> {
+  return apiFetch<TemplatesResponse>('/templates')
+}
+
+export async function createTemplate(input: TemplateInput): Promise<MessageTemplateDTO> {
+  return apiFetch<MessageTemplateDTO>('/templates', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export async function deleteTemplate(templateId: string): Promise<{ id: string }> {
+  return apiFetch<{ id: string }>(`/templates/${templateId}`, { method: 'DELETE' })
+}
+
+export async function syncTemplates(): Promise<TemplatesResponse> {
+  return apiFetch<TemplatesResponse>('/templates/sync', { method: 'POST' })
+}
+
+export async function listBroadcasts(): Promise<ListResponse<BroadcastDTO>> {
+  return apiFetch<ListResponse<BroadcastDTO>>('/broadcasts')
+}
+
+export async function createBroadcast(input: BroadcastCreateInput): Promise<BroadcastDTO> {
+  return apiFetch<BroadcastDTO>('/broadcasts', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export async function getBroadcast(broadcastId: string): Promise<BroadcastDetail> {
+  return apiFetch<BroadcastDetail>(`/broadcasts/${broadcastId}`)
+}
+
+export async function cancelBroadcast(broadcastId: string): Promise<BroadcastDTO> {
+  return apiFetch<BroadcastDTO>(`/broadcasts/${broadcastId}/cancel`, { method: 'POST' })
+}
+
+/**
+ * Subscribes to live broadcast progress via the server-sent events stream
+ * (`/broadcasts/{id}/events`). PocketBase's SSE routes require auth headers,
+ * so this uses fetch + ReadableStream instead of the native EventSource (which
+ * cannot send custom headers). The stream resolves when the server closes it.
+ */
+export async function subscribeBroadcastEvents(
+  broadcastId: string,
+  onEvent: (event: string, payload: BroadcastDTO) => void,
+  signal: AbortSignal,
+): Promise<void> {
+  const headers = new Headers()
+  const token = getStoredSession()?.token
+  const orgId = getStoredOrgId()
+  if (token) headers.set('Authorization', `Bearer ${token}`)
+  if (orgId) headers.set('X-Org-Id', orgId)
+
+  const res = await fetch(`${API_BASE}/broadcasts/${broadcastId}/events`, { headers, signal })
+  if (!res.ok || !res.body) {
+    throw new ApiError(res.status, `Broadcast events stream failed (${res.status})`)
+  }
+
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+
+    const frames = buffer.split('\n\n')
+    buffer = frames.pop() ?? ''
+    for (const frame of frames) {
+      let event = 'message'
+      let data = ''
+      for (const line of frame.split('\n')) {
+        if (line.startsWith('event:')) event = line.slice(6).trim()
+        else if (line.startsWith('data:')) data = line.slice(5).trim()
+      }
+      if (!data) continue
+      try {
+        onEvent(event, JSON.parse(data) as BroadcastDTO)
+      } catch {
+        // Ignore malformed frames; keep streaming.
+      }
+    }
+  }
 }
 
 export async function listAccounts(): Promise<ListResponse<WaAccountDTO>> {

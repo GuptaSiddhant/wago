@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"fmt"
 	"io/fs"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/guptasiddhant/wago/pkg/api"
 	"github.com/guptasiddhant/wago/pkg/notifications"
+	"github.com/guptasiddhant/wago/pkg/queue"
 	"github.com/guptasiddhant/wago/pkg/store"
 	"github.com/guptasiddhant/wago/pkg/utils"
 	"github.com/guptasiddhant/wago/pkg/webhooks"
@@ -71,6 +73,15 @@ func handleOnServe(cfg *utils.AppConfig) func(se *core.ServeEvent) error {
 
 		// Register Wago API routes
 		api.Register(se.Router, se.App)
+
+		// Start the broadcast worker. It drains queued recipients from a
+		// SQLite-backed lease queue; no cron is needed (it self-recovers).
+		go queue.NewWorker(se.App, queue.Config{
+			MessagesPerMinute: cfg.MessagesPerMinute,
+			BatchSize:         cfg.BroadcastBatchSize,
+			LeaseSeconds:      cfg.BroadcastLeaseSeconds,
+			MaxAttempts:       cfg.BroadcastMaxAttempts,
+		}).Run(context.Background())
 
 		// Register Webhook endpoints
 		se.Router.GET("/api/wa/webhook", webhooks.HandleVerification(cfg.WA_WebhookVerifyToken))

@@ -29,7 +29,22 @@ type AppConfig struct {
 	// WA_NotificationTemplate is an approved Meta template name used to send
 	// best-effort WhatsApp notifications to inactive users. Empty disables it.
 	WA_NotificationTemplate string
+
+	// Broadcast worker tuning. These bound how aggressively template broadcasts
+	// are sent so the account stays within Meta/WhatsApp rate limits.
+	MessagesPerMinute int   // global sustained rate across all active broadcasts
+	BroadcastBatchSize int  // recipients claimed per broadcast per worker tick
+	BroadcastLeaseSeconds int // how long a claimed recipient's lease lasts before redelivery
+	BroadcastMaxAttempts int // send attempts before a recipient is marked failed
 }
+
+// WorkerDefaults are applied when the corresponding env vars are unset.
+const (
+	DefaultMessagesPerMinute     = 60
+	DefaultBroadcastBatchSize    = 10
+	DefaultBroadcastLeaseSeconds = 300
+	DefaultBroadcastMaxAttempts  = 3
+)
 
 // Helper to load environment variables
 func LoadAppConfig() (*AppConfig, error) {
@@ -62,9 +77,23 @@ func LoadAppConfig() (*AppConfig, error) {
 		VAPIDSubject:    getEnvOrDefault("VAPID_SUBJECT", adminEmail),
 
 		WA_NotificationTemplate: os.Getenv("WA_NOTIFICATION_TEMPLATE"),
+
+		MessagesPerMinute:     parseEnvIntOrDefault("MESSAGES_PER_MINUTE", DefaultMessagesPerMinute),
+		BroadcastBatchSize:    parseEnvIntOrDefault("BROADCAST_BATCH_SIZE", DefaultBroadcastBatchSize),
+		BroadcastLeaseSeconds: parseEnvIntOrDefault("BROADCAST_LEASE_SECONDS", DefaultBroadcastLeaseSeconds),
+		BroadcastMaxAttempts:  parseEnvIntOrDefault("BROADCAST_MAX_ATTEMPTS", DefaultBroadcastMaxAttempts),
 	}
 
 	return cfg, nil
+}
+
+// parseEnvIntOrDefault parses an int env var, falling back when empty/invalid.
+func parseEnvIntOrDefault(key string, fallback int) int {
+	val, err := parseEnvInt(key, fallback)
+	if err != nil {
+		return fallback
+	}
+	return val
 }
 
 // LoadDotEnv reads a .env file and sets the variables into the process env

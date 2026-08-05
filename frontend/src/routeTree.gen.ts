@@ -14,8 +14,10 @@ import { Route as JoinRouteImport } from './routes/join'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAnalyticsRouteImport } from './routes/_app/analytics'
+import { Route as AppBroadcastRouteImport } from './routes/_app/broadcast'
 import { Route as AppContactsRouteImport } from './routes/_app/contacts'
 import { Route as AppInboxRouteImport } from './routes/_app/inbox'
+import { Route as AppTemplatesRouteImport } from './routes/_app/templates'
 import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings/index'
 import { Route as AppSettingsNumbersRouteImport } from './routes/_app/settings/numbers'
 import { Route as AppSettingsTeamRouteImport } from './routes/_app/settings/team'
@@ -44,6 +46,11 @@ const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AppRoute,
 } as any)
+const AppBroadcastRoute = AppBroadcastRouteImport.update({
+  id: '/broadcast',
+  path: '/broadcast',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppContactsRoute = AppContactsRouteImport.update({
   id: '/contacts',
   path: '/contacts',
@@ -52,6 +59,11 @@ const AppContactsRoute = AppContactsRouteImport.update({
 const AppInboxRoute = AppInboxRouteImport.update({
   id: '/inbox',
   path: '/inbox',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTemplatesRoute = AppTemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
@@ -75,8 +87,10 @@ export interface FileRoutesByFullPath {
   '/join': typeof JoinRoute
   '/login': typeof LoginRoute
   '/analytics': typeof AppAnalyticsRoute
+  '/broadcast': typeof AppBroadcastRoute
   '/contacts': typeof AppContactsRoute
   '/inbox': typeof AppInboxRoute
+  '/templates': typeof AppTemplatesRoute
   '/settings/numbers': typeof AppSettingsNumbersRoute
   '/settings/team': typeof AppSettingsTeamRoute
   '/settings/': typeof AppSettingsIndexRoute
@@ -85,8 +99,10 @@ export interface FileRoutesByTo {
   '/join': typeof JoinRoute
   '/login': typeof LoginRoute
   '/analytics': typeof AppAnalyticsRoute
+  '/broadcast': typeof AppBroadcastRoute
   '/contacts': typeof AppContactsRoute
   '/inbox': typeof AppInboxRoute
+  '/templates': typeof AppTemplatesRoute
   '/': typeof AppIndexRoute
   '/settings/numbers': typeof AppSettingsNumbersRoute
   '/settings/team': typeof AppSettingsTeamRoute
@@ -98,8 +114,10 @@ export interface FileRoutesById {
   '/join': typeof JoinRoute
   '/login': typeof LoginRoute
   '/_app/analytics': typeof AppAnalyticsRoute
+  '/_app/broadcast': typeof AppBroadcastRoute
   '/_app/contacts': typeof AppContactsRoute
   '/_app/inbox': typeof AppInboxRoute
+  '/_app/templates': typeof AppTemplatesRoute
   '/_app/': typeof AppIndexRoute
   '/_app/settings/numbers': typeof AppSettingsNumbersRoute
   '/_app/settings/team': typeof AppSettingsTeamRoute
@@ -112,8 +130,10 @@ export interface FileRouteTypes {
     | '/join'
     | '/login'
     | '/analytics'
+    | '/broadcast'
     | '/contacts'
     | '/inbox'
+    | '/templates'
     | '/settings/numbers'
     | '/settings/team'
     | '/settings/'
@@ -122,8 +142,10 @@ export interface FileRouteTypes {
     | '/join'
     | '/login'
     | '/analytics'
+    | '/broadcast'
     | '/contacts'
     | '/inbox'
+    | '/templates'
     | '/'
     | '/settings/numbers'
     | '/settings/team'
@@ -134,8 +156,10 @@ export interface FileRouteTypes {
     | '/join'
     | '/login'
     | '/_app/analytics'
+    | '/_app/broadcast'
     | '/_app/contacts'
     | '/_app/inbox'
+    | '/_app/templates'
     | '/_app/'
     | '/_app/settings/numbers'
     | '/_app/settings/team'
@@ -185,6 +209,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAnalyticsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/broadcast': {
+      id: '/_app/broadcast'
+      path: '/broadcast'
+      fullPath: '/broadcast'
+      preLoaderRoute: typeof AppBroadcastRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/contacts': {
       id: '/_app/contacts'
       path: '/contacts'
@@ -197,6 +228,13 @@ declare module '@tanstack/react-router' {
       path: '/inbox'
       fullPath: '/inbox'
       preLoaderRoute: typeof AppInboxRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/templates': {
+      id: '/_app/templates'
+      path: '/templates'
+      fullPath: '/templates'
+      preLoaderRoute: typeof AppTemplatesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/settings/': {
@@ -225,8 +263,10 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAnalyticsRoute: typeof AppAnalyticsRoute
+  AppBroadcastRoute: typeof AppBroadcastRoute
   AppContactsRoute: typeof AppContactsRoute
   AppInboxRoute: typeof AppInboxRoute
+  AppTemplatesRoute: typeof AppTemplatesRoute
   AppIndexRoute: typeof AppIndexRoute
   AppSettingsNumbersRoute: typeof AppSettingsNumbersRoute
   AppSettingsTeamRoute: typeof AppSettingsTeamRoute
@@ -235,8 +275,10 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppAnalyticsRoute: AppAnalyticsRoute,
+  AppBroadcastRoute: AppBroadcastRoute,
   AppContactsRoute: AppContactsRoute,
   AppInboxRoute: AppInboxRoute,
+  AppTemplatesRoute: AppTemplatesRoute,
   AppIndexRoute: AppIndexRoute,
   AppSettingsNumbersRoute: AppSettingsNumbersRoute,
   AppSettingsTeamRoute: AppSettingsTeamRoute,

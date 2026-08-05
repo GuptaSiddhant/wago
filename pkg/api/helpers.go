@@ -2,12 +2,22 @@ package api
 
 import (
 	"strings"
+	"time"
 
 	"github.com/guptasiddhant/wago/pkg/store"
 
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tools/router"
+	"github.com/pocketbase/pocketbase/tools/types"
 )
+
+// fmtDateTime renders a PocketBase DateTime as RFC3339, or "" when unset.
+func fmtDateTime(d types.DateTime) string {
+	if d.IsZero() {
+		return ""
+	}
+	return d.Time().Format(time.RFC3339)
+}
 
 // orgAccessFromRequest resolves the requested org for an authenticated request.
 // The org is read from the "X-Org-Id" header, falling back to the "org" query param.

@@ -1,5 +1,5 @@
 import { Link, Outlet } from '@tanstack/react-router'
-import { BarChart3, MessageSquare, Users, Settings, LogOut } from 'lucide-react'
+import { BarChart3, FileText, Megaphone, MessageSquare, Users, Settings, LogOut } from 'lucide-react'
 import { OrgSwitcher } from './OrgSwitcher'
 import { Avatar } from './ui/Avatar'
 import { NotificationBell } from './NotificationBell'
@@ -8,6 +8,8 @@ import { useSession } from '../lib/session'
 const mainNav = [
   { to: '/inbox', label: 'Inbox', icon: MessageSquare },
   { to: '/contacts', label: 'Contacts', icon: Users },
+  { to: '/broadcast', label: 'Broadcast', icon: Megaphone },
+  { to: '/templates', label: 'Templates', icon: FileText },
   { to: '/analytics', label: 'Analytics', icon: BarChart3 },
 ]
 
