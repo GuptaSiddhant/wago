@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/guptasiddhant/wago/pkg/notifications"
 	"github.com/guptasiddhant/wago/pkg/store"
 
 	wawh "github.com/piusalfred/whatsapp/webhooks"
@@ -30,8 +31,9 @@ func HandleVerification(verifyToken string) func(re *core.RequestEvent) error {
 
 // HandleIncomingMessage returns the handler for POST /api/wa/webhook.
 // When appSecret is non-empty, inbound payloads are validated against the
-// X-Hub-Signature-256 header signed with the Meta App Secret.
-func HandleIncomingMessage(appSecret string) func(re *core.RequestEvent) error {
+// X-Hub-Signature-256 header signed with the Meta App Secret. The notifier is
+// triggered for assigned conversations so users get notified of new chats.
+func HandleIncomingMessage(appSecret string, notifier *notifications.Notifier) func(re *core.RequestEvent) error {
 	return func(re *core.RequestEvent) error {
 		notification, err := wawh.ExtractAndValidatePayload(re.Request, &wawh.ValidateOptions{
 			Validate:  appSecret != "",
@@ -42,22 +44,22 @@ func HandleIncomingMessage(appSecret string) func(re *core.RequestEvent) error {
 			return re.String(http.StatusOK, "EVENT_RECEIVED")
 		}
 
-		processNotification(re.App, notification)
+		processNotification(re.App, notification, notifier)
 
 		// Always return 200 OK to Meta immediately
 		return re.String(http.StatusOK, "EVENT_RECEIVED")
 	}
 }
 
-func processNotification(app core.App, notification *wawh.Notification) {
+func processNotification(app core.App, notification *wawh.Notification, notifier *notifications.Notifier) {
 	for _, entry := range notification.Entry {
 		for _, change := range entry.Changes {
-			processChange(app, change)
+			processChange(app, change, notifier)
 		}
 	}
 }
 
-func processChange(app core.App, change wawh.Change) {
+func processChange(app core.App, change wawh.Change, notifier *notifications.Notifier) {
 	val := change.Value
 	if val == nil || val.Metadata == nil {
 		return
@@ -139,5 +141,8 @@ func processChange(app core.App, change wawh.Change) {
 
 		// inbound messages count towards unread until an agent reads them
 		_ = store.IncrementConversationUnread(app, conv.Id)
+
+		// Notify the assigned agent (desktop push if active, email/WhatsApp if not).
+		notifier.Trigger(app, orgID, conv.Id, conv.GetString("assignee"), msg.Text.Body)
 	}
 }

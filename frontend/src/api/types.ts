@@ -114,6 +114,20 @@ export interface ListResponse<T> {
   items: T[]
 }
 
+export interface NotificationDTO {
+  id: string
+  kind: string
+  body: string
+  read: boolean
+  conversation_id: string
+  contact_name: string
+  created: string
+}
+
+export interface NotificationsResponse {
+  items: NotificationDTO[]
+}
+
 export interface InviteDTO {
   id: string
   email: string

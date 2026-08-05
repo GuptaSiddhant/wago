@@ -2,6 +2,7 @@ import { Link, Outlet } from '@tanstack/react-router'
 import { MessageSquare, Users, Settings, LogOut } from 'lucide-react'
 import { OrgSwitcher } from './OrgSwitcher'
 import { Avatar } from './ui/Avatar'
+import { NotificationBell } from './NotificationBell'
 import { useSession } from '../lib/session'
 
 const mainNav = [
@@ -49,10 +50,11 @@ export function AppShell() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-sm font-bold text-white">
             W
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="text-sm font-semibold tracking-tight">WaGo</div>
             <div className="truncate text-[11px] text-zinc-500">{org?.name ?? 'Support inbox'}</div>
           </div>
+          <NotificationBell />
         </div>
 
         <div className="px-3">

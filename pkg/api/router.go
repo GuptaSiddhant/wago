@@ -45,4 +45,8 @@ func Register(r *router.Router[*core.RequestEvent], app core.App) {
 	authed.POST("/conversations/{id}/assign", HandleConversationAssign(app))
 	authed.POST("/conversations/{id}/read", HandleConversationRead(app))
 	authed.POST("/messages/send", HandleSendMessage(app))
+	authed.GET("/notifications", HandleNotificationsList(app))
+	authed.GET("/notifications/unread-count", HandleNotificationsUnreadCount(app))
+	authed.POST("/notifications/read", HandleNotificationsRead(app))
+	authed.POST("/presence", HandlePresence(app))
 }

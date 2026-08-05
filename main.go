@@ -11,6 +11,7 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 
 	"github.com/guptasiddhant/wago/pkg/api"
+	"github.com/guptasiddhant/wago/pkg/notifications"
 	"github.com/guptasiddhant/wago/pkg/store"
 	"github.com/guptasiddhant/wago/pkg/utils"
 	"github.com/guptasiddhant/wago/pkg/webhooks"
@@ -50,12 +51,30 @@ func handleOnServe(cfg *utils.AppConfig) func(se *core.ServeEvent) error {
 			return fmt.Errorf("Failed to setup collections: %w", err)
 		}
 
+		// Enable PocketBase's SMTP mailer from config so notification emails work.
+		if cfg.SMTPHost != "" {
+			settings := se.App.Settings()
+			settings.SMTP = core.SMTPConfig{
+				Enabled:  true,
+				Host:     cfg.SMTPHost,
+				Port:     cfg.SMTPPort,
+				Username: cfg.SMTPUsername,
+				Password: cfg.SMTPPassword,
+				TLS:      cfg.SMTPTLS,
+			}
+			if err := se.App.Save(settings); err != nil {
+				log.Printf("⚠️ Failed to persist SMTP settings: %v", err)
+			}
+		}
+
+		notifier := notifications.NewNotifier(cfg)
+
 		// Register Wago API routes
 		api.Register(se.Router, se.App)
 
 		// Register Webhook endpoints
 		se.Router.GET("/api/wa/webhook", webhooks.HandleVerification(cfg.WA_WebhookVerifyToken))
-		se.Router.POST("/api/wa/webhook", webhooks.HandleIncomingMessage(cfg.MetaAppSecret))
+		se.Router.POST("/api/wa/webhook", webhooks.HandleIncomingMessage(cfg.MetaAppSecret, notifier))
 
 		// Serve embedded React SPA from root /
 		frontendSubFS, err := fs.Sub(frontendFS, "frontend/dist")

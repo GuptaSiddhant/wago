@@ -10,6 +10,7 @@ import type {
   InviteInput,
   ListResponse,
   MessagesResponse,
+  NotificationsResponse,
   SendMessagePayload,
   SendMessageResult,
   Session,
@@ -279,4 +280,21 @@ export async function sendMessage(payload: SendMessagePayload): Promise<SendMess
     method: 'POST',
     body: JSON.stringify(payload),
   })
+}
+
+export async function listNotifications(limit?: number): Promise<NotificationsResponse> {
+  const qs = limit ? `?limit=${limit}` : ''
+  return apiFetch<NotificationsResponse>(`/notifications${qs}`)
+}
+
+export async function unreadNotificationCount(): Promise<{ count: number }> {
+  return apiFetch<{ count: number }>('/notifications/unread-count')
+}
+
+export async function markNotificationsRead(): Promise<{ updated: number }> {
+  return apiFetch<{ updated: number }>('/notifications/read', { method: 'POST' })
+}
+
+export async function sendPresence(): Promise<void> {
+  return apiFetch<void>('/presence', { method: 'POST' })
 }

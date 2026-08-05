@@ -13,6 +13,18 @@ type AppConfig struct {
 	AdminPassword         string
 	WA_WebhookVerifyToken string
 	MetaAppSecret         string
+
+	SMTPHost              string
+	SMTPPort              int
+	SMTPUsername          string
+	SMTPPassword          string
+	SMTPTLS               bool
+	SMTPFromAddress       string
+	SMTPFromName          string
+
+	// WA_NotificationTemplate is an approved Meta template name used to send
+	// best-effort WhatsApp notifications to inactive users. Empty disables it.
+	WA_NotificationTemplate string
 }
 
 // Helper to load environment variables
@@ -28,11 +40,23 @@ func LoadAppConfig() (*AppConfig, error) {
 
 	metaAppSecret := getEnvOrDefault("META_APP_SECRET", "")
 
+	smtpPort, _ := parseEnvInt("SMTP_PORT", 587)
+
 	cfg := &AppConfig{
 		AdminEmail:            adminEmail,
 		AdminPassword:         adminPassword,
 		WA_WebhookVerifyToken: waWebhookVerifyToken,
 		MetaAppSecret:         metaAppSecret,
+
+		SMTPHost:          os.Getenv("SMTP_HOST"),
+		SMTPPort:          smtpPort,
+		SMTPUsername:      os.Getenv("SMTP_USERNAME"),
+		SMTPPassword:      os.Getenv("SMTP_PASSWORD"),
+		SMTPTLS:           parseEnvBool("SMTP_TLS", false),
+		SMTPFromAddress:   getEnvOrDefault("SMTP_FROM_ADDRESS", adminEmail),
+		SMTPFromName:      getEnvOrDefault("SMTP_FROM_NAME", "WaGo"),
+
+		WA_NotificationTemplate: os.Getenv("WA_NOTIFICATION_TEMPLATE"),
 	}
 
 	return cfg, nil
