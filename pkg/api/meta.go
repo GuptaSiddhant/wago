@@ -1,0 +1,185 @@
+package api
+
+import (
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/guptasiddhant/wago/pkg/meta"
+	"github.com/guptasiddhant/wago/pkg/store"
+
+	"github.com/pocketbase/pocketbase/core"
+)
+
+var metaClient = meta.NewClient()
+
+// HandleAccountMeta fetches the per-phone-number health/status from Meta. These
+// require no extra permissions (same token used for messaging). The response
+// is always 200 so per-number fetches degrade gracefully; ok=false carries a
+// human-readable reason (bad token, missing number, etc.).
+func HandleAccountMeta(app core.App) func(e *core.RequestEvent) error {
+	return func(e *core.RequestEvent) error {
+		access, apiErr := orgAccessFromRequest(e, app)
+		if apiErr != nil {
+			return apiErr
+		}
+
+		acc, err := store.FindOrgRecord(app, access.OrgID, "whatsapp_accounts", e.Request.PathValue("id"))
+		if err != nil {
+			return e.NotFoundError("number not found", nil)
+		}
+
+		token := acc.GetString("access_token")
+		phoneID := acc.GetString("phone_number_id")
+		if token == "" || phoneID == "" {
+			return e.JSON(http.StatusOK, map[string]any{
+				"ok":    false,
+				"error": "number is missing an access token or phone_number_id",
+			})
+		}
+
+		info, err := metaClient.GetPhoneNumberInfo(e.Request.Context(), token, phoneID)
+		if err != nil {
+			return e.JSON(http.StatusOK, map[string]any{
+				"ok":    false,
+				"error": err.Error(),
+			})
+		}
+
+		return e.JSON(http.StatusOK, map[string]any{"ok": true, "info": info})
+	}
+}
+
+type analyticsTotals struct {
+	Conversations int64   `json:"conversations"`
+	Cost          float64 `json:"cost"`
+}
+
+type analyticsAccount struct {
+	ID            string  `json:"id"`
+	DisplayName   string  `json:"display_name"`
+	PhoneNumberID string  `json:"phone_number_id"`
+	Conversations int64   `json:"conversations"`
+	Cost          float64 `json:"cost"`
+}
+
+type analyticsCategory struct {
+	Category      string  `json:"category"`
+	Conversations int64   `json:"conversations"`
+	Cost          float64 `json:"cost"`
+}
+
+// HandleAnalytics returns org-level WhatsApp usage and cost for a time range,
+// aggregated from Meta's conversation_analytics across every connected WABA.
+// Requires each number to have a waba_id and a token with the
+// whatsapp_business_management permission; failing numbers are reported in
+// "errors" so the UI can explain missing setup.
+func HandleAnalytics(app core.App) func(e *core.RequestEvent) error {
+	return func(e *core.RequestEvent) error {
+		access, apiErr := orgAccessFromRequest(e, app)
+		if apiErr != nil {
+			return apiErr
+		}
+
+		rangeKey := strings.TrimPrefix(e.Request.URL.Query().Get("range"), "range=")
+		var days time.Duration
+		switch rangeKey {
+		case "7d":
+			days = 7 * 24 * time.Hour
+		case "90d":
+			days = 90 * 24 * time.Hour
+		default:
+			rangeKey = "30d"
+			days = 30 * 24 * time.Hour
+		}
+
+		now := time.Now().UTC()
+		start := now.Add(-days)
+		granularity := "DAILY"
+		if days > 31*24*time.Hour {
+			granularity = "MONTHLY"
+		}
+
+		records, err := app.FindRecordsByFilter("whatsapp_accounts", "org = {:org}", "-created", 200, 0,
+			store.DbxParams(map[string]any{"org": access.OrgID}))
+		if err != nil {
+			return e.InternalServerError("Failed to list WhatsApp accounts", err)
+		}
+
+		totals := analyticsTotals{}
+		accounts := make([]analyticsAccount, 0)
+		categories := map[string]*analyticsCategory{}
+		var errorsOut []string
+
+		ctx := e.Request.Context()
+		for _, acc := range records {
+			wabaID := acc.GetString("waba_id")
+			token := acc.GetString("access_token")
+			if wabaID == "" {
+				errorsOut = append(errorsOut, "Number "+peerLabel(acc)+" has no WABA ID — add it to see analytics")
+				continue
+			}
+			if token == "" {
+				errorsOut = append(errorsOut, "Number "+peerLabel(acc)+" has no access token")
+				continue
+			}
+
+			points, aerr := metaClient.FetchConversationAnalytics(ctx, token, wabaID, start.Unix(), now.Unix(), granularity)
+			if aerr != nil {
+				errorsOut = append(errorsOut, peerLabel(acc)+": "+aerr.Error())
+				continue
+			}
+
+			accEntry := analyticsAccount{ID: acc.Id, DisplayName: acc.GetString("display_name"), PhoneNumberID: acc.GetString("phone_number_id")}
+			for _, p := range points {
+				totals.Conversations += p.Conversations
+				totals.Cost += p.Cost
+				accEntry.Conversations += p.Conversations
+				accEntry.Cost += p.Cost
+
+				cat := strings.Title(strings.ToLower(p.ConversationCategory))
+				cat = strings.TrimSpace(cat)
+				if cat == "" {
+					cat = "Unknown"
+				}
+				if categories[cat] == nil {
+					categories[cat] = &analyticsCategory{Category: cat}
+				}
+				categories[cat].Conversations += p.Conversations
+				categories[cat].Cost += p.Cost
+			}
+			accounts = append(accounts, accEntry)
+		}
+
+		cats := make([]analyticsCategory, 0, len(categories))
+		for _, c := range categories {
+			cats = append(cats, *c)
+		}
+		sortCategories(cats)
+
+		return e.JSON(http.StatusOK, map[string]any{
+			"range":      rangeKey,
+			"start":      start.Unix(),
+			"end":        now.Unix(),
+			"totals":     totals,
+			"accounts":   accounts,
+			"categories": cats,
+			"errors":     errorsOut,
+		})
+	}
+}
+
+func peerLabel(acc *core.Record) string {
+	if n := acc.GetString("display_name"); n != "" {
+		return n
+	}
+	return acc.GetString("phone_number_id")
+}
+
+func sortCategories(cats []analyticsCategory) {
+	for i := 1; i < len(cats); i++ {
+		for j := i; j > 0 && cats[j].Cost > cats[j-1].Cost; j-- {
+			cats[j], cats[j-1] = cats[j-1], cats[j]
+		}
+	}
+}

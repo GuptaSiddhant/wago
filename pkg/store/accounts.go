@@ -31,6 +31,7 @@ func EnsureWhatsAppAccountsCollection(app core.App) error {
 				CascadeDelete: true,
 			},
 			&core.TextField{Name: "display_name"},
+			&core.TextField{Name: "waba_id"},
 			&core.TextField{Name: "phone_number_id", Required: true},
 			&core.TextField{Name: "access_token", Required: true},
 			&core.TextField{Name: "verify_token"},
@@ -48,6 +49,16 @@ func EnsureWhatsAppAccountsCollection(app core.App) error {
 			return fmt.Errorf("failed to auto-create whatsapp_accounts collection: %w", err)
 		}
 		log.Println("Auto-created 'whatsapp_accounts' collection")
+	}
+
+	// Ensure the waba_id field exists even on pre-existing databases.
+	col, err := app.FindCollectionByNameOrId("whatsapp_accounts")
+	if err != nil {
+		return err
+	}
+	ensureField(col, &core.TextField{Name: "waba_id"})
+	if err := app.Save(col); err != nil {
+		return err
 	}
 
 	return nil

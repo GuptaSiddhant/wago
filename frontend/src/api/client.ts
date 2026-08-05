@@ -1,5 +1,6 @@
 import { ApiError, getStoredOrgId, getStoredSession } from '../lib/authStore'
 import type {
+  AnalyticsResponse,
   ContactDTO,
   ContactInput,
   ConversationsResponse,
@@ -11,6 +12,7 @@ import type {
   ListResponse,
   MessagesResponse,
   NotificationsResponse,
+  PhoneMetaResult,
   SendMessagePayload,
   SendMessageResult,
   Session,
@@ -242,6 +244,14 @@ export async function deleteAccount(accountId: string): Promise<{ id: string }> 
   return apiFetch<{ id: string }>(`/accounts/${accountId}`, {
     method: 'DELETE',
   })
+}
+
+export async function accountMeta(accountId: string): Promise<PhoneMetaResult> {
+  return apiFetch<PhoneMetaResult>(`/accounts/${accountId}/meta`)
+}
+
+export async function analytics(range: string): Promise<AnalyticsResponse> {
+  return apiFetch<AnalyticsResponse>(`/analytics?range=${range}`)
 }
 
 export async function listAccounts(): Promise<ListResponse<WaAccountDTO>> {

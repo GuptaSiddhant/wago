@@ -15,6 +15,7 @@ type waAccountDTO struct {
 	ID            string `json:"id"`
 	DisplayName   string `json:"display_name"`
 	PhoneNumberID string `json:"phone_number_id"`
+	WabaID        string `json:"waba_id,omitempty"`
 	Status        string `json:"status"`
 	TeamID        string `json:"team_id,omitempty"`
 	TeamName      string `json:"team_name,omitempty"`
@@ -127,6 +128,7 @@ func waAccountFromRecord(app core.App, r *core.Record) waAccountDTO {
 		ID:            r.Id,
 		DisplayName:   r.GetString("display_name"),
 		PhoneNumberID: r.GetString("phone_number_id"),
+		WabaID:        r.GetString("waba_id"),
 		Status:        r.GetString("status"),
 	}
 	if teamID := r.GetString("team"); teamID != "" {
@@ -298,6 +300,7 @@ func HandleAccountCreate(app core.App) func(e *core.RequestEvent) error {
 			PhoneNumberID string `json:"phone_number_id" form:"phone_number_id"`
 			AccessToken   string `json:"access_token" form:"access_token"`
 			VerifyToken   string `json:"verify_token" form:"verify_token"`
+			WabaID        string `json:"waba_id" form:"waba_id"`
 			Status        string `json:"status" form:"status"`
 			TeamID        string `json:"team_id" form:"team_id"`
 		}
@@ -337,6 +340,7 @@ func HandleAccountCreate(app core.App) func(e *core.RequestEvent) error {
 		acc.Set("phone_number_id", body.PhoneNumberID)
 		acc.Set("access_token", body.AccessToken)
 		acc.Set("verify_token", body.VerifyToken)
+		acc.Set("waba_id", strings.TrimSpace(body.WabaID))
 		acc.Set("status", body.Status)
 		acc.Set("team", teamID)
 		if err := app.Save(acc); err != nil {
@@ -368,6 +372,7 @@ func HandleAccountUpdate(app core.App) func(e *core.RequestEvent) error {
 			PhoneNumberID string `json:"phone_number_id" form:"phone_number_id"`
 			AccessToken   string `json:"access_token" form:"access_token"`
 			VerifyToken   string `json:"verify_token" form:"verify_token"`
+			WabaID        string `json:"waba_id" form:"waba_id"`
 			Status        string `json:"status" form:"status"`
 			TeamID        string `json:"team_id" form:"team_id"`
 		}
@@ -386,6 +391,9 @@ func HandleAccountUpdate(app core.App) func(e *core.RequestEvent) error {
 		}
 		if body.VerifyToken != "" {
 			acc.Set("verify_token", body.VerifyToken)
+		}
+		if body.WabaID != "" {
+			acc.Set("waba_id", strings.TrimSpace(body.WabaID))
 		}
 		if body.Status != "" {
 			if body.Status != "connected" && body.Status != "disconnected" {

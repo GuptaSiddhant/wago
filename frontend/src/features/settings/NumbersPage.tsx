@@ -2,7 +2,14 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Pencil, Plus, Smartphone, Trash2 } from 'lucide-react'
-import { createAccount, deleteAccount, listAccounts, listTeams, updateAccount } from '../../api/client'
+import {
+  accountMeta,
+  createAccount,
+  deleteAccount,
+  listAccounts,
+  listTeams,
+  updateAccount,
+} from '../../api/client'
 import { useSession } from '../../lib/session'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
@@ -36,6 +43,7 @@ function AccountDialog({
 
   const [displayName, setDisplayName] = useState(existing?.display_name ?? '')
   const [phoneNumberId, setPhoneNumberId] = useState(existing?.phone_number_id ?? '')
+  const [wabaId, setWabaId] = useState(existing?.waba_id ?? '')
   const [accessToken, setAccessToken] = useState('')
   const [verifyToken, setVerifyToken] = useState('')
   const [status, setStatus] = useState(existing?.status ?? 'disconnected')
@@ -52,6 +60,7 @@ function AccountDialog({
             phone_number_id: phoneNumberId,
             access_token: accessToken || undefined,
             verify_token: verifyToken || undefined,
+            waba_id: wabaId || undefined,
             status,
             team_id: teamId ?? undefined,
           })
@@ -60,6 +69,7 @@ function AccountDialog({
             phone_number_id: phoneNumberId,
             access_token: accessToken,
             verify_token: verifyToken,
+            waba_id: wabaId,
             status,
             team_id: teamId ?? undefined,
           }),
@@ -106,6 +116,16 @@ function AccountDialog({
           placeholder="Meta phone_number_id"
           isRequired
         />
+        <TextField
+          label="WhatsApp Business Account (WABA) ID"
+          value={wabaId}
+          onChange={setWabaId}
+          placeholder="Optional — required for org analytics"
+        />
+        <p className="-mt-2 text-xs text-zinc-500">
+          Add the WABA ID and a token with <code>whatsapp_business_management</code> permission to
+          unlock usage and cost analytics for this number.
+        </p>
         <TextField
           label={isEdit ? 'Access token (leave blank to keep)' : 'Access token'}
           type="password"
@@ -156,6 +176,53 @@ function AccountDialog({
         </div>
       </form>
     </ModalDialog>
+  )
+}
+
+const qualityTone: Record<string, 'green' | 'amber' | 'red' | 'zinc'> = {
+  GREEN: 'green',
+  YELLOW: 'amber',
+  RED: 'red',
+}
+
+function NumberHealth({ accountId }: { accountId: string }) {
+  const { org } = useSession()
+  const orgId = org?.id ?? ''
+  const metaQuery = useQuery({
+    queryKey: ['account-meta', orgId, accountId],
+    queryFn: () => accountMeta(accountId),
+    enabled: orgId !== '',
+    staleTime: 5 * 60_000,
+  })
+
+  if (metaQuery.isLoading) {
+    return (
+      <div className="mt-2 flex items-center gap-2 text-xs text-zinc-600">
+        <Spinner className="h-3 w-3" /> Checking number health…
+      </div>
+    )
+  }
+
+  const result = metaQuery.data
+  if (!result || !result.ok || !result.info) {
+    return (
+      <div className="mt-2 text-xs text-zinc-600">
+        Meta health unavailable{result?.error ? ` — ${result.error}` : ''}
+      </div>
+    )
+  }
+
+  const info = result.info
+  const quality = info.quality_rating as keyof typeof qualityTone
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+      <Badge tone={qualityTone[quality] ?? 'zinc'}>Quality: {info.quality_rating || 'unknown'}</Badge>
+      <Badge tone="zinc">{info.messaging_limit_tier || 'no tier'}</Badge>
+      <Badge tone={info.code_verification_status === 'VERIFIED' ? 'green' : 'amber'}>
+        {info.code_verification_status || 'not verified'}
+      </Badge>
+      {info.verified_name ? <Badge tone="zinc">{info.verified_name}</Badge> : null}
+    </div>
   )
 }
 
@@ -245,6 +312,7 @@ export function NumbersPage() {
                   <p className="mt-0.5 truncate text-xs text-zinc-500">
                     Team: {a.team_name ?? 'All'}
                   </p>
+                  <NumberHealth accountId={a.id} />
                 </div>
                 {canManageData ? (
                   <div className="flex shrink-0 gap-1">

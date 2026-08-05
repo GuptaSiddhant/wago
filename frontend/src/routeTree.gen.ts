@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppContactsRouteImport } from './routes/_app/contacts'
 import { Route as AppInboxRouteImport } from './routes/_app/inbox'
+import { Route as AppAnalyticsRouteImport } from './routes/_app/analytics'
 import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings/index'
 import { Route as AppSettingsNumbersRouteImport } from './routes/_app/settings/numbers'
 import { Route as AppSettingsTeamRouteImport } from './routes/_app/settings/team'
@@ -48,6 +49,11 @@ const AppInboxRoute = AppInboxRouteImport.update({
   path: '/inbox',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
   id: '/settings/',
   path: '/settings/',
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/contacts': typeof AppContactsRoute
   '/inbox': typeof AppInboxRoute
+  '/analytics': typeof AppAnalyticsRoute
   '/settings/numbers': typeof AppSettingsNumbersRoute
   '/settings/team': typeof AppSettingsTeamRoute
   '/settings/': typeof AppSettingsIndexRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/contacts': typeof AppContactsRoute
   '/inbox': typeof AppInboxRoute
+  '/analytics': typeof AppAnalyticsRoute
   '/': typeof AppIndexRoute
   '/settings/numbers': typeof AppSettingsNumbersRoute
   '/settings/team': typeof AppSettingsTeamRoute
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_app/contacts': typeof AppContactsRoute
   '/_app/inbox': typeof AppInboxRoute
+  '/_app/analytics': typeof AppAnalyticsRoute
   '/_app/': typeof AppIndexRoute
   '/_app/settings/numbers': typeof AppSettingsNumbersRoute
   '/_app/settings/team': typeof AppSettingsTeamRoute
@@ -104,6 +113,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/contacts'
     | '/inbox'
+    | '/analytics'
     | '/settings/numbers'
     | '/settings/team'
     | '/settings/'
@@ -113,6 +123,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/contacts'
     | '/inbox'
+    | '/analytics'
     | '/'
     | '/settings/numbers'
     | '/settings/team'
@@ -124,6 +135,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/_app/contacts'
     | '/_app/inbox'
+    | '/_app/analytics'
     | '/_app/'
     | '/_app/settings/numbers'
     | '/_app/settings/team'
@@ -180,6 +192,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppInboxRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/analytics': {
+      id: '/_app/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AppAnalyticsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings/': {
       id: '/_app/settings/'
       path: '/settings'
@@ -207,6 +226,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppContactsRoute: typeof AppContactsRoute
   AppInboxRoute: typeof AppInboxRoute
+  AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppSettingsNumbersRoute: typeof AppSettingsNumbersRoute
   AppSettingsTeamRoute: typeof AppSettingsTeamRoute
@@ -216,6 +236,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppContactsRoute: AppContactsRoute,
   AppInboxRoute: AppInboxRoute,
+  AppAnalyticsRoute: AppAnalyticsRoute,
   AppIndexRoute: AppIndexRoute,
   AppSettingsNumbersRoute: AppSettingsNumbersRoute,
   AppSettingsTeamRoute: AppSettingsTeamRoute,

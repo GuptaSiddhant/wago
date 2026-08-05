@@ -96,6 +96,7 @@ export interface WaAccountDTO {
   id: string
   display_name: string
   phone_number_id: string
+  waba_id?: string
   status: string
   team_id?: string
   team_name?: string
@@ -106,8 +107,52 @@ export interface WaAccountInput {
   phone_number_id?: string
   access_token?: string
   verify_token?: string
+  waba_id?: string
   status?: string
   team_id?: string
+}
+
+export interface PhoneMetaResult {
+  ok: boolean
+  error?: string
+  info?: {
+    id: string
+    display_phone_number: string
+    verified_name: string
+    quality_rating: string
+    messaging_limit_tier: string
+    code_verification_status: string
+    status: string
+  }
+}
+
+export interface AnalyticsTotals {
+  conversations: number
+  cost: number
+}
+
+export interface AnalyticsAccount {
+  id: string
+  display_name: string
+  phone_number_id: string
+  conversations: number
+  cost: number
+}
+
+export interface AnalyticsCategory {
+  category: string
+  conversations: number
+  cost: number
+}
+
+export interface AnalyticsResponse {
+  range: string
+  start: number
+  end: number
+  totals: AnalyticsTotals
+  accounts: AnalyticsAccount[]
+  categories: AnalyticsCategory[]
+  errors: string[]
 }
 
 export interface ListResponse<T> {
