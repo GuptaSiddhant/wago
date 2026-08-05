@@ -14,13 +14,17 @@ type AppConfig struct {
 	WA_WebhookVerifyToken string
 	MetaAppSecret         string
 
-	SMTPHost              string
-	SMTPPort              int
-	SMTPUsername          string
-	SMTPPassword          string
-	SMTPTLS               bool
-	SMTPFromAddress       string
-	SMTPFromName          string
+	SMTPHost        string
+	SMTPPort        int
+	SMTPUsername    string
+	SMTPPassword    string
+	SMTPTLS         bool
+	SMTPFromAddress string
+	SMTPFromName    string
+
+	// VAPIDSubject is the contact (email or URL) sent in Web Push VAPID tokens
+	// so push services can reach the operator. Defaults to AdminEmail.
+	VAPIDSubject string
 
 	// WA_NotificationTemplate is an approved Meta template name used to send
 	// best-effort WhatsApp notifications to inactive users. Empty disables it.
@@ -48,13 +52,14 @@ func LoadAppConfig() (*AppConfig, error) {
 		WA_WebhookVerifyToken: waWebhookVerifyToken,
 		MetaAppSecret:         metaAppSecret,
 
-		SMTPHost:          os.Getenv("SMTP_HOST"),
-		SMTPPort:          smtpPort,
-		SMTPUsername:      os.Getenv("SMTP_USERNAME"),
-		SMTPPassword:      os.Getenv("SMTP_PASSWORD"),
-		SMTPTLS:           parseEnvBool("SMTP_TLS", false),
-		SMTPFromAddress:   getEnvOrDefault("SMTP_FROM_ADDRESS", adminEmail),
-		SMTPFromName:      getEnvOrDefault("SMTP_FROM_NAME", "WaGo"),
+		SMTPHost:        os.Getenv("SMTP_HOST"),
+		SMTPPort:        smtpPort,
+		SMTPUsername:    os.Getenv("SMTP_USERNAME"),
+		SMTPPassword:    os.Getenv("SMTP_PASSWORD"),
+		SMTPTLS:         parseEnvBool("SMTP_TLS", false),
+		SMTPFromAddress: getEnvOrDefault("SMTP_FROM_ADDRESS", adminEmail),
+		SMTPFromName:    getEnvOrDefault("SMTP_FROM_NAME", "WaGo"),
+		VAPIDSubject:    getEnvOrDefault("VAPID_SUBJECT", adminEmail),
 
 		WA_NotificationTemplate: os.Getenv("WA_NOTIFICATION_TEMPLATE"),
 	}

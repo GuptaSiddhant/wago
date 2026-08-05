@@ -40,6 +40,9 @@ func EnsureCollections(app core.App) error {
 	if err := EnsureNotificationsCollection(app); err != nil {
 		return err
 	}
+	if err := EnsurePushCollections(app); err != nil {
+		return err
+	}
 	// The team relation must exist on org_members before any member is created,
 	// and on whatsapp_accounts/conversations for team-scoped routing.
 	if err := EnsureTeamReferenceField(app, "org_members"); err != nil {

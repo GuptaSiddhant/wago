@@ -1,10 +1,12 @@
 package notifications
 
 import (
+	"context"
 	"log"
 	"time"
 
 	"github.com/guptasiddhant/wago/pkg/meta"
+	"github.com/guptasiddhant/wago/pkg/push"
 	"github.com/guptasiddhant/wago/pkg/store"
 	"github.com/guptasiddhant/wago/pkg/utils"
 
@@ -13,7 +15,7 @@ import (
 
 // activeWindow is how recently a member must have pinged presence to be
 // considered "active" (and skip email/WhatsApp delivery in favour of the
-// desktop push that the running frontend shows).
+// Web Push that the device foreground suppresses).
 const activeWindow = 5 * time.Minute
 
 // Notifier triggers notifications and delivers them to inactive users.
@@ -50,8 +52,20 @@ func (n *Notifier) Trigger(app core.App, orgID, convID, assigneeID, preview stri
 		log.Printf("notifications: presence check failed: %v", err)
 		return
 	}
+
+	// Always send a Web Push so phones get the notification even when the PWA
+	// is backgrounded or closed. The service worker suppresses the OS banner
+	// when a client is already focused, so active desktop users see it in-app.
+	contact := n.contactName(app, convID)
+	go push.NewSender(app, n.cfg.VAPIDSubject).Send(context.Background(), orgID, assigneeID, push.Payload{
+		Title:          "New message from " + contact,
+		Body:           preview,
+		ConversationID: convID,
+		Org:            orgID,
+	})
+
 	if active {
-		return // online — the frontend desktop push will surface it
+		return // online — the foreground client will surface it in-app
 	}
 
 	// Deliver outside the request so the webhook can return to Meta promptly.

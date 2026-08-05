@@ -49,4 +49,7 @@ func Register(r *router.Router[*core.RequestEvent], app core.App) {
 	authed.GET("/notifications/unread-count", HandleNotificationsUnreadCount(app))
 	authed.POST("/notifications/read", HandleNotificationsRead(app))
 	authed.POST("/presence", HandlePresence(app))
+	authed.GET("/push/config", HandlePushConfig(app))
+	authed.POST("/push/subscribe", HandlePushSubscribe(app))
+	authed.DELETE("/push/subscribe", HandlePushUnsubscribe(app))
 }

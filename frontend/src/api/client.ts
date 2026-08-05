@@ -298,3 +298,20 @@ export async function markNotificationsRead(): Promise<{ updated: number }> {
 export async function sendPresence(): Promise<void> {
   return apiFetch<void>('/presence', { method: 'POST' })
 }
+
+export async function getPushConfig(): Promise<{ vapid_public_key: string }> {
+  return apiFetch<{ vapid_public_key: string }>('/push/config')
+}
+
+export async function pushSubscribe(body: {
+  endpoint: string
+  keys: { p256dh: string; auth: string }
+}): Promise<void> {
+  return apiFetch<void>('/push/subscribe', { method: 'POST', body: JSON.stringify(body) })
+}
+
+export async function pushUnsubscribe(endpoint: string): Promise<void> {
+  return apiFetch<void>(`/push/subscribe?endpoint=${encodeURIComponent(endpoint)}`, {
+    method: 'DELETE',
+  })
+}

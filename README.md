@@ -5,7 +5,20 @@ Self-hosted **WhatsApp Business API** server for small businesses doing marketin
 ## Stack
 
 - Backend: Go + [PocketBase](https://pocketbase.io) (custom API routes, webhook handlers, org-scoped data)
-- Frontend: React + Vite + TanStack Router + TanStack Query (Tailwind + React Aria Components)
+- Frontend: React + Vite + TanStack Router + TanStack Query (Tailwind + React Aria Components), installable as a PWA
+
+## PWA & phone notifications
+
+WaGo is an installable **PWA** (manifest + service worker). Install it to the home screen on your phone, then allow notifications — you'll get real **Web Push** notifications for new chats even when the PWA is closed.
+
+Requirements:
+
+- **HTTPS** in production. Web Push and service workers require a secure context (use a reverse proxy with TLS, or a tunnel like Cloudflare Tunnel/ngrok for local testing).
+- VAPID keys are **auto-generated on first boot** and stored in PocketBase; no extra setup needed. Set `VAPID_SUBJECT` (defaults to `ADMIN_EMAIL`) so push services can contact you.
+
+Behavior:
+- **Active agent** (pinged presence within the last 5 minutes): notification shows in-app (bell in the sidebar) and, if the tab is foregrounded, as a browser banner.
+- **Inactive agent**: the OS shows the Web Push banner regardless of whether the app is open; email and WhatsApp alerts also fire (see [Notifications](#notifications)).
 
 ## Quickstart
 
@@ -55,6 +68,7 @@ All variables are read from the process environment and a `.env` file (see `.env
 | `SMTP_TLS` | `false` | Implicit TLS (e.g. port 465) |
 | `SMTP_FROM_ADDRESS` | `ADMIN_EMAIL` | From-address for outgoing email |
 | `SMTP_FROM_NAME` | `WaGo` | Display name for outgoing email |
+| `VAPID_SUBJECT` | `ADMIN_EMAIL` | Contact for Web Push VAPID tokens (email or URL) |
 | `WA_NOTIFICATION_TEMPLATE` | *(empty → off)* | Approved Meta template for WhatsApp alerts to away agents |
 
 ## Notifications

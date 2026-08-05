@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { listNotifications, markNotificationsRead, sendPresence, unreadNotificationCount } from "../api/client";
 import { queryClient } from "../api/queryClient";
 import type { NotificationDTO } from "../api/types";
+import { syncPushSubscription } from "./pwa";
 import { useSession } from "./session";
 
 const POLL_MS = 15_000;
@@ -21,12 +22,15 @@ interface NotificationsContextValue {
 
 const NotificationsContext = createContext<NotificationsContextValue | null>(null);
 
-function requestPermissionOnce() {
+function requestPermissionOnce(onGranted: () => void) {
   if (typeof window === "undefined" || !("Notification" in window)) return;
   if (Notification.permission === "default") {
-    // Prompt shortly after login (a user gesture has just happened).
+    // Prompt shortly after login (a user gesture has just happened); register
+    // the device for Web Push once the user allows notifications.
     window.setTimeout(() => {
-      void Notification.requestPermission();
+      void Notification.requestPermission().then((permission) => {
+        if (permission === "granted") onGranted();
+      });
     }, 1000);
   }
 }
@@ -46,8 +50,31 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    if (session) requestPermissionOnce();
+    if (session) {
+      requestPermissionOnce(() => {
+        void syncPushSubscription();
+      });
+    }
   }, [session]);
+
+  // Keep the device registered whenever permission changes (grant/revoke).
+  useEffect(() => {
+    if (!("Notification" in window) || !("permissions" in navigator)) return;
+    let status: PermissionStatus | undefined;
+    void navigator.permissions
+      .query({ name: "notifications" })
+      .then((result) => {
+        status = result;
+        result.addEventListener("change", onChange);
+      })
+      .catch(() => {});
+    function onChange() {
+      if (Notification.permission === "granted") {
+        void syncPushSubscription();
+      }
+    }
+    return () => status?.removeEventListener("change", onChange);
+  }, []);
 
   const listQuery = useQuery({
     queryKey: ["notifications", "list", orgId],
@@ -86,6 +113,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       if (seenRef.current.has(n.id)) continue;
       seenRef.current.add(n.id);
       if (n.conversation_id === activeConvRef.current) continue;
+      if (document.visibilityState !== "visible") continue; // Web Push handles backgrounded tabs
       if (!("Notification" in window) || Notification.permission !== "granted") continue;
       const title = `New message from ${n.contact_name || "customer"}`;
       const notification = new Notification(title, { body: n.body, tag: n.id });
