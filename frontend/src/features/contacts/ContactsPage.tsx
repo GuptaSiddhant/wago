@@ -273,7 +273,7 @@ export function ContactsPage() {
   const [dialog, setDialog] = useState<ContactDialogState>(null)
   const [detail, setDetail] = useState<ContactDTO | null>(null)
 
-  const canManageData = session?.isAdmin === true || org?.role === 'owner'
+  const canManageData = session?.is_admin === true || org?.role === 'owner'
 
   const contactsQuery = useQuery({
     queryKey: ['contacts', orgId, search],

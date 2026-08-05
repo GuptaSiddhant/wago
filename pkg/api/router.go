@@ -20,6 +20,7 @@ func Register(r *router.Router[*core.RequestEvent], app core.App) {
 	authed.Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 	authed.GET("/auth/me", HandleMe(app))
+	authed.POST("/orgs", HandleOrgCreate(app))
 	authed.GET("/inbox", HandleInbox(app))
 	authed.GET("/contacts", HandleContacts(app))
 	authed.POST("/contacts", HandleContactCreate(app))

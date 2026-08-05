@@ -13,7 +13,7 @@ export interface OrgSummary {
 export interface Session {
   token: string
   user: UserSummary
-  isAdmin: boolean
+  is_admin: boolean
   orgs: OrgSummary[]
 }
 

@@ -16,6 +16,7 @@ import type {
   MessagesResponse,
   MessageTemplateDTO,
   NotificationsResponse,
+  OrgSummary,
   PhoneMetaResult,
   SendMessagePayload,
   SendMessageResult,
@@ -83,6 +84,13 @@ export async function login(email: string, password: string): Promise<Session> {
 
 export async function me(): Promise<Session> {
   return apiFetch<Session>('/auth/me')
+}
+
+export async function createOrg(name: string): Promise<OrgSummary> {
+  return apiFetch<OrgSummary>('/orgs', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  })
 }
 
 export async function listConversations(filters: InboxFilters): Promise<ConversationsResponse> {

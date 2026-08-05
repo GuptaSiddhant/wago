@@ -104,7 +104,7 @@ export function InboxPage() {
           <div className="flex items-center gap-2">
             <div className="min-w-0 flex-1">
               <SelectField
-                label="Status"
+                aria-label="Filter by status"
                 options={statusOptions}
                 selectedKey={status}
                 onSelectionChange={(k) => setStatus(typeof k === 'string' ? k : '')}
@@ -244,7 +244,7 @@ function Thread({
   const bottomRef = useRef<HTMLDivElement>(null)
 
   const canEditDetails =
-    session?.isAdmin === true ||
+    session?.is_admin === true ||
     org?.role === 'owner' ||
     org?.role === 'admin' ||
     org?.role === 'agent'

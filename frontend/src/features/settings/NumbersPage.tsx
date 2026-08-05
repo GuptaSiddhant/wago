@@ -232,7 +232,7 @@ export function NumbersPage() {
   const orgId = org?.id ?? ''
   const [dialog, setDialog] = useState<AccountDialogState>(null)
 
-  const canManageData = session?.isAdmin === true || org?.role === 'owner'
+  const canManageData = session?.is_admin === true || org?.role === 'owner'
 
   const accountsQuery = useQuery({
     queryKey: ['accounts', orgId],

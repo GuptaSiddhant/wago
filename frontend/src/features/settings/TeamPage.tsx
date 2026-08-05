@@ -57,7 +57,7 @@ function InviteDialog({ teams }: { teams: TeamDTO[] }) {
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
-  const canAssignOwner = session?.isAdmin === true || org?.role === 'owner'
+  const canAssignOwner = session?.is_admin === true || org?.role === 'owner'
   const roleOptionsFiltered = canAssignOwner ? roleOptions : roleOptions.filter((o) => o.id !== 'owner')
   const needsTeam = role !== 'owner'
 
@@ -420,8 +420,8 @@ export function TeamPage() {
   const [teamDialog, setTeamDialog] = useState<TeamDialogState>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
-  const canManage = session?.isAdmin === true || org?.role === 'owner' || org?.role === 'admin'
-  const isOwnerOrSuper = session?.isAdmin === true || org?.role === 'owner'
+  const canManage = session?.is_admin === true || org?.role === 'owner' || org?.role === 'admin'
+  const isOwnerOrSuper = session?.is_admin === true || org?.role === 'owner'
 
   const teamQuery = useQuery({
     queryKey: ['team', orgId],

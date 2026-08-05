@@ -29,6 +29,7 @@ interface SessionContextValue {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   selectOrg: (orgId: string) => void;
+  refresh: () => Promise<Session | null>;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -115,6 +116,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setSession((prev) => (prev ? { ...prev } : prev));
   }, []);
 
+  const refresh = useCallback(async (): Promise<Session | null> => {
+    const stored = getStoredSession();
+    if (!stored) return null;
+    const fresh = await apiMe();
+    if (!fresh) return null;
+    const merged = fresh.token ? fresh : { ...fresh, token: stored.token };
+    setSession(merged);
+    setStoredSession(merged);
+    return merged;
+  }, []);
+
   const value = useMemo(
     () => ({
       session,
@@ -124,8 +136,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       login,
       logout,
       selectOrg,
+      refresh,
     }),
-    [session, isLoading, org, login, logout, selectOrg],
+    [session, isLoading, org, login, logout, selectOrg, refresh],
   );
 
   return (

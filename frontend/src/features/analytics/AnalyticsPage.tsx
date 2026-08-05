@@ -23,7 +23,7 @@ function formatCost(cost: number): string {
   }).format(cost)
 }
 
-function CategoryBreakdown({ categories }: { categories: AnalyticsCategory[] }) {
+function CategoryBreakdown({ categories=[] }: { categories: AnalyticsCategory[] }) {
   const max = Math.max(...categories.map((c) => c.cost), 0)
   return (
     <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
@@ -66,7 +66,7 @@ export function AnalyticsPage() {
   })
 
   const data = analyticsQuery.data
-  const hasNumbers = (data?.accounts.length ?? 0) > 0
+  const hasNumbers = (data?.accounts?.length ?? 0) > 0
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
@@ -112,7 +112,7 @@ export function AnalyticsPage() {
               </div>
             ) : null}
 
-            {data.errors.length > 0 ? (
+            {data.errors?.length > 0 ? (
               <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
                 <div className="flex items-center gap-2 text-sm font-medium text-amber-300">
                   <TriangleAlert size={15} />
