@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/tools/filesystem"
 )
 
 func EnsureMessagesCollection(app core.App) error {
@@ -58,6 +59,11 @@ func EnsureMessagesCollection(app core.App) error {
 				Values:    []string{"sent", "delivered", "read", "failed"},
 			},
 			&core.JSONField{Name: "payload", Required: true},
+			// media stores the downloadable bytes of a message that carries a
+			// media type (image/video/audio/document/sticker). It is optional
+			// so text/template messages have no file on disk. Sized up to the
+			// Cloud API document limit (100MB).
+			&core.FileField{Name: "media", MaxSize: 100 << 20},
 
 			&core.AutodateField{Name: "created", OnCreate: true},
 			&core.AutodateField{Name: "updated", OnCreate: true, OnUpdate: true})
@@ -74,8 +80,10 @@ func EnsureMessagesCollection(app core.App) error {
 	return nil
 }
 
-// Helper to write incoming message into PocketBase database.
-func SaveIncomingMessage(app core.App, orgID, conversationID, senderPhone, senderName, recipientPhone, body, wamid string, ts any, payload any) error {
+// Helper to write incoming message into PocketBase database. When mediaData is
+// non-empty the bytes are stored on the record's "media" file field so the
+// inbox can render/download it without hitting Meta again.
+func SaveIncomingMessage(app core.App, orgID, conversationID, senderPhone, senderName, recipientPhone, body, wamid string, ts any, payload any, mediaData []byte, mediaName string) error {
 	messagesCol, err := app.FindCollectionByNameOrId("messages")
 	if err != nil {
 		return fmt.Errorf("messages collection not found: %w", err)
@@ -91,6 +99,13 @@ func SaveIncomingMessage(app core.App, orgID, conversationID, senderPhone, sende
 	record.Set("direction", "inbound")
 	record.Set("status", "read")
 	record.Set("payload", payload)
+	if len(mediaData) > 0 {
+		file, err := filesystem.NewFileFromBytes(mediaData, mediaName)
+		if err != nil {
+			return fmt.Errorf("failed to build media file: %w", err)
+		}
+		record.Set("media", file)
+	}
 	if ts != nil {
 		record.Set("created", ts)
 	}
@@ -103,8 +118,9 @@ func SaveIncomingMessage(app core.App, orgID, conversationID, senderPhone, sende
 	return nil
 }
 
-// SaveOutgoingMessage stores a sent message and returns its record.
-func SaveOutgoingMessage(app core.App, orgID, conversationID, senderPhone, recipientPhone, body, wamid string, payload any) (*core.Record, error) {
+// SaveOutgoingMessage stores a sent message and returns its record. When
+// mediaData is non-empty the bytes are stored on the record's "media" field.
+func SaveOutgoingMessage(app core.App, orgID, conversationID, senderPhone, recipientPhone, body, wamid string, payload any, mediaData []byte, mediaName string) (*core.Record, error) {
 	messagesCol, err := app.FindCollectionByNameOrId("messages")
 	if err != nil {
 		return nil, fmt.Errorf("messages collection not found: %w", err)
@@ -120,11 +136,28 @@ func SaveOutgoingMessage(app core.App, orgID, conversationID, senderPhone, recip
 	record.Set("direction", "outbound")
 	record.Set("status", "sent")
 	record.Set("payload", payload)
+	if len(mediaData) > 0 {
+		file, err := filesystem.NewFileFromBytes(mediaData, mediaName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build media file: %w", err)
+		}
+		record.Set("media", file)
+	}
 
 	if err := app.Save(record); err != nil {
 		return nil, fmt.Errorf("failed to save outgoing message: %w", err)
 	}
 	return record, nil
+}
+
+// mediaField is the messages file field that holds downloadable media bytes.
+const mediaField = "media"
+
+// FindMessageByWamid fetches a message scoped to a single org by its Meta wamid.
+func FindMessageByWamid(app core.App, orgID, wamid string) (*core.Record, error) {
+	return app.FindFirstRecordByFilter("messages",
+		"org = {:org} && wamid = {:wamid}",
+		DbxParams(map[string]any{"org": orgID, "wamid": wamid}))
 }
 
 // UpdateMessageStatus updates the delivery status of a message by its Meta wamid.

@@ -65,9 +65,13 @@ func TestClaimDueRecipients(t *testing.T) {
 	bc, err := CreateBroadcast(app, org.Id, acct.Id, tmpl.Id, "test", "", nil, 60, 10, []RecipientSnapshot{
 		{ContactID: c1.Id, Phone: "5550001", Name: "A"},
 		{ContactID: c2.Id, Phone: "5550002", Name: "B"},
-	})
+	}, "IMAGE", "mid_1", "hero.png")
 	if err != nil {
 		t.Fatalf("CreateBroadcast: %v", err)
+	}
+	if bc.GetString("header_media_type") != "IMAGE" || bc.GetString("header_media_id") != "mid_1" {
+		t.Errorf("broadcast header media not stored: type=%q id=%q",
+			bc.GetString("header_media_type"), bc.GetString("header_media_id"))
 	}
 
 	claimed, err := ClaimDueRecipients(app, bc.Id, 10, 300)
@@ -112,7 +116,7 @@ func TestClaimRespectsBackoffWindow(t *testing.T) {
 	c1 := saveRecord(t, app, "contacts", map[string]any{"org": org.Id, "name": "A", "phone": "5550001"})
 
 	bc, err := CreateBroadcast(app, org.Id, acct.Id, tmpl.Id, "test", "", nil, 60, 10,
-		[]RecipientSnapshot{{ContactID: c1.Id, Phone: "5550001", Name: "A"}})
+		[]RecipientSnapshot{{ContactID: c1.Id, Phone: "5550001", Name: "A"}}, "", "", "")
 	if err != nil {
 		t.Fatalf("CreateBroadcast: %v", err)
 	}
@@ -174,7 +178,7 @@ func TestRetryExhaustsToFailed(t *testing.T) {
 	c1 := saveRecord(t, app, "contacts", map[string]any{"org": org.Id, "name": "A", "phone": "5550001"})
 
 	bc, err := CreateBroadcast(app, org.Id, acct.Id, tmpl.Id, "test", "", nil, 60, 10,
-		[]RecipientSnapshot{{ContactID: c1.Id, Phone: "5550001", Name: "A"}})
+		[]RecipientSnapshot{{ContactID: c1.Id, Phone: "5550001", Name: "A"}}, "", "", "")
 	if err != nil {
 		t.Fatalf("CreateBroadcast: %v", err)
 	}
@@ -211,7 +215,7 @@ func TestReleaseExpiredLeases(t *testing.T) {
 	c1 := saveRecord(t, app, "contacts", map[string]any{"org": org.Id, "name": "A", "phone": "5550001"})
 
 	bc, err := CreateBroadcast(app, org.Id, acct.Id, tmpl.Id, "test", "", nil, 60, 10,
-		[]RecipientSnapshot{{ContactID: c1.Id, Phone: "5550001", Name: "A"}})
+		[]RecipientSnapshot{{ContactID: c1.Id, Phone: "5550001", Name: "A"}}, "", "", "")
 	if err != nil {
 		t.Fatalf("CreateBroadcast: %v", err)
 	}

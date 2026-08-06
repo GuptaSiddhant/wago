@@ -84,6 +84,9 @@ func EnsureBroadcastsCollection(app core.App) error {
 			&core.TextField{Name: "name", Required: true},
 			&core.SelectField{Name: "status", MaxSelect: 1, Values: []string{"queued", "running", "completed", "failed", "cancelled"}},
 			&core.JSONField{Name: "params"},
+			&core.TextField{Name: "header_media_type"},
+			&core.TextField{Name: "header_media_id"},
+			&core.TextField{Name: "header_media_name"},
 			&core.NumberField{Name: "rate_per_minute"},
 			&core.NumberField{Name: "batch_size"},
 			&core.NumberField{Name: "recipient_count"},
@@ -102,6 +105,9 @@ func EnsureBroadcastsCollection(app core.App) error {
 		if err := ensureFields(app, "broadcasts",
 			&core.NumberField{Name: "rate_per_minute"},
 			&core.NumberField{Name: "batch_size"},
+			&core.TextField{Name: "header_media_type"},
+			&core.TextField{Name: "header_media_id"},
+			&core.TextField{Name: "header_media_name"},
 		); err != nil {
 			return err
 		}
@@ -187,8 +193,10 @@ func ensureFields(app core.App, colName string, fields ...core.Field) error {
 }
 
 // CreateBroadcast atomically creates a broadcast header plus one queued
-// recipient row per snapshot and returns the broadcast record.
-func CreateBroadcast(app core.App, orgID, accountID, templateID, name, createdBy string, params any, ratePerMinute, batchSize int, recipients []RecipientSnapshot) (*core.Record, error) {
+// recipient row per snapshot and returns the broadcast record. headerType,
+// headerID and headerName are an optional per-broadcast media override for the
+// template's header (empty when the template's own header media is used).
+func CreateBroadcast(app core.App, orgID, accountID, templateID, name, createdBy string, params any, ratePerMinute, batchSize int, recipients []RecipientSnapshot, headerType, headerID, headerName string) (*core.Record, error) {
 	var bc *core.Record
 
 	err := app.RunInTransaction(func(txApp core.App) error {
@@ -204,6 +212,9 @@ func CreateBroadcast(app core.App, orgID, accountID, templateID, name, createdBy
 		bc.Set("name", name)
 		bc.Set("status", BroadcastQueued)
 		bc.Set("params", params)
+		bc.Set("header_media_type", headerType)
+		bc.Set("header_media_id", headerID)
+		bc.Set("header_media_name", headerName)
 		bc.Set("rate_per_minute", ratePerMinute)
 		bc.Set("batch_size", batchSize)
 		bc.Set("recipient_count", len(recipients))

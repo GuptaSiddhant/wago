@@ -1,13 +1,16 @@
 package webhooks
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
+	"path"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/guptasiddhant/wago/pkg/meta"
 	"github.com/guptasiddhant/wago/pkg/notifications"
 	"github.com/guptasiddhant/wago/pkg/store"
 
@@ -15,6 +18,9 @@ import (
 	wawh "github.com/piusalfred/whatsapp/webhooks"
 	"github.com/pocketbase/pocketbase/core"
 )
+
+// metaClient is used to download inbound media so it can be stored locally.
+var metaClient = meta.NewClient()
 
 // HandleVerification returns the handler for GET /api/wa/webhook
 func HandleVerification(verifyToken string) func(re *core.RequestEvent) error {
@@ -128,15 +134,36 @@ func processChange(app core.App, change wawh.Change, notifier *notifications.Not
 		}
 
 		body := messageBody(msg)
+		payload, mediaInfo := inboundPayload(msg)
 
 		msgTS := ts
 		if sec, err := strconv.ParseInt(msg.Timestamp, 10, 64); err == nil {
 			msgTS = time.Unix(sec, 0)
 		}
 
+		// Download and store media bytes locally so the inbox can preview and
+		// download the file without hitting Meta again.
+		var mediaData []byte
+		var mediaName string
+		if mediaInfo != nil && mediaInfo.ID != "" {
+			token := account.GetString("access_token")
+			if token == "" {
+				log.Printf("Cannot download media for message %s: account has no access token", msg.ID)
+			} else {
+				data, err := downloadInboundMedia(context.Background(), app, token, mediaInfo)
+				if err != nil {
+					log.Printf("Failed to download media for message %s: %v", msg.ID, err)
+				} else {
+					mediaData = data
+					mediaName = mediaFilename(mediaInfo)
+				}
+			}
+		}
+
 		err := store.SaveIncomingMessage(
 			app, orgID, conv.Id, msg.From, senderName,
-			val.Metadata.DisplayPhoneNumber, body, msg.ID, msgTS, val,
+			val.Metadata.DisplayPhoneNumber, body, msg.ID, msgTS, payload,
+			mediaData, mediaName,
 		)
 		if err != nil {
 			log.Printf("Failed to save message: %v", err)
@@ -148,6 +175,114 @@ func processChange(app core.App, change wawh.Change, notifier *notifications.Not
 
 		// Notify the assigned agent (desktop push if active, email/WhatsApp if not).
 		notifier.Trigger(app, orgID, conv.Id, conv.GetString("assignee"), body)
+	}
+}
+
+// inboundPayload normalizes a received message into the stored JSON payload so
+// callers can tell the message kind and its media metadata apart from the body
+// text. It returns the payload plus the raw media info (nil for non-media
+// messages) so the caller can download the attachment.
+func inboundPayload(m *wawh.Message) (map[string]any, *message.MediaInfo) {
+	if m == nil {
+		return map[string]any{"type": "text"}, nil
+	}
+
+	switch {
+	case m.Text != nil:
+		return map[string]any{"type": "text"}, nil
+	case m.Image != nil:
+		return mediaPayloadOf(meta.KindImage, m.Image, m.Image.Caption), m.Image
+	case m.Video != nil:
+		return mediaPayloadOf(meta.KindVideo, m.Video, m.Video.Caption), m.Video
+	case m.Audio != nil:
+		return mediaPayloadOf(meta.KindAudio, m.Audio, ""), m.Audio
+	case m.Document != nil:
+		return mediaPayloadOf(meta.KindDocument, m.Document, m.Document.Caption), m.Document
+	case m.Sticker != nil:
+		return mediaPayloadOf(meta.KindSticker, m.Sticker, ""), m.Sticker
+	default:
+		return map[string]any{"type": "text"}, nil
+	}
+}
+
+type mediaPayload struct {
+	MediaID  string `json:"media_id,omitempty"`
+	MimeType string `json:"mime_type,omitempty"`
+	Filename string `json:"filename,omitempty"`
+	Caption  string `json:"caption,omitempty"`
+}
+
+func mediaPayloadOf(kind string, info *message.MediaInfo, caption string) map[string]any {
+	if info == nil {
+		return map[string]any{"type": kind}
+	}
+	return map[string]any{
+		"type": kind,
+		"media": mediaPayload{
+			MediaID:  info.ID,
+			MimeType: info.MimeType,
+			Filename: info.Filename,
+			Caption:  caption,
+		},
+	}
+}
+
+// downloadInboundMedia retrieves the file bytes for a received media message
+// from Meta so they can be stored in PocketBase storage.
+func downloadInboundMedia(ctx context.Context, app core.App, accessToken string, info *message.MediaInfo) ([]byte, error) {
+	url, _, err := metaClient.GetMediaRetrieve(ctx, accessToken, info.ID)
+	if err != nil {
+		return nil, err
+	}
+	return metaClient.DownloadMedia(ctx, url, accessToken)
+}
+
+// mediaFilename returns a stable, extension-bearing filename for a stored media
+// file derived from the Meta media id and MIME type.
+func mediaFilename(info *message.MediaInfo) string {
+	name := info.Filename
+	if name == "" {
+		name = "media"
+	}
+	ext := extensionForMime(info.MimeType)
+	if ext == "" {
+		ext = path.Ext(name)
+	}
+	return strings.TrimSuffix(name, path.Ext(name)) + ext
+}
+
+func extensionForMime(mimeType string) string {
+	if i := strings.Index(mimeType, ";"); i >= 0 {
+		mimeType = strings.TrimSpace(mimeType[:i])
+	}
+	switch mimeType {
+	case "image/jpeg":
+		return ".jpg"
+	case "image/png":
+		return ".png"
+	case "image/webp":
+		return ".webp"
+	case "image/gif":
+		return ".gif"
+	case "video/mp4":
+		return ".mp4"
+	case "video/3gpp":
+		return ".3gp"
+	case "audio/ogg":
+		return ".ogg"
+	case "audio/mpeg", "audio/mp3":
+		return ".mp3"
+	case "audio/amr":
+		return ".amr"
+	case "audio/opus":
+		return ".opus"
+	case "application/pdf":
+		return ".pdf"
+	default:
+		if ext := path.Ext(mimeType); ext != "" {
+			return ext
+		}
+		return ""
 	}
 }
 

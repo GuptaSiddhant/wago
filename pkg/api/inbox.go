@@ -1,10 +1,12 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/guptasiddhant/wago/pkg/meta"
 	"github.com/guptasiddhant/wago/pkg/store"
 
 	"github.com/pocketbase/pocketbase/core"
@@ -35,13 +37,23 @@ type accountDTO struct {
 	DisplayName string `json:"display_name"`
 }
 
+type messageMediaDTO struct {
+	MediaID  string `json:"media_id,omitempty"`
+	MimeType string `json:"mime_type,omitempty"`
+	Filename string `json:"filename,omitempty"`
+	Caption  string `json:"caption,omitempty"`
+	URL      string `json:"url,omitempty"`
+}
+
 type messageDTO struct {
-	ID        string `json:"id"`
-	Wamid     string `json:"wamid"`
-	Body      string `json:"body"`
-	Direction string `json:"direction"`
-	Status    string `json:"status"`
-	Created   string `json:"created"`
+	ID        string           `json:"id"`
+	Wamid     string           `json:"wamid"`
+	Body      string           `json:"body"`
+	Direction string           `json:"direction"`
+	Status    string           `json:"status"`
+	Created   string           `json:"created"`
+	Kind      string           `json:"kind,omitempty"`
+	Media     *messageMediaDTO `json:"media,omitempty"`
 }
 
 type conversationDTO struct {
@@ -97,6 +109,38 @@ func messageToDTO(msg *core.Record) *messageDTO {
 		Status:    msg.GetString("status"),
 	}
 	dto.Created = msg.GetDateTime("created").Time().UTC().Format(types.DefaultDateLayout)
+
+	var payload struct {
+		Type  string `json:"type"`
+		Media struct {
+			MediaID  string `json:"media_id"`
+			MimeType string `json:"mime_type"`
+			Filename string `json:"filename"`
+			Caption  string `json:"caption"`
+		} `json:"media"`
+	}
+	raw := msg.Get("payload")
+	if raw != nil {
+		if b, ok := raw.(json.RawMessage); ok {
+			_ = json.Unmarshal(b, &payload)
+		}
+	}
+	dto.Kind = payload.Type
+
+	hasStored := msg.GetString("media") != ""
+	if (payload.Type == meta.KindImage || payload.Type == meta.KindVideo ||
+		payload.Type == meta.KindAudio || payload.Type == meta.KindDocument ||
+		payload.Type == meta.KindSticker) && payload.Media.MediaID != "" {
+		dto.Media = &messageMediaDTO{
+			MediaID:  payload.Media.MediaID,
+			MimeType: payload.Media.MimeType,
+			Filename: payload.Media.Filename,
+			Caption:  payload.Media.Caption,
+		}
+		if hasStored {
+			dto.Media.URL = "/api/wa/media/" + msg.GetString("wamid")
+		}
+	}
 	return dto
 }
 

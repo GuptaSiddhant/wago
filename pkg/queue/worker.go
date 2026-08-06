@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"math"
+	"strings"
 	"sync"
 	"time"
 
@@ -227,13 +228,23 @@ func (w *Worker) sendTemplate(ctx context.Context, bc *core.Record, recipient *c
 	}
 
 	params := decodeBroadcastParams(bc)
+
+	// A per-broadcast media override wins over the template's own header media.
+	header := store.TemplateHeaderMedia(tmpl)
+	if kind := bc.GetString("header_media_type"); kind != "" {
+		if id := bc.GetString("header_media_id"); id != "" {
+			header = &meta.TemplateHeaderMedia{Kind: strings.ToLower(kind), MediaID: id}
+		}
+	}
+
 	return w.client.SendTemplate(ctx,
 		account.GetString("access_token"),
 		account.GetString("phone_number_id"),
 		recipient.GetString("phone"),
 		tmpl.GetString("name"),
 		tmpl.GetString("language"),
-		params)
+		params,
+		header)
 }
 
 // decodeBroadcastParams reads the broadcast params JSON field, which PocketBase

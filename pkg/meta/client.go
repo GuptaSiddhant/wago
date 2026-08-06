@@ -71,13 +71,22 @@ func (c *Client) SendText(ctx context.Context, accessToken, phoneNumberID, to, b
 	return resp.Messages[0].ID, nil
 }
 
+// TemplateHeaderMedia describes a media override for a template's header
+// component (image/video/document). When sending a template that has a media
+// header, providing the media id here attaches/overrides it at send time.
+type TemplateHeaderMedia struct {
+	Kind    string // meta.KindImage, meta.KindVideo or meta.KindDocument
+	MediaID string
+}
+
 // SendTemplate sends an approved template message and returns the Meta message
 // id (wamid). params are raw Meta parameters (text/currency/etc.) for the
-// template body.
-func (c *Client) SendTemplate(ctx context.Context, accessToken, phoneNumberID, to, name, language string, params []map[string]any) (string, error) {
+// template body. header, when non-nil, attaches a media component to the
+// template's header for templates that carry a media header.
+func (c *Client) SendTemplate(ctx context.Context, accessToken, phoneNumberID, to, name, language string, params []map[string]any, header *TemplateHeaderMedia) (string, error) {
 	ctx = withCredentials(ctx, accessToken, phoneNumberID)
 
-	tmpl, err := buildTemplate(name, language, params)
+	tmpl, err := buildTemplate(name, language, params, header)
 	if err != nil {
 		return "", err
 	}
@@ -99,13 +108,36 @@ func withCredentials(ctx context.Context, accessToken, phoneNumberID string) con
 	})
 }
 
-// buildTemplate builds a Cloud API template message with a body component.
-func buildTemplate(name, language string, params []map[string]any) (*message.Template, error) {
+// buildTemplate builds a Cloud API template message with an optional media
+// header and body components.
+func buildTemplate(name, language string, params []map[string]any, header *TemplateHeaderMedia) (*message.Template, error) {
 	tmpl := &message.Template{
 		Name:     name,
 		Language: &message.TemplateLanguage{Code: language},
 	}
+
+	if header != nil && header.MediaID != "" {
+		param := &message.TemplateParameter{Type: header.Kind}
+		switch header.Kind {
+		case KindImage:
+			param.Image = &message.Image{ID: header.MediaID}
+		case KindVideo:
+			param.Video = &message.Video{ID: header.MediaID}
+		case KindDocument:
+			param.Document = &message.Document{ID: header.MediaID}
+		default:
+			return nil, fmt.Errorf("meta: unsupported template header kind %q", header.Kind)
+		}
+		tmpl.Components = append(tmpl.Components, &message.TemplateComponent{
+			Type:       message.TemplateComponentTypeHeader,
+			Parameters: []*message.TemplateParameter{param},
+		})
+	}
+
 	if len(params) == 0 {
+		if len(tmpl.Components) == 0 {
+			return tmpl, nil
+		}
 		return tmpl, nil
 	}
 
@@ -121,6 +153,6 @@ func buildTemplate(name, language string, params []map[string]any) (*message.Tem
 		}
 		comp.Parameters = append(comp.Parameters, &p)
 	}
-	tmpl.Components = []*message.TemplateComponent{comp}
+	tmpl.Components = append(tmpl.Components, comp)
 	return tmpl, nil
 }

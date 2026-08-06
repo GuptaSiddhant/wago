@@ -43,6 +43,14 @@ export interface TeamDTO {
   member_count: number
 }
 
+export interface MessageMedia {
+  media_id: string
+  mime_type?: string
+  filename?: string
+  caption?: string
+  url?: string
+}
+
 export interface MessageDTO {
   id: string
   wamid: string
@@ -50,6 +58,8 @@ export interface MessageDTO {
   direction: 'inbound' | 'outbound'
   status: string
   created: string
+  kind?: string
+  media?: MessageMedia
 }
 
 export interface ConversationDTO {
@@ -224,6 +234,9 @@ export interface MessageTemplateDTO {
   category: string
   header_type: string
   header_text?: string
+  header_media_type?: string
+  header_media_id?: string
+  header_media_name?: string
   body: string
   footer?: string
   buttons?: TemplateButton[]
@@ -239,6 +252,9 @@ export interface TemplateInput {
   category: string
   header_type: string
   header_text?: string
+  header_media_type?: string
+  header_media_id?: string
+  header_media_name?: string
   body: string
   footer?: string
   buttons?: TemplateButton[]
@@ -258,6 +274,9 @@ export interface BroadcastDTO {
   account_name?: string
   template_id: string
   template_name?: string
+  header_media_type?: string
+  header_media_id?: string
+  header_media_name?: string
   rate_per_minute: number
   batch_size: number
   recipient_count: number
@@ -279,6 +298,9 @@ export interface BroadcastCreateInput {
   batch_size: number
   contact_ids?: string[]
   all_contacts?: boolean
+  header_media_type?: string
+  header_media_id?: string
+  header_media_name?: string
 }
 
 export interface BroadcastRecipient {
@@ -310,4 +332,32 @@ export interface SendMessagePayload {
     language: string
     parameters?: Record<string, unknown>[]
   }
+}
+
+export interface MediaMessageResult {
+  id: string
+  wamid: string
+  status: string
+  kind: string
+  in_window: boolean
+}
+
+export interface MediaUploadResult {
+  media_id: string
+  media_type: string // IMAGE | VIDEO | DOCUMENT
+  filename: string
+}
+
+export interface TemplateSendInput {
+  contact_id: string
+  account_id: string
+  template_id: string
+  parameters?: Record<string, unknown>[]
+}
+
+export interface TemplateSendResult {
+  id: string
+  wamid: string
+  status: string
+  conversation_id: string
 }

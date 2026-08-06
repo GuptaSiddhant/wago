@@ -45,6 +45,7 @@ func (n *Notifier) sendWhatsApp(app core.App, orgID, convID string, user *core.R
 		n.cfg.WA_NotificationTemplate,
 		"en_US",
 		params,
+		nil,
 	); err != nil {
 		log.Printf("notifications: whatsapp: template send failed for %s: %v", contact, err)
 	}

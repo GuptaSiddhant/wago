@@ -147,6 +147,11 @@ export function TemplatesPage() {
 
                 <TemplatePreview
                   headerText={t.header_type === 'TEXT' ? t.header_text : undefined}
+                  headerMedia={
+                    t.header_type === 'MEDIA' && t.header_media_type
+                      ? { media_type: t.header_media_type, filename: t.header_media_name }
+                      : undefined
+                  }
                   body={t.body}
                   footer={t.footer}
                   buttons={t.buttons}

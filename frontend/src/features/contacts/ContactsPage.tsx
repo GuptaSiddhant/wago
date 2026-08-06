@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { Pencil, Plus, Trash2, Users, X } from 'lucide-react'
+import { Pencil, Plus, Send, Trash2, Users, X } from 'lucide-react'
 import {
   createContact,
   deleteContact,
@@ -21,6 +21,7 @@ import { SearchField } from '../../components/ui/SearchField'
 import { Spinner } from '../../components/ui/Spinner'
 import { TextField } from '../../components/ui/TextField'
 import type { ContactDTO } from '../../api/types'
+import { TemplateSendDialog } from './TemplateSendDialog'
 
 type ContactDialogState = { mode: 'create' } | { mode: 'edit'; contact: ContactDTO } | null
 
@@ -272,6 +273,7 @@ export function ContactsPage() {
   const [search, setSearch] = useState('')
   const [dialog, setDialog] = useState<ContactDialogState>(null)
   const [detail, setDetail] = useState<ContactDTO | null>(null)
+  const [sendTo, setSendTo] = useState<ContactDTO | null>(null)
 
   const canManageData = session?.is_admin === true || org?.role === 'owner'
 
@@ -343,7 +345,7 @@ export function ContactsPage() {
               <tr className="border-b border-zinc-800 text-xs uppercase tracking-wider text-zinc-500">
                 <th className="py-2.5 pr-4 font-medium">Name</th>
                 <th className="py-2.5 font-medium">Phone</th>
-                {canManageData ? <th className="py-2.5 pl-4 text-right font-medium">Actions</th> : null}
+                <th className="py-2.5 pl-4 text-right font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -369,29 +371,39 @@ export function ContactsPage() {
                     </div>
                   </td>
                   <td className="py-3 text-zinc-400">{c.phone}</td>
-                  {canManageData ? (
-                    <td className="py-3 pl-4 text-right" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          aria-label={`Edit ${c.name || c.phone}`}
-                          onPress={() => setDialog({ mode: 'edit', contact: c })}
-                        >
-                          <Pencil size={16} className="text-zinc-500 hover:text-zinc-200" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          aria-label={`Delete ${c.name || c.phone}`}
-                          onPress={() => handleDelete(c)}
-                          isDisabled={deleteMutation.isPending}
-                        >
-                          <Trash2 size={16} className="text-zinc-500 hover:text-red-400" />
-                        </Button>
-                      </div>
-                    </td>
-                  ) : null}
+                  <td className="py-3 pl-4 text-right" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        aria-label={`Send template to ${c.name || c.phone}`}
+                        onPress={() => setSendTo(c)}
+                      >
+                        <Send size={16} className="text-emerald-500/80 hover:text-emerald-300" />
+                      </Button>
+                      {canManageData ? (
+                        <>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            aria-label={`Edit ${c.name || c.phone}`}
+                            onPress={() => setDialog({ mode: 'edit', contact: c })}
+                          >
+                            <Pencil size={16} className="text-zinc-500 hover:text-zinc-200" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            aria-label={`Delete ${c.name || c.phone}`}
+                            onPress={() => handleDelete(c)}
+                            isDisabled={deleteMutation.isPending}
+                          >
+                            <Trash2 size={16} className="text-zinc-500 hover:text-red-400" />
+                          </Button>
+                        </>
+                      ) : null}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -401,6 +413,7 @@ export function ContactsPage() {
 
       {dialog ? <ContactDialog state={dialog} onDone={() => setDialog(null)} /> : null}
       {detail ? <ContactDetailDialog contact={detail} onClose={() => setDetail(null)} /> : null}
+      {sendTo ? <TemplateSendDialog contact={sendTo} onClose={() => setSendTo(null)} /> : null}
     </div>
   )
 }

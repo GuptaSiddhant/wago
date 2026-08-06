@@ -13,6 +13,8 @@ import type {
   InviteInfo,
   InviteInput,
   ListResponse,
+  MediaMessageResult,
+  MediaUploadResult,
   MessagesResponse,
   MessageTemplateDTO,
   NotificationsResponse,
@@ -24,6 +26,8 @@ import type {
   TeamDTO,
   TeamMemberDTO,
   TemplateInput,
+  TemplateSendInput,
+  TemplateSendResult,
   TemplatesResponse,
   WaAccountDTO,
   WaAccountInput,
@@ -43,7 +47,7 @@ export interface InboxFilters {
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers)
-  if (init?.body != null) {
+  if (init?.body != null && typeof init.body === 'string') {
     headers.set('Content-Type', 'application/json')
   }
 
@@ -287,6 +291,35 @@ export async function syncTemplates(): Promise<TemplatesResponse> {
   return apiFetch<TemplatesResponse>('/templates/sync', { method: 'POST' })
 }
 
+/**
+ * Uploads a file to a WhatsApp number's media store on Meta. The returned
+ * media id is referenced when creating a template with a media header or when
+ * overriding a template header media for a broadcast.
+ */
+export async function uploadMedia(input: {
+  accountId: string
+  file: File
+}): Promise<MediaUploadResult> {
+  const form = new FormData()
+  form.append('account_id', input.accountId)
+  form.append('file', input.file)
+  return apiFetch<MediaUploadResult>('/media/upload', {
+    method: 'POST',
+    body: form,
+  })
+}
+
+/**
+ * Sends an approved template to a contact, creating (or reusing) the
+ * conversation. This is how a chat is started from the contacts list.
+ */
+export async function sendTemplateToContact(input: TemplateSendInput): Promise<TemplateSendResult> {
+  return apiFetch<TemplateSendResult>('/templates/send', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
 export async function listBroadcasts(): Promise<ListResponse<BroadcastDTO>> {
   return apiFetch<ListResponse<BroadcastDTO>>('/broadcasts')
 }
@@ -391,6 +424,21 @@ export async function sendMessage(payload: SendMessagePayload): Promise<SendMess
   return apiFetch<SendMessageResult>('/messages/send', {
     method: 'POST',
     body: JSON.stringify(payload),
+  })
+}
+
+export async function sendMediaMessage(input: {
+  conversationId: string
+  file: File
+  caption?: string
+}): Promise<MediaMessageResult> {
+  const form = new FormData()
+  form.append('conversation_id', input.conversationId)
+  form.append('file', input.file)
+  if (input.caption) form.append('caption', input.caption)
+  return apiFetch<MediaMessageResult>('/messages/media', {
+    method: 'POST',
+    body: form,
   })
 }
 

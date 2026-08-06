@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { FormEvent, KeyboardEvent } from 'react'
+import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Send, Inbox as InboxIcon, CheckCheck, Check, Plus, X, Clock3 } from 'lucide-react'
+import { Send, Inbox as InboxIcon, CheckCheck, Check, Plus, X, Clock3, Paperclip, FileText, Download } from 'lucide-react'
 import { Route } from '../../routes/_app/inbox'
 import {
   assignConversation,
@@ -11,6 +11,7 @@ import {
   listMessages,
   markConversationRead,
   sendMessage,
+  sendMediaMessage,
   updateContact,
 } from '../../api/client'
 import type {
@@ -358,10 +359,11 @@ function Thread({
 function MessageBubble({ message }: { message: MessageDTO }) {
   const outbound = message.direction === 'outbound'
   const failed = message.status === 'failed'
+  const media = message.media
   return (
     <li className={`flex ${outbound ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`max-w-[70%] rounded-2xl px-3.5 py-2 text-sm ${
+        className={`max-w-[70%] overflow-hidden rounded-2xl px-3.5 py-2 text-sm ${
           outbound
             ? failed
               ? 'rounded-br-md bg-red-950 text-red-100 ring-1 ring-inset ring-red-500/40'
@@ -369,7 +371,10 @@ function MessageBubble({ message }: { message: MessageDTO }) {
             : 'rounded-bl-md bg-zinc-800 text-zinc-100'
         }`}
       >
-        <p className="whitespace-pre-wrap break-words">{message.body}</p>
+        {media?.url ? <MediaPreview message={message} /> : null}
+        {!media?.url && message.body ? (
+          <p className="whitespace-pre-wrap break-words">{message.body}</p>
+        ) : null}
         <div
           className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${
             outbound ? (failed ? 'text-red-300/80' : 'text-emerald-200/80') : 'text-zinc-500'
@@ -380,6 +385,69 @@ function MessageBubble({ message }: { message: MessageDTO }) {
         </div>
       </div>
     </li>
+  )
+}
+
+function MediaPreview({ message }: { message: MessageDTO }) {
+  const media = message.media!
+  const downloadUrl = `${media.url}?download=1`
+  const kind = message.kind
+  const caption = media.caption
+
+  if (kind === 'image') {
+    return (
+      <div className="mb-2">
+        <a
+          href={downloadUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="block overflow-hidden rounded-lg"
+          title="Open image"
+        >
+          <img src={media.url} alt={media.caption ?? media.filename ?? 'Image'} className="max-h-72 w-full object-cover" />
+        </a>
+        {caption ? <p className="mt-1 whitespace-pre-wrap break-words">{caption}</p> : null}
+      </div>
+    )
+  }
+
+  if (kind === 'video') {
+    return (
+      <div className="mb-2">
+        <video
+          src={media.url}
+          controls
+          preload="metadata"
+          className="max-h-72 w-full rounded-lg bg-black"
+        />
+        {caption ? <p className="mt-1 whitespace-pre-wrap break-words">{caption}</p> : null}
+      </div>
+    )
+  }
+
+  if (kind === 'audio') {
+    return (
+      <div className="mb-2">
+        <audio src={media.url} controls preload="metadata" className="w-full" />
+        {caption ? <p className="mt-1 whitespace-pre-wrap break-words">{caption}</p> : null}
+      </div>
+    )
+  }
+
+  return (
+    <a
+      href={downloadUrl}
+      target="_blank"
+      rel="noreferrer"
+      className="mb-2 flex items-center gap-2 rounded-lg border border-zinc-600/60 bg-zinc-900/60 px-3 py-2.5 text-xs text-zinc-200 hover:border-emerald-500/50"
+    >
+      <FileText size={16} className="shrink-0 text-emerald-400" />
+      <span className="min-w-0 flex-1 truncate">
+        {media.filename ?? 'Attachment'}
+        {caption ? ` — ${caption}` : ''}
+      </span>
+      <Download size={14} className="shrink-0 text-zinc-400" />
+    </a>
   )
 }
 
@@ -422,6 +490,7 @@ function Composer({
   const [tmplLang, setTmplLang] = useState('en_US')
   const [params, setParams] = useState<string[]>([''])
   const [error, setError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const sendMutation = useMutation({
     mutationFn: (payload: SendMessagePayload) => sendMessage(payload),
@@ -433,6 +502,19 @@ function Composer({
       setError(null)
       void queryClient.invalidateQueries({ queryKey: ['messages', conversationId] })
       onSent()
+    },
+  })
+
+  const mediaMutation = useMutation({
+    mutationFn: (file: File) => sendMediaMessage({ conversationId, file }),
+    onSuccess: (res) => {
+      setError(null)
+      void queryClient.invalidateQueries({ queryKey: ['messages', conversationId] })
+      onSent()
+      void res
+    },
+    onError: (err) => {
+      setError(err instanceof ApiError ? err.message : 'Failed to send media')
     },
   })
 
@@ -478,7 +560,14 @@ function Composer({
     }
   }
 
+  function handleFileSelected(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (file) mediaMutation.mutate(file)
+  }
+
   const canSend = canFreeForm ? draft.trim() !== '' : tmplName.trim() !== ''
+  const sendingMedia = mediaMutation.isPending
 
   return (
     <form onSubmit={handleSubmit} className="border-t border-zinc-800/80 p-3">
@@ -498,6 +587,25 @@ function Composer({
             <span>24h customer service window open — free-form replies allowed.</span>
           </div>
           <div className="flex items-end gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*,audio/*,application/pdf,text/*,.pdf"
+              onChange={handleFileSelected}
+              className="hidden"
+              aria-hidden="true"
+              tabIndex={-1}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              aria-label="Attach file"
+              isDisabled={sendingMedia}
+              onPress={() => fileInputRef.current?.click()}
+              className="shrink-0"
+            >
+              {sendingMedia ? <Spinner className="!h-4 !w-4" /> : <Paperclip size={16} />}
+            </Button>
             <textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -509,7 +617,7 @@ function Composer({
             />
             <Button
               type="submit"
-              isDisabled={sendMutation.isPending || !canSend}
+              isDisabled={sendMutation.isPending || sendingMedia || !canSend}
               aria-label="Send message"
             >
               <Send size={16} />

@@ -133,14 +133,17 @@ func HandleBroadcastEvents(app core.App) func(e *core.RequestEvent) error {
 }
 
 type broadcastCreateRequest struct {
-	Name           string           `json:"name" form:"name"`
-	AccountID      string           `json:"account_id" form:"account_id"`
-	TemplateID     string           `json:"template_id" form:"template_id"`
-	Params         []map[string]any `json:"params" form:"params"`
-	RatePerMinute  int              `json:"rate_per_minute" form:"rate_per_minute"`
-	BatchSize      int              `json:"batch_size" form:"batch_size"`
-	ContactIDs     []string         `json:"contact_ids" form:"contact_ids"`
-	AllContacts    bool             `json:"all_contacts" form:"all_contacts"`
+	Name            string           `json:"name" form:"name"`
+	AccountID       string           `json:"account_id" form:"account_id"`
+	TemplateID      string           `json:"template_id" form:"template_id"`
+	Params          []map[string]any `json:"params" form:"params"`
+	RatePerMinute   int              `json:"rate_per_minute" form:"rate_per_minute"`
+	BatchSize       int              `json:"batch_size" form:"batch_size"`
+	ContactIDs      []string         `json:"contact_ids" form:"contact_ids"`
+	AllContacts     bool             `json:"all_contacts" form:"all_contacts"`
+	HeaderMediaID   string           `json:"header_media_id" form:"header_media_id"`
+	HeaderMediaType string           `json:"header_media_type" form:"header_media_type"`
+	HeaderMediaName string           `json:"header_media_name" form:"header_media_name"`
 }
 
 // HandleBroadcastCreate creates a broadcast and its recipient queue. The worker
@@ -184,6 +187,23 @@ func HandleBroadcastCreate(app core.App) func(e *core.RequestEvent) error {
 			return e.BadRequestError("only approved templates can be broadcast", nil)
 		}
 
+		body.HeaderMediaType = strings.ToUpper(strings.TrimSpace(body.HeaderMediaType))
+		if body.HeaderMediaID != "" {
+			// A send-time media override is only valid for templates that
+			// already carry a media header of the same kind.
+			tmplHeaderType := strings.ToUpper(tmpl.GetString("header_media_type"))
+			switch tmplHeaderType {
+			case "IMAGE", "VIDEO", "DOCUMENT":
+			default:
+				return e.BadRequestError("the selected template has no media header; header media cannot be attached", nil)
+			}
+			if body.HeaderMediaType != tmplHeaderType {
+				return e.BadRequestError("header_media_type must match the template header type ("+tmplHeaderType+")", nil)
+			}
+		} else {
+			body.HeaderMediaType = ""
+		}
+
 		recipients, err := resolveBroadcastRecipients(app, access.OrgID, body)
 		if err != nil {
 			return e.BadRequestError(err.Error(), nil)
@@ -198,7 +218,8 @@ func HandleBroadcastCreate(app core.App) func(e *core.RequestEvent) error {
 		}
 
 		bc, err := store.CreateBroadcast(app, access.OrgID, body.AccountID, body.TemplateID,
-			body.Name, createdBy, body.Params, body.RatePerMinute, body.BatchSize, recipients)
+			body.Name, createdBy, body.Params, body.RatePerMinute, body.BatchSize, recipients,
+			body.HeaderMediaType, body.HeaderMediaID, body.HeaderMediaName)
 		if err != nil {
 			return e.InternalServerError("Failed to create broadcast", err)
 		}
@@ -268,37 +289,43 @@ func HandleBroadcastCancel(app core.App) func(e *core.RequestEvent) error {
 }
 
 type broadcastDTO struct {
-	ID             string `json:"id"`
-	Name           string `json:"name"`
-	Status         string `json:"status"`
-	AccountID      string `json:"account_id"`
-	AccountName    string `json:"account_name"`
-	TemplateID     string `json:"template_id"`
-	TemplateName   string `json:"template_name"`
-	RatePerMinute  int    `json:"rate_per_minute"`
-	BatchSize      int    `json:"batch_size"`
-	RecipientCount int    `json:"recipient_count"`
-	SentCount      int    `json:"sent_count"`
-	FailedCount    int    `json:"failed_count"`
-	Pending        int    `json:"pending"`
-	Sending        int    `json:"sending"`
-	Created        string `json:"created"`
-	StartedAt      string `json:"started_at,omitempty"`
-	FinishedAt     string `json:"finished_at,omitempty"`
+	ID              string `json:"id"`
+	Name            string `json:"name"`
+	Status          string `json:"status"`
+	AccountID       string `json:"account_id"`
+	AccountName     string `json:"account_name"`
+	TemplateID      string `json:"template_id"`
+	TemplateName    string `json:"template_name"`
+	HeaderMediaType string `json:"header_media_type,omitempty"`
+	HeaderMediaID   string `json:"header_media_id,omitempty"`
+	HeaderMediaName string `json:"header_media_name,omitempty"`
+	RatePerMinute   int    `json:"rate_per_minute"`
+	BatchSize       int    `json:"batch_size"`
+	RecipientCount  int    `json:"recipient_count"`
+	SentCount       int    `json:"sent_count"`
+	FailedCount     int    `json:"failed_count"`
+	Pending         int    `json:"pending"`
+	Sending         int    `json:"sending"`
+	Created         string `json:"created"`
+	StartedAt       string `json:"started_at,omitempty"`
+	FinishedAt      string `json:"finished_at,omitempty"`
 }
 
 func broadcastFromRecord(app core.App, r *core.Record) broadcastDTO {
 	dto := broadcastDTO{
-		ID:             r.Id,
-		Name:           r.GetString("name"),
-		Status:         r.GetString("status"),
-		AccountID:      r.GetString("account"),
-		TemplateID:     r.GetString("template"),
-		RatePerMinute:  r.GetInt("rate_per_minute"),
-		BatchSize:      r.GetInt("batch_size"),
-		RecipientCount: r.GetInt("recipient_count"),
-		SentCount:      r.GetInt("sent_count"),
-		FailedCount:    r.GetInt("failed_count"),
+		ID:              r.Id,
+		Name:            r.GetString("name"),
+		Status:          r.GetString("status"),
+		AccountID:       r.GetString("account"),
+		TemplateID:      r.GetString("template"),
+		HeaderMediaType: r.GetString("header_media_type"),
+		HeaderMediaID:   r.GetString("header_media_id"),
+		HeaderMediaName: r.GetString("header_media_name"),
+		RatePerMinute:   r.GetInt("rate_per_minute"),
+		BatchSize:       r.GetInt("batch_size"),
+		RecipientCount:  r.GetInt("recipient_count"),
+		SentCount:       r.GetInt("sent_count"),
+		FailedCount:     r.GetInt("failed_count"),
 	}
 	dto.Created = fmtDateTime(r.GetDateTime("created"))
 	dto.StartedAt = fmtDateTime(r.GetDateTime("started_at"))

@@ -18,39 +18,45 @@ var (
 )
 
 type templateDTO struct {
-	ID          string                `json:"id"`
-	AccountID   string                `json:"account_id"`
-	AccountName string                `json:"account_name"`
-	MetaID      string                `json:"meta_id"`
-	Name        string                `json:"name"`
-	Language    string                `json:"language"`
-	Category    string                `json:"category"`
-	HeaderType  string                `json:"header_type"`
-	HeaderText  string                `json:"header_text"`
-	Body        string                `json:"body"`
-	Footer      string                `json:"footer"`
-	Buttons     []meta.TemplateButton `json:"buttons"`
-	Status      string                `json:"status"`
-	MetaError   string                `json:"meta_error"`
-	Created     string                `json:"created"`
+	ID              string                `json:"id"`
+	AccountID       string                `json:"account_id"`
+	AccountName     string                `json:"account_name"`
+	MetaID          string                `json:"meta_id"`
+	Name            string                `json:"name"`
+	Language        string                `json:"language"`
+	Category        string                `json:"category"`
+	HeaderType      string                `json:"header_type"`
+	HeaderText      string                `json:"header_text"`
+	HeaderMediaType string                `json:"header_media_type"`
+	HeaderMediaID   string                `json:"header_media_id"`
+	HeaderMediaName string                `json:"header_media_name"`
+	Body            string                `json:"body"`
+	Footer          string                `json:"footer"`
+	Buttons         []meta.TemplateButton `json:"buttons"`
+	Status          string                `json:"status"`
+	MetaError       string                `json:"meta_error"`
+	Created         string                `json:"created"`
 }
 
 func templateFromRecord(app core.App, r *core.Record) templateDTO {
 	dto := templateDTO{
-		ID:         r.Id,
-		AccountID:  r.GetString("account"),
-		MetaID:     r.GetString("meta_id"),
-		Name:       r.GetString("name"),
-		Language:   r.GetString("language"),
-		Category:   r.GetString("category"),
-		HeaderType: r.GetString("header_type"),
-		HeaderText: r.GetString("header_text"),
-		Body:       r.GetString("body"),
-		Footer:     r.GetString("footer"),
-		Status:     r.GetString("status"),
-		MetaError:  r.GetString("meta_error"),
-		Buttons:    store.DecodeTemplateButtons(r),
-		Created:    fmtDateTime(r.GetDateTime("created")),
+		ID:              r.Id,
+		AccountID:       r.GetString("account"),
+		MetaID:          r.GetString("meta_id"),
+		Name:            r.GetString("name"),
+		Language:        r.GetString("language"),
+		Category:        r.GetString("category"),
+		HeaderType:      r.GetString("header_type"),
+		HeaderText:      r.GetString("header_text"),
+		HeaderMediaType: r.GetString("header_media_type"),
+		HeaderMediaID:   r.GetString("header_media_id"),
+		HeaderMediaName: r.GetString("header_media_name"),
+		Body:            r.GetString("body"),
+		Footer:          r.GetString("footer"),
+		Status:          r.GetString("status"),
+		MetaError:       r.GetString("meta_error"),
+		Buttons:         store.DecodeTemplateButtons(r),
+		Created:         fmtDateTime(r.GetDateTime("created")),
 	}
 	if account, err := app.FindRecordById("whatsapp_accounts", dto.AccountID); err == nil {
 		dto.AccountName = account.GetString("display_name")
@@ -81,16 +87,19 @@ func HandleTemplates(app core.App) func(e *core.RequestEvent) error {
 }
 
 type templateCreateRequest struct {
-	AccountID     string                `json:"account_id" form:"account_id"`
-	Name          string                `json:"name" form:"name"`
-	Language      string                `json:"language" form:"language"`
-	Category      string                `json:"category" form:"category"`
-	HeaderType    string                `json:"header_type" form:"header_type"`
-	HeaderText    string                `json:"header_text" form:"header_text"`
-	Body          string                `json:"body" form:"body"`
-	Footer        string                `json:"footer" form:"footer"`
-	Buttons       []meta.TemplateButton `json:"buttons" form:"buttons"`
-	ExampleValues []string              `json:"example_values" form:"example_values"`
+	AccountID       string                `json:"account_id" form:"account_id"`
+	Name            string                `json:"name" form:"name"`
+	Language        string                `json:"language" form:"language"`
+	Category        string                `json:"category" form:"category"`
+	HeaderType      string                `json:"header_type" form:"header_type"`
+	HeaderText      string                `json:"header_text" form:"header_text"`
+	HeaderMediaType string                `json:"header_media_type" form:"header_media_type"`
+	HeaderMediaID   string                `json:"header_media_id" form:"header_media_id"`
+	HeaderMediaName string                `json:"header_media_name" form:"header_media_name"`
+	Body            string                `json:"body" form:"body"`
+	Footer          string                `json:"footer" form:"footer"`
+	Buttons         []meta.TemplateButton `json:"buttons" form:"buttons"`
+	ExampleValues   []string              `json:"example_values" form:"example_values"`
 }
 
 // HandleTemplateCreate validates a submission, submits it to Meta for review,
@@ -113,6 +122,7 @@ func HandleTemplateCreate(app core.App) func(e *core.RequestEvent) error {
 		if body.HeaderType == "" {
 			body.HeaderType = "NONE"
 		}
+		body.HeaderMediaType = strings.ToUpper(strings.TrimSpace(body.HeaderMediaType))
 
 		if body.AccountID == "" {
 			return e.BadRequestError("account_id is required", nil)
@@ -136,6 +146,24 @@ func HandleTemplateCreate(app core.App) func(e *core.RequestEvent) error {
 		}
 		if body.HeaderType == "TEXT" && len(body.HeaderText) > 60 {
 			return e.BadRequestError("header text must be <= 60 characters", nil)
+		}
+		switch body.HeaderType {
+		case "TEXT", "NONE":
+			body.HeaderMediaType, body.HeaderMediaID = "", ""
+		case "MEDIA", "":
+			body.HeaderType = "MEDIA"
+		default:
+			return e.BadRequestError("header_type must be NONE, TEXT or MEDIA", nil)
+		}
+		if body.HeaderType == "MEDIA" {
+			switch body.HeaderMediaType {
+			case "IMAGE", "VIDEO", "DOCUMENT":
+			default:
+				return e.BadRequestError("header_media_type must be IMAGE, VIDEO or DOCUMENT for a media header", nil)
+			}
+			if body.HeaderMediaID == "" {
+				return e.BadRequestError("header_media_id is required for a media header; upload the file first via /media/upload", nil)
+			}
 		}
 		if len(body.Footer) > 60 {
 			return e.BadRequestError("footer text must be <= 60 characters", nil)
@@ -168,6 +196,9 @@ func HandleTemplateCreate(app core.App) func(e *core.RequestEvent) error {
 		record.Set("category", body.Category)
 		record.Set("header_type", body.HeaderType)
 		record.Set("header_text", body.HeaderText)
+		record.Set("header_media_type", body.HeaderMediaType)
+		record.Set("header_media_id", body.HeaderMediaID)
+		record.Set("header_media_name", body.HeaderMediaName)
 		record.Set("body", body.Body)
 		record.Set("footer", body.Footer)
 		record.Set("buttons", body.Buttons)
@@ -287,6 +318,16 @@ func buildTemplateSubmission(body templateCreateRequest) *meta.TemplateSubmissio
 			Text:    body.HeaderText,
 			Example: map[string]any{"header_text": []string{body.HeaderText}},
 		})
+	}
+
+	if body.HeaderType == "MEDIA" && body.HeaderMediaType != "" {
+		// IMAGE/VIDEO headers may reference the uploaded media id as an
+		// example handle; DOCUMENT headers take the format only.
+		comp := meta.TemplateComponent{Type: "HEADER", Format: body.HeaderMediaType}
+		if body.HeaderMediaType == "IMAGE" || body.HeaderMediaType == "VIDEO" {
+			comp.Example = map[string]any{"header_handle": []string{body.HeaderMediaID}}
+		}
+		components = append(components, comp)
 	}
 
 	components = append(components, meta.TemplateComponent{

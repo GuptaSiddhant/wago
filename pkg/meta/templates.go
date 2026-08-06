@@ -20,6 +20,7 @@ const (
 // TemplateComponent is one part of a message template (header/body/footer/buttons).
 type TemplateComponent struct {
 	Type    string           `json:"type"`
+	Format  string           `json:"format,omitempty"`
 	Text    string           `json:"text,omitempty"`
 	Example map[string]any   `json:"example,omitempty"`
 	Buttons []TemplateButton `json:"buttons,omitempty"`

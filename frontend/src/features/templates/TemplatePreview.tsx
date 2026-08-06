@@ -3,6 +3,8 @@ import type { TemplateButton } from '../../api/types'
 
 export interface TemplatePreviewProps {
   headerText?: string
+  /** Media header info (type + filename); rendered as a placeholder tile. */
+  headerMedia?: { media_type: string; filename?: string }
   body: string
   footer?: string
   buttons?: TemplateButton[]
@@ -32,13 +34,15 @@ function renderBody(body: string, values: string[]): ReactNode[] {
 
 export function TemplatePreview({
   headerText,
+  headerMedia,
   body,
   footer,
   buttons,
   values = [],
   businessName = 'WaGo',
 }: TemplatePreviewProps) {
-  const hasHeader = Boolean(headerText?.trim())
+  const hasTextHeader = Boolean(headerText?.trim())
+  const hasMediaHeader = Boolean(headerMedia)
   const hasFooter = Boolean(footer?.trim())
   const hasButtons = (buttons?.length ?? 0) > 0
 
@@ -54,7 +58,19 @@ export function TemplatePreview({
 
       <div className="max-w-[280px] overflow-hidden rounded-xl rounded-tr-sm bg-emerald-600/15 ring-1 ring-emerald-500/20">
         <div className="px-3 py-2 text-sm text-zinc-100">
-          {hasHeader ? (
+          {hasMediaHeader ? (
+            <>
+              <div className="mb-2 flex items-center gap-2 rounded-lg bg-emerald-600/20 px-3 py-2 text-xs text-emerald-300 ring-1 ring-emerald-500/30">
+                <span className="font-semibold uppercase">
+                  {headerMedia!.media_type.toUpperCase()}
+                </span>
+                <span className="truncate text-zinc-400">{headerMedia!.filename ?? 'Media'}</span>
+              </div>
+              <div className="mb-2 h-px bg-emerald-500/30" />
+            </>
+          ) : null}
+
+          {hasTextHeader ? (
             <>
               <p className="mb-1 whitespace-pre-wrap text-sm font-semibold text-zinc-100">
                 {headerText}

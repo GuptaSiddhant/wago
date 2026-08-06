@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/guptasiddhant/wago/pkg/meta"
 
@@ -60,6 +61,9 @@ func EnsureMessageTemplatesCollection(app core.App) error {
 			},
 			&core.TextField{Name: "header_type"},
 			&core.TextField{Name: "header_text"},
+			&core.TextField{Name: "header_media_type"},
+			&core.TextField{Name: "header_media_id"},
+			&core.TextField{Name: "header_media_name"},
 			&core.TextField{Name: "body", Required: true},
 			&core.TextField{Name: "footer"},
 			&core.JSONField{Name: "buttons"},
@@ -80,6 +84,9 @@ func EnsureMessageTemplatesCollection(app core.App) error {
 		ensureField(col, &core.TextField{Name: "meta_id"})
 		ensureField(col, &core.TextField{Name: "header_type"})
 		ensureField(col, &core.TextField{Name: "header_text"})
+		ensureField(col, &core.TextField{Name: "header_media_type"})
+		ensureField(col, &core.TextField{Name: "header_media_id"})
+		ensureField(col, &core.TextField{Name: "header_media_name"})
 		ensureField(col, &core.TextField{Name: "footer"})
 		ensureField(col, &core.JSONField{Name: "buttons"})
 		ensureField(col, &core.TextField{Name: "meta_error"})
@@ -118,6 +125,7 @@ func UpsertTemplateFromMeta(app core.App, orgID, accountID string, tmpl *meta.Te
 	// Reconstruct the editable fields from Meta's components so the local form
 	// stays in sync with what is actually live.
 	headerType, headerText, body, footer := "NONE", "", "", ""
+	headerMediaType := ""
 	var buttons []meta.TemplateButton
 	for _, comp := range tmpl.Components {
 		switch comp.Type {
@@ -125,6 +133,12 @@ func UpsertTemplateFromMeta(app core.App, orgID, accountID string, tmpl *meta.Te
 			if comp.Text != "" {
 				headerType = "TEXT"
 				headerText = comp.Text
+			} else if comp.Format != "" {
+				// Media header: report the format so the UI knows the template
+				// carries media. The upload id is not recoverable from the API,
+				// so it is left to local records/submissions.
+				headerType = "MEDIA"
+				headerMediaType = comp.Format
 			}
 		case "BODY":
 			body = comp.Text
@@ -136,6 +150,7 @@ func UpsertTemplateFromMeta(app core.App, orgID, accountID string, tmpl *meta.Te
 	}
 	record.Set("header_type", headerType)
 	record.Set("header_text", headerText)
+	record.Set("header_media_type", headerMediaType)
 	record.Set("body", body)
 	record.Set("footer", footer)
 	if buttons == nil {
@@ -164,6 +179,26 @@ func NewTemplateRecord(app core.App, orgID, accountID string) (*core.Record, err
 // FindOrgTemplate returns an org-scoped template by record id.
 func FindOrgTemplate(app core.App, orgID, id string) (*core.Record, error) {
 	return FindOrgRecord(app, orgID, "message_templates", id)
+}
+
+// FindOrgTemplateByName returns an org-scoped approved template by its name.
+// It is used when sending templates that are referenced by name only.
+func FindOrgTemplateByName(app core.App, orgID, name string) (*core.Record, error) {
+	return app.FindFirstRecordByFilter("message_templates",
+		"org = {:org} && name = {:name}",
+		DbxParams(map[string]any{"org": orgID, "name": name}))
+}
+
+// TemplateHeaderMedia builds the send-time media override for a template's
+// header from its stored media header fields, or nil when the template has no
+// media header.
+func TemplateHeaderMedia(r *core.Record) *meta.TemplateHeaderMedia {
+	kind := strings.ToLower(r.GetString("header_media_type"))
+	mediaID := r.GetString("header_media_id")
+	if kind == "" || mediaID == "" {
+		return nil
+	}
+	return &meta.TemplateHeaderMedia{Kind: kind, MediaID: mediaID}
 }
 
 // DecodeTemplateButtons returns the JSON buttons field as a typed slice.

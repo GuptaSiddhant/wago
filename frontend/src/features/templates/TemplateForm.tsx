@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Trash2 } from 'lucide-react'
-import { createTemplate } from '../../api/client'
+import { Image, Paperclip, Plus, Trash2, X } from 'lucide-react'
+import { createTemplate, uploadMedia } from '../../api/client'
 import type { TemplateButton, WaAccountDTO } from '../../api/types'
 import { useSession } from '../../lib/session'
 import { Button } from '../../components/ui/Button'
@@ -48,10 +48,14 @@ export function TemplateForm({
   const [category, setCategory] = useState('MARKETING')
   const [headerType, setHeaderType] = useState('NONE')
   const [headerText, setHeaderText] = useState('')
+  const [headerMediaType, setHeaderMediaType] = useState('')
+  const [headerMediaId, setHeaderMediaId] = useState('')
+  const [headerMediaName, setHeaderMediaName] = useState('')
   const [body, setBody] = useState('')
   const [footer, setFooter] = useState('')
   const [buttons, setButtons] = useState<TemplateButton[]>([])
   const [error, setError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Live sample values for {{1}}..{{n}} — used for both the preview and the
   // example payload Meta requires when a template body has variables.
@@ -85,6 +89,9 @@ export function TemplateForm({
         category,
         header_type: headerType,
         header_text: headerText,
+        header_media_type: headerType === 'MEDIA' ? headerMediaType : undefined,
+        header_media_id: headerType === 'MEDIA' ? headerMediaId : undefined,
+        header_media_name: headerType === 'MEDIA' ? headerMediaName : undefined,
         body,
         footer,
         buttons: buttons.filter((b) => b.text.trim() !== ''),
@@ -98,6 +105,28 @@ export function TemplateForm({
       setError(err instanceof Error ? err.message : 'Failed to submit template')
     },
   })
+
+  const uploadMutation = useMutation({
+    mutationFn: (file: File) => uploadMedia({ accountId: accountId ?? '', file }),
+    onSuccess: (result) => {
+      setHeaderMediaType(result.media_type)
+      setHeaderMediaId(result.media_id)
+      setHeaderMediaName(result.filename)
+      setError(null)
+    },
+    onError: (err) => {
+      setError(err instanceof Error ? err.message : 'Failed to upload media')
+    },
+  })
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !accountId) {
+      setError(accountId ? 'Choose a file to attach' : 'Select the WhatsApp number first')
+      return
+    }
+    uploadMutation.mutate(file)
+  }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -116,6 +145,16 @@ export function TemplateForm({
     if (headerType === 'TEXT' && !headerText.trim()) {
       setError('Header text is required when the header type is Text')
       return
+    }
+    if (headerType === 'MEDIA') {
+      if (!headerMediaId) {
+        setError('Attach a media file when the header type is Media')
+        return
+      }
+      if (uploadMutation.isPending) {
+        setError('Still uploading the media file, please wait')
+        return
+      }
     }
     setError(null)
     mutation.mutate()
@@ -170,6 +209,7 @@ export function TemplateForm({
             options={[
               { id: 'NONE', label: 'No header' },
               { id: 'TEXT', label: 'Text' },
+              { id: 'MEDIA', label: 'Media (image, video or document)' },
             ]}
             selectedKey={headerType}
             onSelectionChange={(key) => setHeaderType(String(key))}
@@ -182,6 +222,54 @@ export function TemplateForm({
               placeholder="Hi {{1}}"
               description="Max 60 characters"
             />
+          ) : headerType === 'MEDIA' ? (
+            <div className="flex flex-col justify-end gap-1.5">
+              {headerMediaId ? (
+                <div className="flex items-center gap-2 rounded-xl bg-zinc-900 border border-zinc-700 px-3 py-2">
+                  <Image size={15} className="shrink-0 text-emerald-400" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm text-zinc-200">{headerMediaName}</span>
+                    <span className="block text-xs text-zinc-500">
+                      {headerMediaType} header
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Remove media"
+                    className="shrink-0 rounded-full p-1 text-zinc-500 hover:bg-zinc-800 hover:text-red-400"
+                    onClick={() => {
+                      setHeaderMediaId('')
+                      setHeaderMediaType('')
+                      setHeaderMediaName('')
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadMutation.isPending}
+                    className="flex items-center justify-center gap-2 rounded-xl bg-zinc-900 border border-dashed border-zinc-600 px-3 py-2 text-sm text-zinc-400 transition hover:border-emerald-500 hover:text-emerald-400 disabled:opacity-60"
+                  >
+                    <Paperclip size={15} />
+                    {uploadMutation.isPending ? 'Uploading…' : 'Attach image, video or document'}
+                  </button>
+                  <span className="text-xs text-zinc-500">
+                    Uploaded once here and attached on every send.
+                  </span>
+                </>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                accept="image/*,video/mp4,video/3gpp,video/quicktime,application/pdf"
+                onChange={handleFile}
+              />
+            </div>
           ) : (
             <div />
           )}
@@ -293,6 +381,11 @@ export function TemplateForm({
           <div className="mt-2">
             <TemplatePreview
               headerText={headerType === 'TEXT' ? headerText : undefined}
+              headerMedia={
+                headerType === 'MEDIA' && headerMediaType
+                  ? { media_type: headerMediaType, filename: headerMediaName }
+                  : undefined
+              }
               body={body || 'Your template body will appear here…'}
               footer={footer}
               buttons={previewButtons}

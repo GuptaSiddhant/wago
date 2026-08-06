@@ -41,3 +41,82 @@ func TestMessageBody(t *testing.T) {
 		})
 	}
 }
+
+func TestInboundPayload(t *testing.T) {
+	tests := []struct {
+		name      string
+		msg       *wawh.Message
+		wantType  string
+		wantID    string
+		wantMedia bool
+	}{
+		{"nil", nil, "text", "", false},
+		{"text", &wawh.Message{Type: "text", Text: &wawh.Text{Body: "hi"}}, "text", "", false},
+		{"image", &wawh.Message{Type: "image", Image: &message.MediaInfo{ID: "mid-1", MimeType: "image/jpeg", Filename: "a.jpg", Caption: "c"}}, "image", "mid-1", true},
+		{"video", &wawh.Message{Type: "video", Video: &message.MediaInfo{ID: "vid-2"}}, "video", "vid-2", true},
+		{"audio", &wawh.Message{Type: "audio", Audio: &message.MediaInfo{ID: "aud-3"}}, "audio", "aud-3", true},
+		{"document", &wawh.Message{Type: "document", Document: &message.MediaInfo{ID: "doc-4", Filename: "r.pdf"}}, "document", "doc-4", true},
+		{"sticker", &wawh.Message{Type: "sticker", Sticker: &message.MediaInfo{ID: "stk-5"}}, "sticker", "stk-5", true},
+		{"button falls back to text", &wawh.Message{Type: "button", Button: &wawh.Button{Text: "ok"}}, "text", "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			payload, info := inboundPayload(tt.msg)
+			if payload["type"] != tt.wantType {
+				t.Errorf("payload type = %v, want %v", payload["type"], tt.wantType)
+			}
+			if tt.wantMedia && info == nil {
+				t.Fatal("expected media info, got nil")
+			}
+			if info != nil && info.ID != tt.wantID {
+				t.Errorf("media id = %q, want %q", info.ID, tt.wantID)
+			}
+			if !tt.wantMedia && info != nil {
+				t.Errorf("did not expect media info, got %+v", info)
+			}
+		})
+	}
+}
+
+func TestMediaFilename(t *testing.T) {
+	tests := []struct {
+		name string
+		info *message.MediaInfo
+		want string
+	}{
+		{"keeps existing filename", &message.MediaInfo{ID: "m1", Filename: "photo.jpg", MimeType: "image/jpeg"}, "photo.jpg"},
+		{"derives from mime", &message.MediaInfo{ID: "m2", MimeType: "application/pdf"}, "media.pdf"},
+		{"video 3gpp", &message.MediaInfo{ID: "m3", MimeType: "video/3gpp"}, "media.3gp"},
+		{"unknown mime keeps ext", &message.MediaInfo{ID: "m4", Filename: "archive.7z", MimeType: "application/octet-stream"}, "archive.7z"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := mediaFilename(tt.info); got != tt.want {
+				t.Errorf("mediaFilename(%s) = %q, want %q", tt.name, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestExtensionForMime(t *testing.T) {
+	tests := []struct {
+		mime string
+		want string
+	}{
+		{"image/jpeg", ".jpg"},
+		{"image/png", ".png"},
+		{"image/webp", ".webp"},
+		{"video/mp4", ".mp4"},
+		{"video/3gpp", ".3gp"},
+		{"audio/mpeg", ".mp3"},
+		{"application/pdf", ".pdf"},
+		{"image/jpeg; charset=binary", ".jpg"},
+		{"application/octet-stream", ""},
+	}
+	for _, tt := range tests {
+		if got := extensionForMime(tt.mime); got != tt.want {
+			t.Errorf("extensionForMime(%q) = %q, want %q", tt.mime, got, tt.want)
+		}
+	}
+}
