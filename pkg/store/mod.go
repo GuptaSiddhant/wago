@@ -52,6 +52,9 @@ func EnsureCollections(app core.App) error {
 	if err := EnsureBroadcastsCollection(app); err != nil {
 		return err
 	}
+	if err := EnsureVoiceCallsCollection(app); err != nil {
+		return err
+	}
 	// The team relation must exist on org_members before any member is created,
 	// and on whatsapp_accounts/conversations for team-scoped routing.
 	if err := EnsureTeamReferenceField(app, "org_members"); err != nil {
@@ -116,6 +119,7 @@ func EnforceCollectionSecurity(app core.App) error {
 		"message_templates",
 		"broadcasts",
 		"broadcast_recipients",
+		"voice_calls",
 	} {
 		if err := setCollectionRules(app, name, ""); err != nil {
 			return err

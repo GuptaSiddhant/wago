@@ -4,6 +4,8 @@ import type {
   BroadcastCreateInput,
   BroadcastDetail,
   BroadcastDTO,
+  CallDTO,
+  CallEventDTO,
   ContactDTO,
   ContactInput,
   ConversationsResponse,
@@ -466,4 +468,85 @@ export async function pushUnsubscribe(endpoint: string): Promise<void> {
   return apiFetch<void>(`/push/subscribe?endpoint=${encodeURIComponent(endpoint)}`, {
     method: 'DELETE',
   })
+}
+
+/**
+ * Starts an outbound call to a conversation. The server records the call as
+ * ringing; the browser then negotiates media via signalCall.
+ */
+export async function startCall(conversationId: string): Promise<CallDTO> {
+  return apiFetch<CallDTO>('/calls', {
+    method: 'POST',
+    body: JSON.stringify({ conversation_id: conversationId }),
+  })
+}
+
+/**
+ * Exchanges a WebRTC offer for the media session of a call with id `callId`.
+ * The client is always the offerer; the server's pion bridge answers.
+ */
+export async function signalCall(callId: string, offerSdp: string): Promise<{ sdp: string }> {
+  return apiFetch<{ sdp: string }>(`/calls/${callId}/signal`, {
+    method: 'POST',
+    body: JSON.stringify({ sdp: offerSdp }),
+  })
+}
+
+/** Hangs up a call and tears down its media session. */
+export async function endCall(callId: string): Promise<{ id: string; status: string }> {
+  return apiFetch<{ id: string; status: string }>(`/calls/${callId}/end`, {
+    method: 'POST',
+  })
+}
+
+export async function listConversationCalls(conversationId: string): Promise<ListResponse<CallDTO>> {
+  return apiFetch<ListResponse<CallDTO>>(`/conversations/${conversationId}/calls`)
+}
+
+/**
+ * Subscribes to live call events for the active org via the `/calls/events`
+ * SSE stream. Uses fetch + ReadableStream because PocketBase's SSE routes
+ * require auth headers that the native EventSource cannot send.
+ */
+export async function subscribeCallEvents(
+  onEvent: (event: string, payload: CallEventDTO) => void,
+  signal: AbortSignal,
+): Promise<void> {
+  const headers = new Headers()
+  const token = getStoredSession()?.token
+  const orgId = getStoredOrgId()
+  if (token) headers.set('Authorization', `Bearer ${token}`)
+  if (orgId) headers.set('X-Org-Id', orgId)
+
+  const res = await fetch(`${API_BASE}/calls/events`, { headers, signal })
+  if (!res.ok || !res.body) {
+    throw new ApiError(res.status, `Call events stream failed (${res.status})`)
+  }
+
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+
+    const frames = buffer.split('\n\n')
+    buffer = frames.pop() ?? ''
+    for (const frame of frames) {
+      let event = 'message'
+      let data = ''
+      for (const line of frame.split('\n')) {
+        if (line.startsWith('event:')) event = line.slice(6).trim()
+        else if (line.startsWith('data:')) data = line.slice(5).trim()
+      }
+      if (!data) continue
+      try {
+        onEvent(event, JSON.parse(data) as CallEventDTO)
+      } catch {
+        // Ignore malformed frames; keep streaming.
+      }
+    }
+  }
 }

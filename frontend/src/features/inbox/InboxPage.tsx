@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Send, Inbox as InboxIcon, CheckCheck, Check, Plus, X, Clock3, Paperclip, FileText, Download } from 'lucide-react'
+import { Send, Inbox as InboxIcon, CheckCheck, Check, Plus, X, Clock3, Paperclip, FileText, Download, Phone } from 'lucide-react'
 import { Route } from '../../routes/_app/inbox'
 import {
   assignConversation,
@@ -32,6 +32,7 @@ import { SearchField } from '../../components/ui/SearchField'
 import { SelectField } from '../../components/ui/Select'
 import { Spinner } from '../../components/ui/Spinner'
 import { TextField } from '../../components/ui/TextField'
+import { useCalls } from '../calls/CallsProvider'
 
 const statusOptions = [
   { id: '', label: 'All conversations' },
@@ -243,6 +244,8 @@ function Thread({
   const { session, org } = useSession()
   const { contact, whatsapp_account, status, assignee_id } = conversation
   const bottomRef = useRef<HTMLDivElement>(null)
+  const calls = useCalls()
+  const callAttempting = calls.connecting
 
   const canEditDetails =
     session?.is_admin === true ||
@@ -296,6 +299,15 @@ function Thread({
         </div>
         {meId ? (
           <div className="flex shrink-0 items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onPress={() => calls.startOutbound(conversation.id)}
+              isDisabled={callAttempting}
+            >
+              {callAttempting ? <Spinner className="!h-4 !w-4" /> : <Phone size={14} />}
+              <span className="hidden sm:inline">{callAttempting ? 'Calling…' : 'Call'}</span>
+            </Button>
             <Button
               variant="secondary"
               size="sm"

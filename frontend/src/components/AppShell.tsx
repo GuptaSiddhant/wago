@@ -12,6 +12,8 @@ import { ModalDialog } from './ui/Modal'
 import { TextField } from './ui/TextField'
 import { NotificationBell } from './NotificationBell'
 import { useSession } from '../lib/session'
+import { CallsProvider } from '../features/calls/CallsProvider'
+import { CallOverlay } from '../features/calls/CallOverlay'
 
 const mainNav = [
   { to: '/inbox', label: 'Inbox', icon: MessageSquare },
@@ -174,7 +176,10 @@ export function AppShell() {
       </aside>
 
       <main className="flex min-w-0 flex-1 flex-col">
-        <Outlet />
+        <CallsProvider>
+          <Outlet />
+          <CallOverlay />
+        </CallsProvider>
       </main>
 
       {showNewOrg ? <NewOrgDialog onClose={() => setShowNewOrg(false)} /> : null}

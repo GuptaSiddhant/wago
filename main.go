@@ -86,6 +86,7 @@ func handleOnServe(cfg *utils.AppConfig) func(se *core.ServeEvent) error {
 		// Register Webhook endpoints
 		se.Router.GET("/api/wa/webhook", webhooks.HandleVerification(cfg.WA_WebhookVerifyToken))
 		se.Router.POST("/api/wa/webhook", webhooks.HandleIncomingMessage(cfg.MetaAppSecret, notifier))
+		se.Router.POST("/api/wa/webhook/call", webhooks.HandleInboundCall())
 
 		// Serve embedded React SPA from root /
 		frontendSubFS, err := fs.Sub(frontendFS, "frontend/dist")

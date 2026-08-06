@@ -350,3 +350,31 @@ export interface TemplateSendResult {
   status: string
   conversation_id: string
 }
+
+export type CallDirection = 'inbound' | 'outbound'
+export type CallState = 'missed' | 'ringing' | 'active' | 'ended' | 'failed'
+
+export interface CallDTO {
+  id: string
+  conversation_id: string
+  contact_id: string
+  account_id: string
+  direction: CallDirection
+  status: CallState
+  phone: string
+  name?: string
+  duration: number
+  started_at?: string
+  ended_at?: string
+  created: string
+}
+
+/** Live call event pushed over the /calls/events SSE stream. */
+export interface CallEventDTO {
+  id: string
+  direction: CallDirection
+  state: string
+  caller_id?: string
+  phone?: string
+  name?: string
+}
