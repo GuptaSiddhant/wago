@@ -97,11 +97,6 @@ export interface TeamMemberDTO {
   team_name?: string
 }
 
-export interface CreateTeamMemberResult {
-  member: TeamMemberDTO
-  generated_password: string
-}
-
 export interface WaAccountDTO {
   id: string
   display_name: string
@@ -316,12 +311,6 @@ export interface BroadcastRecipient {
 export interface BroadcastDetail {
   broadcast: BroadcastDTO
   recipients: BroadcastRecipient[]
-}
-
-export interface TemplateParam {
-  type: string
-  text?: string
-  [key: string]: unknown
 }
 
 export interface SendMessagePayload {

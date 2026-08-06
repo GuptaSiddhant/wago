@@ -3,6 +3,7 @@ module github.com/guptasiddhant/wago
 go 1.26.5
 
 require (
+	github.com/SherClockHolmes/webpush-go v1.4.0
 	github.com/piusalfred/whatsapp v0.1.12
 	github.com/pocketbase/dbx v1.12.0
 	github.com/pocketbase/pocketbase v0.39.10
@@ -10,7 +11,6 @@ require (
 
 require (
 	dario.cat/mergo v1.0.2 // indirect
-	github.com/SherClockHolmes/webpush-go v1.4.0 // indirect
 	github.com/air-verse/air v1.67.4 // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect

@@ -12,6 +12,7 @@ import { useSession } from '../../lib/session'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
+import { FormError } from '../../components/ui/FormError'
 import { Spinner } from '../../components/ui/Spinner'
 import { TemplateForm } from './TemplateForm'
 import { TemplatePreview } from './TemplatePreview'
@@ -158,9 +159,7 @@ export function TemplatesPage() {
                 />
 
                 {t.status === 'REJECTED' && t.meta_error ? (
-                  <p className="rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs text-red-400">
-                    {t.meta_error}
-                  </p>
+                  <FormError message={t.meta_error} className="text-xs" />
                 ) : null}
               </li>
             ))}

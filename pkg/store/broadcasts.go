@@ -402,6 +402,24 @@ func HasOutstandingWork(app core.App, broadcastID string) (bool, error) {
 	return queued+sending > 0, nil
 }
 
+// IncrementBroadcastCounters atomically bumps a broadcast's sent/failed counters
+// in the database using a single UPDATE. This avoids the lost-update that would
+// occur if multiple worker instances read-modify-write the same row in memory.
+func IncrementBroadcastCounters(app core.App, broadcastID string, sent, failed int) error {
+	_, err := app.DB().NewQuery(
+		`UPDATE broadcasts
+		 SET sent_count = sent_count + {:sent}, failed_count = failed_count + {:failed},
+		     updated = {:now}
+		 WHERE id = {:id}`).
+		Bind(dbx.Params{
+			"sent":   sent,
+			"failed": failed,
+			"now":    sqlTime(time.Now()),
+			"id":     broadcastID,
+		}).Execute()
+	return err
+}
+
 // FinalizeBroadcast marks a broadcast finished once its queue is drained.
 func FinalizeBroadcast(app core.App, bc *core.Record) error {
 	status := BroadcastCompleted

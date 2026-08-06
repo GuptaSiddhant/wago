@@ -8,6 +8,8 @@ import (
 	"github.com/pocketbase/pocketbase/tools/filesystem"
 )
 
+// EnsureMessagesCollection creates the org-scoped messages collection that
+// stores every inbound/outbound WhatsApp message and its delivery status.
 func EnsureMessagesCollection(app core.App) error {
 	orgsCol, err := app.FindCollectionByNameOrId("orgs")
 	if err != nil {
@@ -149,9 +151,6 @@ func SaveOutgoingMessage(app core.App, orgID, conversationID, senderPhone, recip
 	}
 	return record, nil
 }
-
-// mediaField is the messages file field that holds downloadable media bytes.
-const mediaField = "media"
 
 // FindMessageByWamid fetches a message scoped to a single org by its Meta wamid.
 func FindMessageByWamid(app core.App, orgID, wamid string) (*core.Record, error) {

@@ -8,18 +8,22 @@ export function parsePBDate(value: string | undefined | null): Date | null {
   return Number.isNaN(d.getTime()) ? null : d
 }
 
+// Formats a PB datetime as a short local time ("14:05") or an em dash if empty.
 export function formatTime(value: string | undefined | null): string {
   const d = parsePBDate(value)
   if (!d) return '—'
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
+// Formats a PB datetime as a readable "Apr 3, 2026" date or an em dash if empty.
 export function formatDate(value: string | undefined | null): string {
   const d = parsePBDate(value)
   if (!d) return '—'
   return d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+// Renders a PB datetime as a relative "3m / 2h / 5d" age, falling back to the
+// full date for anything more than a week old.
 export function timeAgo(value: string | undefined | null): string {
   const d = parsePBDate(value)
   if (!d) return '—'
@@ -34,6 +38,8 @@ export function timeAgo(value: string | undefined | null): string {
   return formatDate(value)
 }
 
+// First letters of a person's first and last name (or the first two letters of
+// a single-word name), used for avatar placeholders.
 export function initials(name: string | undefined | null, fallback = '?'): string {
   if (!name) return fallback
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -52,6 +58,7 @@ const avatarPalette = [
   'bg-indigo-600',
 ]
 
+// Deterministically picks an avatar background color from a name.
 export function hashColor(name: string | undefined | null): string {
   if (!name) return avatarPalette[0]
   let hash = 0
@@ -63,6 +70,7 @@ export function hashColor(name: string | undefined | null): string {
 
 export type Tone = 'green' | 'zinc' | 'red' | 'blue' | 'amber'
 
+// Maps a message/record status to a Badge tone for a consistent visual cue.
 export function statusTone(status: string): Tone {
   switch (status) {
     case 'open':

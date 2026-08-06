@@ -11,6 +11,9 @@ import { useSession } from "./session";
 const POLL_MS = 15_000;
 const PRESENCE_HEARTBEAT_MS = 60_000;
 
+// In-app notification state: the fetched notification list, the unread count,
+// a flag controlling whether the dropdown is open, and actions to refresh or
+// clear the list.
 interface NotificationsContextValue {
   items: NotificationDTO[];
   unread: number;

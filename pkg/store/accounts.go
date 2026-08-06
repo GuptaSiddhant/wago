@@ -7,6 +7,8 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
+// EnsureWhatsAppAccountsCollection creates the org-scoped whatsapp_accounts
+// collection that holds the Meta credentials for each connected number.
 func EnsureWhatsAppAccountsCollection(app core.App) error {
 	orgsCol, err := app.FindCollectionByNameOrId("orgs")
 	if err != nil {
@@ -52,16 +54,7 @@ func EnsureWhatsAppAccountsCollection(app core.App) error {
 	}
 
 	// Ensure the waba_id field exists even on pre-existing databases.
-	col, err := app.FindCollectionByNameOrId("whatsapp_accounts")
-	if err != nil {
-		return err
-	}
-	ensureField(col, &core.TextField{Name: "waba_id"})
-	if err := app.Save(col); err != nil {
-		return err
-	}
-
-	return nil
+	return ensureFields(app, "whatsapp_accounts", &core.TextField{Name: "waba_id"})
 }
 
 // FindWhatsAppAccountByPhoneNumberID finds an account by its Meta phone_number_id.

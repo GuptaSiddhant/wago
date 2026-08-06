@@ -19,6 +19,8 @@ const (
 // single chat doesn't spam the user (or emails) repeatedly.
 const notifyCooldown = 10 * time.Minute
 
+// EnsureNotificationsCollection creates the org-scoped notifications collection
+// that stores unread push/email/WhatsApp alerts for users.
 func EnsureNotificationsCollection(app core.App) error {
 	if _, err := app.FindCollectionByNameOrId("notifications"); err != nil {
 		usersCol, err := app.FindCollectionByNameOrId("users")

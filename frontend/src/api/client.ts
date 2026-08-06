@@ -7,7 +7,6 @@ import type {
   ContactDTO,
   ContactInput,
   ConversationsResponse,
-  CreateTeamMemberResult,
   ConversationDetailDTO,
   InviteDTO,
   InviteInfo,
@@ -45,6 +44,11 @@ export interface InboxFilters {
   offset?: number
 }
 
+/**
+ * Thin HTTPS wrapper around the Wago backend. Every call injects the stored
+ * session token (Authorization) and active org (X-Org-Id) so the server can
+ * scope records and authorize the request. Errors are normalized into ApiError.
+ */
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers)
   if (init?.body != null && typeof init.body === 'string') {
@@ -135,18 +139,6 @@ export async function listContacts(filters: ContactFilters = {}): Promise<ListRe
 
 export async function listTeam(): Promise<ListResponse<TeamMemberDTO>> {
   return apiFetch<ListResponse<TeamMemberDTO>>('/team')
-}
-
-export async function createTeamMember(input: {
-  email: string
-  name: string
-  role: string
-  team_id?: string
-}): Promise<CreateTeamMemberResult> {
-  return apiFetch<CreateTeamMemberResult>('/team', {
-    method: 'POST',
-    body: JSON.stringify(input),
-  })
 }
 
 export async function updateTeamMember(

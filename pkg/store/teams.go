@@ -7,14 +7,6 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
-// ensureField adds a field to a collection if it doesn't already exist,
-// allowing existing collections to be migrated in place.
-func ensureField(col *core.Collection, field core.Field) {
-	if col.Fields.GetByName(field.GetName()) == nil {
-		col.Fields.Add(field)
-	}
-}
-
 // EnsureTeamsCollection creates the org-scoped teams collection.
 func EnsureTeamsCollection(app core.App) error {
 	orgsCol, err := app.FindCollectionByNameOrId("orgs")
@@ -62,21 +54,11 @@ func EnsureTeamReferenceField(app core.App, collectionName string) error {
 		return fmt.Errorf("teams collection not found: %w", err)
 	}
 
-	col, err := app.FindCollectionByNameOrId(collectionName)
-	if err != nil {
-		return fmt.Errorf("%s collection not found: %w", collectionName, err)
-	}
-
-	ensureField(col, &core.RelationField{
+	return ensureFields(app, collectionName, &core.RelationField{
 		Name:         "team",
 		CollectionId: teamsCol.Id,
 		MaxSelect:    1,
 	})
-
-	if err := app.Save(col); err != nil {
-		return fmt.Errorf("failed to add team field to %s: %w", collectionName, err)
-	}
-	return nil
 }
 
 // FindTeamsByOrg returns the teams of an org, most recently created last.

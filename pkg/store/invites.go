@@ -18,6 +18,8 @@ const (
 	InviteStatusRevoked  = "revoked"
 )
 
+// EnsureInvitesCollection creates the org-scoped invites collection that holds
+// pending/expired team-member onboarding invitations.
 func EnsureInvitesCollection(app core.App) error {
 	orgsCol, err := app.FindCollectionByNameOrId("orgs")
 	if err != nil {

@@ -21,6 +21,8 @@ import {
   setStoredSession,
 } from "./authStore";
 
+// The auth/session value exposed to consumers through useSession. It bundles
+// the current user, their session token, and the active org selection.
 interface SessionContextValue {
   session: Session | null;
   isAuthenticated: boolean;

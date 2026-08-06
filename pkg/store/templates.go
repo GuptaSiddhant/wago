@@ -81,16 +81,17 @@ func EnsureMessageTemplatesCollection(app core.App) error {
 		log.Println("Auto-created 'message_templates' collection")
 	} else {
 		// Ensure fields exist even on pre-existing databases.
-		ensureField(col, &core.TextField{Name: "meta_id"})
-		ensureField(col, &core.TextField{Name: "header_type"})
-		ensureField(col, &core.TextField{Name: "header_text"})
-		ensureField(col, &core.TextField{Name: "header_media_type"})
-		ensureField(col, &core.TextField{Name: "header_media_id"})
-		ensureField(col, &core.TextField{Name: "header_media_name"})
-		ensureField(col, &core.TextField{Name: "footer"})
-		ensureField(col, &core.JSONField{Name: "buttons"})
-		ensureField(col, &core.TextField{Name: "meta_error"})
-		if err := app.Save(col); err != nil {
+		if err := ensureFields(app, "message_templates",
+			&core.TextField{Name: "meta_id"},
+			&core.TextField{Name: "header_type"},
+			&core.TextField{Name: "header_text"},
+			&core.TextField{Name: "header_media_type"},
+			&core.TextField{Name: "header_media_id"},
+			&core.TextField{Name: "header_media_name"},
+			&core.TextField{Name: "footer"},
+			&core.JSONField{Name: "buttons"},
+			&core.TextField{Name: "meta_error"},
+		); err != nil {
 			return err
 		}
 	}

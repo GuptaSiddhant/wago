@@ -21,6 +21,7 @@ const (
 // valid roles in ascending access order
 var AllRoles = []string{RoleOwner, RoleAdmin, RoleAgent, RoleViewer}
 
+// EnsureOrgsCollection creates the orgs collection if it doesn't exist.
 func EnsureOrgsCollection(app core.App) error {
 	if _, err := app.FindCollectionByNameOrId("orgs"); err != nil {
 		col := core.NewBaseCollection("orgs")
@@ -47,6 +48,8 @@ func EnsureOrgsCollection(app core.App) error {
 	return nil
 }
 
+// EnsureOrgMembersCollection creates the org_members join collection that maps
+// users to orgs with a role, scoping every member to their own row.
 func EnsureOrgMembersCollection(app core.App) error {
 	orgsCol, err := app.FindCollectionByNameOrId("orgs")
 	if err != nil {

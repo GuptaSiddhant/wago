@@ -3,6 +3,8 @@ import type { Session } from '../api/types'
 const SESSION_KEY = 'wago.session'
 const ORG_KEY = 'wago.org'
 
+// Thrown by apiFetch for any non-2xx (or unparseable) response so the UI can
+// show a stable message while still having access to the HTTP status code.
 export class ApiError extends Error {
   readonly status: number
 
@@ -13,6 +15,7 @@ export class ApiError extends Error {
   }
 }
 
+// Read the persisted session from localStorage (null if absent/corrupt).
 export function getStoredSession(): Session | null {
   const raw = localStorage.getItem(SESSION_KEY)
   if (!raw) return null

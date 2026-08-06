@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -81,7 +82,7 @@ func HandleAnalytics(app core.App) func(e *core.RequestEvent) error {
 			return apiErr
 		}
 
-		rangeKey := strings.TrimPrefix(e.Request.URL.Query().Get("range"), "range=")
+		rangeKey := e.Request.URL.Query().Get("range")
 		var days time.Duration
 		switch rangeKey {
 		case "7d":
@@ -155,7 +156,15 @@ func HandleAnalytics(app core.App) func(e *core.RequestEvent) error {
 		for _, c := range categories {
 			cats = append(cats, *c)
 		}
-		sortCategories(cats)
+		slices.SortFunc(cats, func(a, b analyticsCategory) int {
+			if b.Cost > a.Cost {
+				return 1
+			}
+			if b.Cost < a.Cost {
+				return -1
+			}
+			return 0
+		})
 
 		return e.JSON(http.StatusOK, map[string]any{
 			"range":      rangeKey,
@@ -174,12 +183,4 @@ func peerLabel(acc *core.Record) string {
 		return n
 	}
 	return acc.GetString("phone_number_id")
-}
-
-func sortCategories(cats []analyticsCategory) {
-	for i := 1; i < len(cats); i++ {
-		for j := i; j > 0 && cats[j].Cost > cats[j-1].Cost; j-- {
-			cats[j], cats[j-1] = cats[j-1], cats[j]
-		}
-	}
 }

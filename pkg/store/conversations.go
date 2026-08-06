@@ -8,6 +8,8 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
+// EnsureConversationsCollection creates the org-scoped conversations collection
+// that ties a contact to a WhatsApp account, tracking the thread state.
 func EnsureConversationsCollection(app core.App) error {
 	orgsCol, err := app.FindCollectionByNameOrId("orgs")
 	if err != nil {

@@ -1,7 +1,9 @@
 import PocketBase from 'pocketbase'
 import { getStoredSession } from '../lib/authStore'
 
-export const pb = new PocketBase('/')
+// Shared single PocketBase client. Only used by the SDK auth-store side-effect
+// below so the user's token is kept fresh for PocketBase's own HTTP calls.
+const pb = new PocketBase('/')
 
 export function syncPocketBaseAuth(): void {
   const token = getStoredSession()?.token
@@ -10,8 +12,4 @@ export function syncPocketBaseAuth(): void {
   } else {
     pb.authStore.clear()
   }
-}
-
-export function currentOrgId(): string | null {
-  return localStorage.getItem('wago.org')
 }

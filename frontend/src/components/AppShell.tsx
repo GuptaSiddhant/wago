@@ -7,6 +7,7 @@ import { createOrg } from '../api/client'
 import { OrgSwitcher } from './OrgSwitcher'
 import { Avatar } from './ui/Avatar'
 import { Button } from './ui/Button'
+import { FormError } from './ui/FormError'
 import { ModalDialog } from './ui/Modal'
 import { TextField } from './ui/TextField'
 import { NotificationBell } from './NotificationBell'
@@ -87,11 +88,7 @@ function NewOrgDialog({ onClose }: { onClose: () => void }) {
           isRequired
           autoFocus
         />
-        {error ? (
-          <p className="rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 text-sm text-red-400">
-            {error}
-          </p>
-        ) : null}
+        <FormError message={error} />
         <div className="flex justify-end gap-2 pt-1">
           <Button type="button" variant="ghost" onPress={onClose}>
             Cancel

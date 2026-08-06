@@ -5,9 +5,17 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/pocketbase/dbx"
+
 	"github.com/guptasiddhant/wago/pkg/store"
 
 	"github.com/pocketbase/pocketbase/core"
+)
+
+// WhatsApp account connection statuses.
+const (
+	accountStatusConnected    = "connected"
+	accountStatusDisconnected = "disconnected"
 )
 
 // waAccountDTO is a WhatsApp account listing for the settings page.
@@ -140,14 +148,13 @@ func waAccountFromRecord(app core.App, r *core.Record) waAccountDTO {
 	return dto
 }
 
-func countConversationsFor(app core.App, collectionName, field, orgID, refID string) (int, error) {
-	records, err := app.FindRecordsByFilter(collectionName,
-		"org = {:org} && "+field+" = {:ref}", "", 500, 0,
-		store.DbxParams(map[string]any{"org": orgID, "ref": refID}))
-	if err != nil {
-		return 0, err
-	}
-	return len(records), nil
+// countConversationsFor counts org-scoped rows referencing a record (used to
+// refuse deletes of contacts/accounts that still have conversation history).
+// Uses an aggregate COUNT so large histories can't slip through a row cap.
+func countConversationsFor(app core.App, collectionName, refField, orgID, refID string) (int, error) {
+	count, err := app.CountRecords(collectionName,
+		dbx.And(dbx.HashExp{"org": orgID, refField: refID}))
+	return int(count), err
 }
 
 // HandleContactCreate creates a contact in the current org.
@@ -312,9 +319,9 @@ func HandleAccountCreate(app core.App) func(e *core.RequestEvent) error {
 			return e.BadRequestError("phone_number_id is required", nil)
 		}
 		if body.Status == "" {
-			body.Status = "disconnected"
+			body.Status = accountStatusDisconnected
 		}
-		if body.Status != "connected" && body.Status != "disconnected" {
+		if body.Status != accountStatusConnected && body.Status != accountStatusDisconnected {
 			return e.BadRequestError("invalid status", nil)
 		}
 		teamID := ""
@@ -381,7 +388,12 @@ func HandleAccountUpdate(app core.App) func(e *core.RequestEvent) error {
 		}
 
 		if body.PhoneNumberID != "" {
-			acc.Set("phone_number_id", strings.TrimSpace(body.PhoneNumberID))
+			newPhone := strings.TrimSpace(body.PhoneNumberID)
+			// Reject if the new phone_number_id is already claimed by another account.
+			if existing, err := store.FindWhatsAppAccountByPhoneNumberID(app, newPhone); err == nil && existing.Id != acc.Id {
+				return e.BadRequestError("a number with this phone_number_id already exists", nil)
+			}
+			acc.Set("phone_number_id", newPhone)
 		}
 		if body.DisplayName != "" {
 			acc.Set("display_name", body.DisplayName)
@@ -396,7 +408,7 @@ func HandleAccountUpdate(app core.App) func(e *core.RequestEvent) error {
 			acc.Set("waba_id", strings.TrimSpace(body.WabaID))
 		}
 		if body.Status != "" {
-			if body.Status != "connected" && body.Status != "disconnected" {
+			if body.Status != accountStatusConnected && body.Status != accountStatusDisconnected {
 				return e.BadRequestError("invalid status", nil)
 			}
 			acc.Set("status", body.Status)

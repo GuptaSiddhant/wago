@@ -500,7 +500,7 @@ function Composer({
       setTmplLang('en_US')
       setParams([''])
       setError(null)
-      void queryClient.invalidateQueries({ queryKey: ['messages', conversationId] })
+      void queryClient.invalidateQueries({ queryKey: ['messages'] })
       onSent()
     },
   })
@@ -509,7 +509,7 @@ function Composer({
     mutationFn: (file: File) => sendMediaMessage({ conversationId, file }),
     onSuccess: (res) => {
       setError(null)
-      void queryClient.invalidateQueries({ queryKey: ['messages', conversationId] })
+      void queryClient.invalidateQueries({ queryKey: ['messages'] })
       onSent()
       void res
     },

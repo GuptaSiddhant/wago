@@ -8,12 +8,7 @@ import (
 
 // EnsurePresenceField adds the last_active_at presence marker to org_members.
 func EnsurePresenceField(app core.App) error {
-	col, err := app.FindCollectionByNameOrId("org_members")
-	if err != nil {
-		return err
-	}
-	ensureField(col, &core.DateField{Name: "last_active_at"})
-	return app.Save(col)
+	return ensureFields(app, "org_members", &core.DateField{Name: "last_active_at"})
 }
 
 // TouchPresence marks the member's last_active_at as now. Called by the
@@ -43,10 +38,5 @@ func IsUserActive(app core.App, orgID, userID string, within time.Duration) (boo
 // EnsureUserPhoneField adds an optional phone field to the users collection,
 // used for best-effort WhatsApp notifications to a user's own number.
 func EnsureUserPhoneField(app core.App) error {
-	col, err := app.FindCollectionByNameOrId("users")
-	if err != nil {
-		return err
-	}
-	ensureField(col, &core.TextField{Name: "phone"})
-	return app.Save(col)
+	return ensureFields(app, "users", &core.TextField{Name: "phone"})
 }

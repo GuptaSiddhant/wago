@@ -6,6 +6,8 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
+// EnsureSuperuser creates the initial admin account if none exists yet. It is
+// safe to call on every boot and returns nil when an admin already exists.
 func EnsureSuperuser(app core.App, email, password string) error {
 	superusersCol, err := app.FindCollectionByNameOrId(core.CollectionNameSuperusers)
 	if err != nil {
@@ -23,7 +25,7 @@ func EnsureSuperuser(app core.App, email, password string) error {
 
 	err = app.Save(record)
 	if err != nil {
-		fmt.Printf("Created new superuser/admin: '%s'", email)
+		fmt.Printf("Failed to create superuser/admin '%s': %v", email, err)
 	}
 
 	return err

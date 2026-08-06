@@ -163,6 +163,7 @@ func (w *Worker) processBroadcast(ctx context.Context, bc *core.Record) error {
 	}
 
 	failed := 0
+	sent := 0
 	for _, rec := range claimed {
 		if ctx.Err() != nil {
 			return ctx.Err()
@@ -187,14 +188,14 @@ func (w *Worker) processBroadcast(ctx context.Context, bc *core.Record) error {
 			log.Printf("queue: broadcast %s recipient %s mark sent failed: %v", id, rec.GetString("phone"), err)
 			continue
 		}
-		fresh.Set("sent_count", fresh.GetInt("sent_count")+1)
+		sent++
 	}
 
-	if failed > 0 {
-		fresh.Set("failed_count", fresh.GetInt("failed_count")+failed)
-	}
-	if err := w.app.Save(fresh); err != nil {
-		return err
+	// Persist counters atomically so concurrent workers never lose updates.
+	if sent > 0 || failed > 0 {
+		if err := store.IncrementBroadcastCounters(w.app, id, sent, failed); err != nil {
+			return err
+		}
 	}
 
 	// Finalize once nothing is left queued or mid-flight.

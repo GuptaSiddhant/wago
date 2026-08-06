@@ -5,8 +5,10 @@ import { Image as ImageIcon, Paperclip, X } from 'lucide-react'
 import { createBroadcast, listContacts, uploadMedia } from '../../api/client'
 import type { MessageTemplateDTO, WaAccountDTO } from '../../api/types'
 import { useSession } from '../../lib/session'
+import { useTemplateVariables } from '../../lib/useTemplateVariables'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
+import { FormError } from '../../components/ui/FormError'
 import { ModalDialog } from '../../components/ui/Modal'
 import { SearchField } from '../../components/ui/SearchField'
 import { SelectField } from '../../components/ui/Select'
@@ -47,27 +49,7 @@ export function BroadcastForm({
   )
   const selectedTemplate = approved.find((t) => t.id === templateId) ?? null
 
-  const variables = useMemo(() => {
-    if (!selectedTemplate) return 0
-    const matches = selectedTemplate.body.match(/\{\{(\d+)\}\}/g)
-    let max = 0
-    for (const m of matches ?? []) {
-      const n = Number.parseInt(m.replace(/\D/g, ''), 10)
-      if (!Number.isNaN(n) && n > max) max = n
-    }
-    return max
-  }, [selectedTemplate])
-
-  const [values, setValues] = useState<string[]>([])
-  const [prevCount, setPrevCount] = useState(0)
-  if (variables !== prevCount) {
-    setPrevCount(variables)
-    setValues((v) => {
-      const next = [...v]
-      while (next.length < variables) next.push('')
-      return next.slice(0, variables)
-    })
-  }
+  const { variableCount, values, setValues } = useTemplateVariables(selectedTemplate?.body ?? '')
 
   const contactsQuery = useQuery({
     queryKey: ['contacts', orgId, contactSearch],
@@ -252,9 +234,9 @@ export function BroadcastForm({
                 />
               </div>
             ) : null}
-            {variables > 0 ? (
+            {variableCount > 0 ? (
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                {Array.from({ length: variables }, (_, i) => (
+                {Array.from({ length: variableCount }, (_, i) => (
                   <TextField
                     key={i}
                     label={`{{${i + 1}}}`}
@@ -363,11 +345,7 @@ export function BroadcastForm({
           </div>
         ) : null}
 
-        {error ? (
-          <p className="rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 text-sm text-red-400">
-            {error}
-          </p>
-        ) : null}
+        <FormError message={error} />
 
         <div className="flex justify-end gap-2 pt-1">
           <Button type="button" variant="ghost" onPress={onDone}>

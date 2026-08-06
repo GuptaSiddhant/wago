@@ -78,7 +78,6 @@ func buildSession(app core.App, result *store.AuthResult) (*sessionResponse, err
 	rec := result.Record
 
 	orgs := []orgSummary{}
-	var err error
 
 	if result.IsAdmin {
 		all, err := store.AllOrgs(app)
@@ -116,5 +115,5 @@ func buildSession(app core.App, result *store.AuthResult) (*sessionResponse, err
 			Name:  rec.GetString("name"),
 		},
 		Orgs: orgs,
-	}, err
+	}, nil
 }

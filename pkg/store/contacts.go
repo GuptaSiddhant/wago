@@ -7,6 +7,8 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
+// EnsureContactsCollection creates the org-scoped contacts collection that holds
+// the people each org messages plus their tags/notes.
 func EnsureContactsCollection(app core.App) error {
 	orgsCol, err := app.FindCollectionByNameOrId("orgs")
 	if err != nil {

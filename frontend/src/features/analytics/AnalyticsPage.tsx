@@ -23,7 +23,7 @@ function formatCost(cost: number): string {
   }).format(cost)
 }
 
-function CategoryBreakdown({ categories=[] }: { categories: AnalyticsCategory[] }) {
+function CategoryBreakdown({ categories }: { categories: AnalyticsCategory[] }) {
   const max = Math.max(...categories.map((c) => c.cost), 0)
   return (
     <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">

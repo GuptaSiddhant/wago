@@ -16,6 +16,14 @@ import (
 // with a free-form message (Meta customer service window).
 const serviceWindow = 24 * time.Hour
 
+// bumpConversationTimestamp refreshes a conversation's last_message_at so it
+// jumps to the top of the inbox after an outbound send. Shared by all outbound
+// handlers (text, media, template).
+func bumpConversationTimestamp(app core.App, conv *core.Record) error {
+	conv.Set("last_message_at", time.Now())
+	return app.Save(conv)
+}
+
 type templateRequest struct {
 	Name       string           `json:"name"`
 	Language   string           `json:"language"`
@@ -113,9 +121,7 @@ func HandleSendMessage(app core.App) func(e *core.RequestEvent) error {
 			return e.InternalServerError("Message sent but failed to save locally", err)
 		}
 
-		// bump conversation ordering
-		conv.Set("last_message_at", time.Now())
-		if err := app.Save(conv); err != nil {
+		if err := bumpConversationTimestamp(app, conv); err != nil {
 			return e.InternalServerError("Failed to update conversation", err)
 		}
 
@@ -226,9 +232,7 @@ func HandleSendMediaMessage(app core.App) func(e *core.RequestEvent) error {
 			return e.InternalServerError("Message sent but failed to save locally", err)
 		}
 
-		// bump conversation ordering
-		conv.Set("last_message_at", time.Now())
-		if err := app.Save(conv); err != nil {
+		if err := bumpConversationTimestamp(app, conv); err != nil {
 			return e.InternalServerError("Failed to update conversation", err)
 		}
 
@@ -304,7 +308,7 @@ func HandleTemplateSend(app core.App) func(e *core.RequestEvent) error {
 		if err != nil {
 			return e.NotFoundError("template not found", nil)
 		}
-		if tmpl.GetString("status") != "APPROVED" {
+		if !strings.EqualFold(tmpl.GetString("status"), "APPROVED") {
 			return e.BadRequestError("only approved templates can be sent", nil)
 		}
 
@@ -338,8 +342,7 @@ func HandleTemplateSend(app core.App) func(e *core.RequestEvent) error {
 			return e.InternalServerError("Template sent but failed to save locally", err)
 		}
 
-		conv.Set("last_message_at", time.Now())
-		if err := app.Save(conv); err != nil {
+		if err := bumpConversationTimestamp(app, conv); err != nil {
 			return e.InternalServerError("Failed to update conversation", err)
 		}
 
@@ -397,7 +400,9 @@ func mediaCaptionText(kind, caption, filename string) string {
 	return label
 }
 
-// isWithinServiceWindow reports whether the last inbound message in the
+// isWithinServiceWindow reports whether the last inbound message in the given
+// conversation fell inside the 24h customer-service window, so replies are still
+// allowed outside the 24h business-initiated-message limit.
 func isWithinServiceWindow(app core.App, conversationID string) (bool, error) {
 	records, err := app.FindRecordsByFilter("messages",
 		"conversation = {:conv} && direction = 'inbound'",

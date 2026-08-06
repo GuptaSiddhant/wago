@@ -1,4 +1,4 @@
-import { getPushConfig, pushSubscribe, pushUnsubscribe } from '../api/client'
+import { getPushConfig, pushSubscribe } from '../api/client'
 
 // Stored key mirrors the endpoint we last told the backend, so we avoid
 // re-registering the same subscription on every load.
@@ -91,33 +91,4 @@ export function listenForPushSubscriptionChanges(): void {
       }
     }
   })
-}
-
-export function canPush(): boolean {
-  return (
-    isSecureContext &&
-    'serviceWorker' in navigator &&
-    'PushManager' in window &&
-    'Notification' in window &&
-    Notification.permission === 'granted'
-  )
-}
-
-export async function unsubscribePush(): Promise<void> {
-  if (!isSecureContext || !('serviceWorker' in navigator)) return
-  try {
-    const reg = await navigator.serviceWorker.ready
-    const sub = await reg.pushManager.getSubscription()
-    if (sub) {
-      await pushUnsubscribe(sub.endpoint).catch(() => {})
-      await sub.unsubscribe()
-    }
-  } catch {
-    /* best-effort */
-  }
-  try {
-    localStorage.removeItem(STORED_ENDPOINT_KEY)
-  } catch {
-    /* ignore */
-  }
 }

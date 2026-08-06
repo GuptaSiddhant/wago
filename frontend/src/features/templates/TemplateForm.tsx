@@ -1,11 +1,13 @@
-import { useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Image, Paperclip, Plus, Trash2, X } from 'lucide-react'
 import { createTemplate, uploadMedia } from '../../api/client'
 import type { TemplateButton, WaAccountDTO } from '../../api/types'
 import { useSession } from '../../lib/session'
+import { useTemplateVariables } from '../../lib/useTemplateVariables'
 import { Button } from '../../components/ui/Button'
+import { FormError } from '../../components/ui/FormError'
 import { ModalDialog } from '../../components/ui/Modal'
 import { SelectField } from '../../components/ui/Select'
 import { TextField } from '../../components/ui/TextField'
@@ -57,28 +59,7 @@ export function TemplateForm({
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Live sample values for {{1}}..{{n}} — used for both the preview and the
-  // example payload Meta requires when a template body has variables.
-  const variableCount = useMemo(() => {
-    const matches = body.match(/\{\{(\d+)\}\}/g)
-    let max = 0
-    for (const m of matches ?? []) {
-      const n = Number.parseInt(m.replace(/\D/g, ''), 10)
-      if (!Number.isNaN(n) && n > max) max = n
-    }
-    return max
-  }, [body])
-
-  const [values, setValues] = useState<string[]>([])
-  const [prevCount, setPrevCount] = useState(0)
-  if (variableCount !== prevCount) {
-    setPrevCount(variableCount)
-    setValues((v) => {
-      const next = [...v]
-      while (next.length < variableCount) next.push('')
-      return next.slice(0, variableCount)
-    })
-  }
+  const { variableCount, values, setValues } = useTemplateVariables(body)
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -394,11 +375,7 @@ export function TemplateForm({
           </div>
         </div>
 
-        {error ? (
-          <p className="rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 text-sm text-red-400">
-            {error}
-          </p>
-        ) : null}
+        <FormError message={error} />
 
         <div className="flex justify-end gap-2 pt-1">
           <Button type="button" variant="ghost" onPress={onDone}>

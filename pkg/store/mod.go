@@ -12,6 +12,9 @@ func DbxParams(m map[string]any) dbx.Params {
 	return dbx.Params(m)
 }
 
+// EnsureCollections creates every collection the app relies on. Individual
+// Ensure* functions are idempotent so this can run on every boot, migrating
+// pre-existing databases in place.
 func EnsureCollections(app core.App) error {
 	if err := EnsureOrgsCollection(app); err != nil {
 		return err

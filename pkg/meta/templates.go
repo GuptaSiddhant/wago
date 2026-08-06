@@ -10,13 +10,6 @@ import (
 	"net/url"
 )
 
-// TemplateButtonType values supported by the Meta Graph API.
-const (
-	ButtonQuickReply  = "QUICK_REPLY"
-	ButtonURL         = "URL"
-	ButtonPhoneNumber = "PHONE_NUMBER"
-)
-
 // TemplateComponent is one part of a message template (header/body/footer/buttons).
 type TemplateComponent struct {
 	Type    string           `json:"type"`

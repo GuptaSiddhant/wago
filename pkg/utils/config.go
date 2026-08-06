@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// AppConfig bundles the runtime configuration read from environment variables.
 type AppConfig struct {
 	AdminEmail            string
 	AdminPassword         string
@@ -32,10 +33,10 @@ type AppConfig struct {
 
 	// Broadcast worker tuning. These bound how aggressively template broadcasts
 	// are sent so the account stays within Meta/WhatsApp rate limits.
-	MessagesPerMinute int   // global sustained rate across all active broadcasts
-	BroadcastBatchSize int  // recipients claimed per broadcast per worker tick
+	MessagesPerMinute     int // global sustained rate across all active broadcasts
+	BroadcastBatchSize    int // recipients claimed per broadcast per worker tick
 	BroadcastLeaseSeconds int // how long a claimed recipient's lease lasts before redelivery
-	BroadcastMaxAttempts int // send attempts before a recipient is marked failed
+	BroadcastMaxAttempts  int // send attempts before a recipient is marked failed
 }
 
 // WorkerDefaults are applied when the corresponding env vars are unset.
@@ -48,7 +49,6 @@ const (
 
 // Helper to load environment variables
 func LoadAppConfig() (*AppConfig, error) {
-	// _ = loadDotEnvFile(".env.local")
 	_ = loadDotEnvFile(".env")
 
 	adminEmail := getEnvOrDefault("ADMIN_EMAIL", "admin@wago.local")
@@ -171,17 +171,4 @@ func parseEnvInt(key string, fallback int) (int, error) {
 		return fallback, nil
 	}
 	return strconv.Atoi(val)
-}
-
-// Splits a comma-separated string env into a slice
-func parseEnvSlice(key string, fallback []string) []string {
-	val := os.Getenv(key)
-	if val == "" {
-		return fallback
-	}
-	parts := strings.Split(val, ",")
-	for i, p := range parts {
-		parts[i] = strings.TrimSpace(p)
-	}
-	return parts
 }
