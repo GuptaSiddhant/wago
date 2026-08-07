@@ -170,7 +170,7 @@ function ContactDetailDialog({ contact, onClose }: { contact: ContactDTO; onClos
                     type="button"
                     aria-label={`Remove tag ${t}`}
                     onClick={() => setTags(tags.filter((x) => x !== t))}
-                    className="text-blue-300 hover:text-white"
+                    className="text-blue-300 hover:text-zinc-100"
                   >
                     <X size={12} />
                   </button>

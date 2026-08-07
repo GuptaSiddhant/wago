@@ -5,6 +5,50 @@
     system-ui, -apple-system, 'Segoe UI', Roboto, Inter, sans-serif;
 }
 
+/*
+ * Light theme.
+ *
+ * The app is authored against the dark zinc palette (darker zinc = surface,
+ * lighter zinc = text). To honor the OS preference without sprinkling `dark:`
+ * variants across ~25 components, the theme color variables themselves are
+ * redefined under `prefers-color-scheme: light`: surfaces invert to near-white
+ * while text inverts to near-black, and accent tints are darkened so they stay
+ * readable on light backgrounds. Utilities reference these variables, so every
+ * component picks up the light theme automatically.
+ */
+@media (prefers-color-scheme: light) {
+  :root {
+    /* Surfaces: invert the zinc ramp (was: bg darkest -> text lightest). */
+    --color-zinc-950: #fafafa;
+    --color-zinc-900: #ffffff;
+    --color-zinc-800: #f1f2f4;
+    --color-zinc-700: #d4d4d8;
+    --color-zinc-600: #b3b4bc;
+    /* Text: darkest zinc = strongest text. Tints also double as light surface
+       borders / badge fills, so the lower shades stay slightly muted. */
+    --color-zinc-500: #8f90a0;
+    --color-zinc-400: #71717a;
+    --color-zinc-300: #52525b;
+    --color-zinc-200: #3f3f46;
+    --color-zinc-100: #18181b;
+    --color-zinc-50: #09090b;
+
+    /* Accent tints tuned for dark backgrounds get darkened for light ones. */
+    --color-emerald-400: #059669;
+    --color-emerald-300: #047857;
+    --color-emerald-200: #065f46;
+    --color-red-400: #dc2626;
+    --color-red-300: #b91c1c;
+    --color-amber-400: #d97706;
+    --color-amber-300: #b45309;
+    --color-amber-200: #92400e;
+    --color-sky-400: #0284c7;
+    --color-sky-300: #0369a1;
+    --color-blue-400: #2563eb;
+    --color-blue-300: #1d4ed8;
+  }
+}
+
 html,
 body,
 #root {
