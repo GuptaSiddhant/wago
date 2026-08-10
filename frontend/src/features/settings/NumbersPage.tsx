@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pencil, Plus, Smartphone, Trash2 } from 'lucide-react'
+import { Plug, Pencil, Plus, Smartphone, Trash2 } from 'lucide-react'
 import {
   accountMeta,
+  accountWebhookStatus,
+  connectAccountWebhook,
   createAccount,
   deleteAccount,
   listAccounts,
@@ -185,6 +187,85 @@ const qualityTone: Record<string, 'green' | 'amber' | 'red' | 'zinc'> = {
   RED: 'red',
 }
 
+function WebhookConnect({ accountId }: { accountId: string }) {
+  const { org } = useSession()
+  const queryClient = useQueryClient()
+  const orgId = org?.id ?? ''
+
+  const statusQuery = useQuery({
+    queryKey: ['account-webhook', orgId, accountId],
+    queryFn: () => accountWebhookStatus(accountId),
+    enabled: orgId !== '',
+    staleTime: 60_000,
+  })
+
+  const connectMutation = useMutation({
+    mutationFn: () => connectAccountWebhook(accountId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['account-webhook', orgId, accountId] })
+    },
+  })
+
+  const result = statusQuery.data
+  if (statusQuery.isLoading) {
+    return (
+      <div className="mt-2 flex items-center gap-2 text-xs text-zinc-600">
+        <Spinner className="h-3 w-3" /> Checking webhook…
+      </div>
+    )
+  }
+
+  if (result && result.ok) {
+    return (
+      <div className="mt-2 flex items-center gap-2">
+        <Badge tone="green">Webhook connected</Badge>
+        {result.callback_url ? (
+          <code className="min-w-0 truncate rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-emerald-300">
+            {result.callback_url}
+          </code>
+        ) : null}
+      </div>
+    )
+  }
+
+  const missingBaseUrl = !result?.callback_url
+  return (
+    <div className="mt-2 space-y-2">
+      {missingBaseUrl ? (
+        <p className="text-xs text-amber-400">
+          Webhooks can't be connected until <code>PUBLIC_BASE_URL</code> is set on this instance.
+        </p>
+      ) : (
+        <p className="text-xs text-zinc-600">
+          Meta isn't delivering messages for this number yet.
+        </p>
+      )}
+      <Button
+        size="sm"
+        variant="secondary"
+        onPress={() => connectMutation.mutate()}
+        isDisabled={connectMutation.isPending || missingBaseUrl}
+      >
+        {connectMutation.isPending ? <Spinner className="h-3.5 w-3.5" /> : <Plug size={13} />}
+        {connectMutation.isPending ? 'Connecting…' : 'Connect webhook'}
+      </Button>
+      {connectMutation.error ? (
+        <p className="text-xs text-red-400">
+          {connectMutation.error instanceof Error
+            ? connectMutation.error.message
+            : 'Failed to connect webhook'}
+        </p>
+      ) : null}
+      {connectMutation.data && !connectMutation.data.ok ? (
+        <p className="text-xs text-red-400">{connectMutation.data.error}</p>
+      ) : null}
+      {connectMutation.data && connectMutation.data.ok ? (
+        <p className="text-xs text-emerald-400">{connectMutation.data.message}</p>
+      ) : null}
+    </div>
+  )
+}
+
 function NumberHealth({ accountId }: { accountId: string }) {
   const { org } = useSession()
   const orgId = org?.id ?? ''
@@ -313,6 +394,7 @@ export function NumbersPage() {
                     Team: {a.team_name ?? 'All'}
                   </p>
                   <NumberHealth accountId={a.id} />
+                  <WebhookConnect accountId={a.id} />
                 </div>
                 {canManageData ? (
                   <div className="flex shrink-0 gap-1">

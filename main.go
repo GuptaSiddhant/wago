@@ -72,7 +72,10 @@ func handleOnServe(cfg *utils.AppConfig) func(se *core.ServeEvent) error {
 		notifier := notifications.NewNotifier(cfg)
 
 		// Register Wago API routes
-		api.Register(se.Router, se.App)
+		api.Register(se.Router, se.App, api.WebhookConfig{
+			PublicBaseURL: cfg.PublicBaseURL,
+			VerifyToken:   cfg.WA_WebhookVerifyToken,
+		})
 
 		// Start the broadcast worker. It drains queued recipients from a
 		// SQLite-backed lease queue; no cron is needed (it self-recovers).

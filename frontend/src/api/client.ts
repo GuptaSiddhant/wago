@@ -21,6 +21,8 @@ import type {
   NotificationsResponse,
   OrgSummary,
   PhoneMetaResult,
+  WebhookConnectResult,
+  WebhookStatusResult,
   SendMessagePayload,
   SendMessageResult,
   Session,
@@ -260,6 +262,18 @@ export async function deleteAccount(accountId: string): Promise<{ id: string }> 
 
 export async function accountMeta(accountId: string): Promise<PhoneMetaResult> {
   return apiFetch<PhoneMetaResult>(`/accounts/${accountId}/meta`)
+}
+
+/** Reports whether the account's WABA is subscribed to this app's webhooks. */
+export async function accountWebhookStatus(accountId: string): Promise<WebhookStatusResult> {
+  return apiFetch<WebhookStatusResult>(`/accounts/${accountId}/webhook`)
+}
+
+/** Subscribes the Meta app to the account's WABA webhook events. */
+export async function connectAccountWebhook(accountId: string): Promise<WebhookConnectResult> {
+  return apiFetch<WebhookConnectResult>(`/accounts/${accountId}/webhook`, {
+    method: 'POST',
+  })
 }
 
 export async function analytics(range: string): Promise<AnalyticsResponse> {

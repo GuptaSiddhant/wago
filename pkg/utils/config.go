@@ -15,6 +15,11 @@ type AppConfig struct {
 	WA_WebhookVerifyToken string
 	MetaAppSecret         string
 
+	// PublicBaseURL is the externally reachable base URL of this Wago instance
+	// (e.g. https://wago.example.com). It is used to build the webhook callback
+	// URL Meta delivers messages to. Leave empty if Wago is not publicly reachable.
+	PublicBaseURL string
+
 	SMTPHost        string
 	SMTPPort        int
 	SMTPUsername    string
@@ -59,6 +64,8 @@ func LoadAppConfig() (*AppConfig, error) {
 
 	metaAppSecret := getEnvOrDefault("META_APP_SECRET", "")
 
+	publicBaseURL := strings.TrimRight(getEnvOrDefault("PUBLIC_BASE_URL", ""), "/")
+
 	smtpPort, _ := parseEnvInt("SMTP_PORT", 587)
 
 	cfg := &AppConfig{
@@ -66,6 +73,7 @@ func LoadAppConfig() (*AppConfig, error) {
 		AdminPassword:         adminPassword,
 		WA_WebhookVerifyToken: waWebhookVerifyToken,
 		MetaAppSecret:         metaAppSecret,
+		PublicBaseURL:         publicBaseURL,
 
 		SMTPHost:        os.Getenv("SMTP_HOST"),
 		SMTPPort:        smtpPort,

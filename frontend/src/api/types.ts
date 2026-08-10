@@ -131,6 +131,19 @@ export interface PhoneMetaResult {
   }
 }
 
+export interface WebhookStatusResult {
+  ok: boolean
+  callback_url?: string
+  verify_token?: boolean
+}
+
+export interface WebhookConnectResult {
+  ok: boolean
+  error?: string
+  callback_url?: string
+  message?: string
+}
+
 export interface AnalyticsTotals {
   conversations: number
   cost: number

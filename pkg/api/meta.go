@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"net/http"
 	"slices"
 	"strings"
@@ -183,4 +184,92 @@ func peerLabel(acc *core.Record) string {
 		return n
 	}
 	return acc.GetString("phone_number_id")
+}
+
+// HandleAccountWebhookConnect subscribes the Meta app to the webhook events of
+// a WhatsApp Business Account. The account's token must have
+// whatsapp_business_messaging scope. Returns the callback URL and whether it
+// was configured, plus a human-readable error when it failed.
+func HandleAccountWebhookConnect(app core.App) func(e *core.RequestEvent) error {
+	return func(e *core.RequestEvent) error {
+		access, apiErr := orgAccessFromRequest(e, app)
+		if apiErr != nil {
+			return apiErr
+		}
+		if !access.CanManageData() {
+			return e.ForbiddenError("only the owner or a superadmin can manage numbers", nil)
+		}
+
+		acc, err := store.FindOrgRecord(app, access.OrgID, "whatsapp_accounts", e.Request.PathValue("id"))
+		if err != nil {
+			return e.NotFoundError("number not found", nil)
+		}
+
+		callback, err := webhookCallbackURL()
+		if err != nil {
+			return e.BadRequestError(err.Error(), nil)
+		}
+		if webhookCfg.VerifyToken == "" {
+			return e.BadRequestError("this instance has no webhook verify token configured", nil)
+		}
+
+		token := acc.GetString("access_token")
+		wabaID := acc.GetString("waba_id")
+		if token == "" {
+			return e.BadRequestError("number is missing an access token", nil)
+		}
+		if wabaID == "" {
+			return e.BadRequestError("number is missing a WABA ID — add it to connect the webhook", nil)
+		}
+
+		if err := metaClient.SubscribeWebhook(e.Request.Context(), token, wabaID, callback, webhookCfg.VerifyToken); err != nil {
+			return e.JSON(http.StatusOK, map[string]any{
+				"ok":           false,
+				"error":        err.Error(),
+				"callback_url": callback,
+			})
+		}
+
+		return e.JSON(http.StatusOK, map[string]any{
+			"ok":           true,
+			"callback_url": callback,
+			"message":      "Webhook connected. Meta will deliver messages for this number to Wago.",
+		})
+	}
+}
+
+// HandleAccountWebhookStatus reports whether the account's WABA is subscribed
+// to this app's webhooks, along with the callback URL it should be using.
+func HandleAccountWebhookStatus(app core.App) func(e *core.RequestEvent) error {
+	return func(e *core.RequestEvent) error {
+		access, apiErr := orgAccessFromRequest(e, app)
+		if apiErr != nil {
+			return apiErr
+		}
+
+		acc, err := store.FindOrgRecord(app, access.OrgID, "whatsapp_accounts", e.Request.PathValue("id"))
+		if err != nil {
+			return e.NotFoundError("number not found", nil)
+		}
+
+		callback, _ := webhookCallbackURL()
+		return e.JSON(http.StatusOK, map[string]any{
+			"ok":           acc.GetString("status") == "connected",
+			"callback_url": callback,
+			"verify_token": webhookCfg.VerifyToken != "",
+		})
+	}
+}
+
+// webhookCallbackURL builds the public URL Meta delivers events to. It requires
+// the instance to be publicly reachable and have PUBLIC_BASE_URL configured.
+func webhookCallbackURL() (string, error) {
+	base := strings.TrimRight(webhookCfg.PublicBaseURL, "/")
+	if base == "" {
+		return "", errors.New("this instance has no PUBLIC_BASE_URL configured — set it to connect webhooks")
+	}
+	if !strings.HasPrefix(base, "http://") && !strings.HasPrefix(base, "https://") {
+		return "", errors.New("PUBLIC_BASE_URL must include http(s)://")
+	}
+	return base + "/api/wa/webhook", nil
 }

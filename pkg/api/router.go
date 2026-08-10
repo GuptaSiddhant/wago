@@ -6,8 +6,22 @@ import (
 	"github.com/pocketbase/pocketbase/tools/router"
 )
 
+// WebhookConfig carries the public-facing webhook values used when connecting
+// a Meta number so Meta can deliver events to this instance.
+type WebhookConfig struct {
+	PublicBaseURL string // externally reachable base URL, e.g. https://wago.example.com
+	VerifyToken   string // matches the token validated in HandleVerification
+}
+
+// webhookCfg is the instance webhook configuration set on Register and read by
+// the account webhook handlers.
+var webhookCfg WebhookConfig
+
 // Register mounts all Wago API routes under /api/wa.
-func Register(r *router.Router[*core.RequestEvent], app core.App) {
+func Register(r *router.Router[*core.RequestEvent], app core.App, webhookConfig ...WebhookConfig) {
+	if len(webhookConfig) > 0 {
+		webhookCfg = webhookConfig[0]
+	}
 	group := r.Group("/api/wa")
 
 	// public routes
@@ -42,6 +56,8 @@ func Register(r *router.Router[*core.RequestEvent], app core.App) {
 	authed.PATCH("/accounts/{id}", HandleAccountUpdate(app))
 	authed.DELETE("/accounts/{id}", HandleAccountDelete(app))
 	authed.GET("/accounts/{id}/meta", HandleAccountMeta(app))
+	authed.GET("/accounts/{id}/webhook", HandleAccountWebhookStatus(app))
+	authed.POST("/accounts/{id}/webhook", HandleAccountWebhookConnect(app))
 	authed.GET("/analytics", HandleAnalytics(app))
 	authed.GET("/templates", HandleTemplates(app))
 	authed.POST("/templates", HandleTemplateCreate(app))
