@@ -15,6 +15,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { ModalDialog } from '../../components/ui/Modal'
+import { Skeleton } from '../../components/ui/Skeleton'
 import { Spinner } from '../../components/ui/Spinner'
 import { BroadcastForm } from './BroadcastForm'
 
@@ -199,9 +200,15 @@ export function BroadcastPage() {
 
       <div className="flex-1 overflow-y-auto px-6 py-6">
         {broadcastsQuery.isLoading ? (
-          <div className="flex justify-center py-16">
-            <Spinner />
-          </div>
+          <ul className="grid gap-3 md:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <li key={i} className="flex flex-col gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-2.5 w-full" />
+              </li>
+            ))}
+          </ul>
         ) : broadcasts.length === 0 ? (
                   <EmptyState
                     icon={<Megaphone size={32} />}

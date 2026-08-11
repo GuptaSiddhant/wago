@@ -29,6 +29,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { SearchField } from '../../components/ui/SearchField'
+import { Skeleton } from '../../components/ui/Skeleton'
 import { SelectField } from '../../components/ui/Select'
 import { Spinner } from '../../components/ui/Spinner'
 import { TextField } from '../../components/ui/TextField'
@@ -130,9 +131,11 @@ export function InboxPage() {
 
         <div className="flex-1 overflow-y-auto pb-4">
           {conversationsQuery.isLoading ? (
-            <div className="flex justify-center py-10">
-              <Spinner />
-            </div>
+            <ul className="space-y-0.5 px-2">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <ConversationRowSkeleton key={i} />
+              ))}
+            </ul>
           ) : conversations.length === 0 ? (
             <EmptyState
               icon={<InboxIcon size={32} />}
@@ -175,6 +178,21 @@ export function InboxPage() {
         )}
       </section>
     </div>
+  )
+}
+
+function ConversationRowSkeleton() {
+  return (
+    <li className="flex w-full items-start gap-3 rounded-xl px-3 py-2.5">
+      <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
+      <div className="min-w-0 flex-1 space-y-2">
+        <div className="flex items-baseline justify-between gap-2">
+          <Skeleton className="h-3.5 w-28" />
+          <Skeleton className="h-2.5 w-8" />
+        </div>
+        <Skeleton className="h-3 w-3/4" />
+      </div>
+    </li>
   )
 }
 
@@ -332,8 +350,15 @@ function Thread({
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex-1 overflow-y-auto px-5 py-4">
             {isLoadingMessages && messages == null ? (
-              <div className="flex justify-center py-10">
-                <Spinner />
+              <div className="space-y-3 px-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`flex ${i % 2 === 0 ? 'justify-start' : 'justify-end'}`}
+                  >
+                    <Skeleton className="h-9 w-56 rounded-2xl" />
+                  </div>
+                ))}
               </div>
             ) : displayMessages.length === 0 ? (
               <EmptyState title="No messages" description="Messages in this conversation will appear here." />

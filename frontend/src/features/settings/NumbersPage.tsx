@@ -16,6 +16,7 @@ import { useSession } from '../../lib/session'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
+import { Skeleton } from '../../components/ui/Skeleton'
 import { ModalDialog } from '../../components/ui/Modal'
 import { SelectField } from '../../components/ui/Select'
 import { Spinner } from '../../components/ui/Spinner'
@@ -361,8 +362,19 @@ export function NumbersPage() {
 
       <div className="flex-1 overflow-y-auto px-6 py-6">
         {accountsQuery.isLoading ? (
-          <div className="flex justify-center py-16">
-            <Spinner />
+          <div className="space-y-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-3.5 w-40" />
+                    <Skeleton className="h-3 w-28" />
+                  </div>
+                </div>
+                <Skeleton className="h-6 w-20" />
+              </div>
+            ))}
           </div>
         ) : accounts.length === 0 ? (
           <EmptyState

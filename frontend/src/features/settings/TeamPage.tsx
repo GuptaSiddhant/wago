@@ -23,7 +23,7 @@ import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { ModalDialog } from '../../components/ui/Modal'
 import { SelectField } from '../../components/ui/Select'
-import { Spinner } from '../../components/ui/Spinner'
+import { Skeleton } from '../../components/ui/Skeleton'
 import { TextField } from '../../components/ui/TextField'
 import type { InviteDTO, TeamDTO, TeamMemberDTO } from '../../api/types'
 
@@ -521,8 +521,17 @@ export function TeamPage() {
 
       <div className="flex-1 overflow-y-auto px-6 py-6">
         {teamsQuery.isLoading ? (
-          <div className="flex justify-center py-16">
-            <Spinner />
+          <div className="space-y-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+                <Skeleton className="h-9 w-9 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-3.5 w-40" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+                <Skeleton className="h-6 w-20" />
+              </div>
+            ))}
           </div>
         ) : (
           <TeamsSection teams={teams} canManage={canManage} onTeamDialog={setTeamDialog} />
@@ -536,8 +545,17 @@ export function TeamPage() {
         />
 
         {teamQuery.isLoading ? (
-          <div className="flex justify-center py-16">
-            <Spinner />
+          <div className="space-y-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 py-3">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-3.5 w-40" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+                <Skeleton className="h-5 w-16" />
+              </div>
+            ))}
           </div>
         ) : members.length === 0 ? (
           <EmptyState

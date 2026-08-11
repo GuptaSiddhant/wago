@@ -18,6 +18,7 @@ import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { ModalDialog } from '../../components/ui/Modal'
 import { SearchField } from '../../components/ui/SearchField'
+import { Skeleton } from '../../components/ui/Skeleton'
 import { Spinner } from '../../components/ui/Spinner'
 import { TextField } from '../../components/ui/TextField'
 import type { ContactDTO } from '../../api/types'
@@ -326,8 +327,14 @@ export function ContactsPage() {
 
       <div className="flex-1 overflow-y-auto px-6 pb-6">
         {contactsQuery.isLoading ? (
-          <div className="flex justify-center py-16">
-            <Spinner />
+          <div className="space-y-2 pt-1">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 py-2">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <Skeleton className="h-3.5 w-40" />
+                <Skeleton className="h-3.5 w-32" />
+              </div>
+            ))}
           </div>
         ) : contacts.length === 0 ? (
           <EmptyState

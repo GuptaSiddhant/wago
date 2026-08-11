@@ -6,7 +6,7 @@ import { useSession } from '../../lib/session'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { SelectField } from '../../components/ui/Select'
-import { Spinner } from '../../components/ui/Spinner'
+import { Skeleton } from '../../components/ui/Skeleton'
 import type { AnalyticsCategory } from '../../api/types'
 
 const ranges = [
@@ -99,8 +99,13 @@ export function AnalyticsPage() {
 
       <div className="flex-1 overflow-y-auto px-6 py-6">
         {analyticsQuery.isLoading ? (
-          <div className="flex justify-center py-16">
-            <Spinner />
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-20 rounded-xl" />
+              ))}
+            </div>
+            <Skeleton className="h-56 rounded-xl" />
           </div>
         ) : data ? (
           <div className="space-y-6">

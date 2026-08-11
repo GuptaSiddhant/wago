@@ -13,7 +13,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { FormError } from '../../components/ui/FormError'
-import { Spinner } from '../../components/ui/Spinner'
+import { Skeleton } from '../../components/ui/Skeleton'
 import { TemplateForm } from './TemplateForm'
 import { TemplatePreview } from './TemplatePreview'
 
@@ -107,9 +107,21 @@ export function TemplatesPage() {
         ) : null}
 
         {templatesQuery.isLoading ? (
-          <div className="flex justify-center py-16">
-            <Spinner />
-          </div>
+          <ul className="grid gap-3 md:grid-cols-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <li
+                key={i}
+                className="flex flex-col gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4"
+              >
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-3 w-1/3" />
+                <div className="space-y-2 pt-1">
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-4/5" />
+                </div>
+              </li>
+            ))}
+          </ul>
         ) : templates.length === 0 ? (
           <EmptyState
             icon={<FileText size={32} />}
