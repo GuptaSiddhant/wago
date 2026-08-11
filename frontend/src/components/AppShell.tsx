@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { Link, Outlet } from '@tanstack/react-router'
-import { BarChart3, FileText, Megaphone, MessageSquare, Users, Settings, LogOut, Plus } from 'lucide-react'
+import { BarChart3, FileText, LayoutDashboard, Megaphone, MessageSquare, Users, Settings, LogOut, Plus } from 'lucide-react'
 import { createOrg } from '../api/client'
 import { OrgSwitcher } from './OrgSwitcher'
 import { Avatar } from './ui/Avatar'
@@ -16,6 +16,7 @@ import { CallsProvider } from '../features/calls/CallsProvider'
 import { CallOverlay } from '../features/calls/CallOverlay'
 
 const mainNav = [
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/inbox', label: 'Inbox', icon: MessageSquare },
   { to: '/contacts', label: 'Contacts', icon: Users },
   { to: '/broadcast', label: 'Broadcast', icon: Megaphone },
@@ -113,13 +114,19 @@ export function AppShell() {
     <div className="flex h-screen overflow-hidden bg-zinc-950 text-zinc-100">
       <aside className="flex w-64 shrink-0 flex-col border-r border-zinc-800/80 bg-zinc-950">
         <div className="flex items-center gap-2.5 px-5 pb-4 pt-5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-sm font-bold text-white">
-            W
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-sm font-semibold tracking-tight">WaGo</div>
-            <div className="truncate text-[11px] text-zinc-500">{org?.name ?? 'Support inbox'}</div>
-          </div>
+          <Link
+            to="/"
+            aria-label="Dashboard"
+            className="flex items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+          >
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-sm font-bold text-white">
+              W
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-semibold tracking-tight">WaGo</div>
+              <div className="truncate text-[11px] text-zinc-500">{org?.name ?? 'Support inbox'}</div>
+            </div>
+          </Link>
           <NotificationBell />
         </div>
 

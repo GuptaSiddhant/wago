@@ -20,6 +20,15 @@ type AppConfig struct {
 	// URL Meta delivers messages to. Leave empty if Wago is not publicly reachable.
 	PublicBaseURL string
 
+	// AI (assistant) feature. When AIEnabled is true the frontend surfaces the
+	// AI home dashboard and /api/wa/ai/chat streams replies from an
+	// OpenAI-compatible model endpoint. The backend stays provider-agnostic —
+	// point AIBaseURL at OpenAI, DeepSeek, Ollama, vLLM or a LiteLLM proxy.
+	AIEnabled bool
+	AIBaseURL string // OpenAI-compatible /chat/completions base URL, e.g. https://api.openai.com/v1
+	AIAPIKey  string
+	AIModel   string
+
 	SMTPHost        string
 	SMTPPort        int
 	SMTPUsername    string
@@ -66,6 +75,9 @@ func LoadAppConfig() (*AppConfig, error) {
 
 	publicBaseURL := strings.TrimRight(getEnvOrDefault("PUBLIC_BASE_URL", ""), "/")
 
+	aiBaseURL := strings.TrimRight(getEnvOrDefault("AI_BASE_URL", "https://api.openai.com/v1"), "/")
+	aiModel := getEnvOrDefault("AI_MODEL", "gpt-4o-mini")
+
 	smtpPort, _ := parseEnvInt("SMTP_PORT", 587)
 
 	cfg := &AppConfig{
@@ -74,6 +86,10 @@ func LoadAppConfig() (*AppConfig, error) {
 		WA_WebhookVerifyToken: waWebhookVerifyToken,
 		MetaAppSecret:         metaAppSecret,
 		PublicBaseURL:         publicBaseURL,
+		AIEnabled:             parseEnvBool("AI_ENABLED", false),
+		AIBaseURL:             aiBaseURL,
+		AIAPIKey:              os.Getenv("AI_API_KEY"),
+		AIModel:               aiModel,
 
 		SMTPHost:        os.Getenv("SMTP_HOST"),
 		SMTPPort:        smtpPort,

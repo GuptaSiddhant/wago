@@ -1,6 +1,8 @@
 package api
 
 import (
+	"github.com/guptasiddhant/wago/pkg/aichat"
+
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tools/router"
@@ -17,11 +19,20 @@ type WebhookConfig struct {
 // the account webhook handlers.
 var webhookCfg WebhookConfig
 
+// Options bundles the optional runtime configuration Register accepts.
+type Options struct {
+	Webhook WebhookConfig
+	AI      aichat.Config
+}
+
 // Register mounts all Wago API routes under /api/wa.
-func Register(r *router.Router[*core.RequestEvent], app core.App, webhookConfig ...WebhookConfig) {
-	if len(webhookConfig) > 0 {
-		webhookCfg = webhookConfig[0]
+func Register(r *router.Router[*core.RequestEvent], app core.App, opts ...Options) {
+	var o Options
+	if len(opts) > 0 {
+		o = opts[0]
 	}
+	webhookCfg = o.Webhook
+	aiCfg = o.AI
 	group := r.Group("/api/wa")
 
 	// public routes
@@ -82,6 +93,7 @@ func Register(r *router.Router[*core.RequestEvent], app core.App, webhookConfig 
 	authed.POST("/messages/media", HandleSendMediaMessage(app))
 	authed.GET("/media/{wamid}", HandleMessageMedia(app))
 	authed.POST("/media/upload", HandleMediaUpload(app))
+	authed.POST("/ai/chat", HandleAIChat(app, aichat.NewClient(aiCfg)))
 	authed.GET("/notifications", HandleNotificationsList(app))
 	authed.GET("/notifications/unread-count", HandleNotificationsUnreadCount(app))
 	authed.POST("/notifications/read", HandleNotificationsRead(app))

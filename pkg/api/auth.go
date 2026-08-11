@@ -21,10 +21,11 @@ type orgSummary struct {
 
 // sessionResponse is returned by login and /auth/me.
 type sessionResponse struct {
-	Token   string       `json:"token,omitempty"`
-	User    *userSummary `json:"user"`
-	IsAdmin bool         `json:"is_admin"`
-	Orgs    []orgSummary `json:"orgs"`
+	Token     string       `json:"token,omitempty"`
+	User      *userSummary `json:"user"`
+	IsAdmin   bool         `json:"is_admin"`
+	AIEnabled bool         `json:"ai_enabled"`
+	Orgs      []orgSummary `json:"orgs"`
 }
 
 type userSummary struct {
@@ -107,8 +108,9 @@ func buildSession(app core.App, result *store.AuthResult) (*sessionResponse, err
 	}
 
 	return &sessionResponse{
-		Token:   result.Token,
-		IsAdmin: result.IsAdmin,
+		Token:     result.Token,
+		IsAdmin:   result.IsAdmin,
+		AIEnabled: aiCfg.Enabled,
 		User: &userSummary{
 			ID:    rec.Id,
 			Email: rec.Email(),

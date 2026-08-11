@@ -11,6 +11,7 @@ import (
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 
+	"github.com/guptasiddhant/wago/pkg/aichat"
 	"github.com/guptasiddhant/wago/pkg/api"
 	"github.com/guptasiddhant/wago/pkg/notifications"
 	"github.com/guptasiddhant/wago/pkg/queue"
@@ -72,9 +73,17 @@ func handleOnServe(cfg *utils.AppConfig) func(se *core.ServeEvent) error {
 		notifier := notifications.NewNotifier(cfg)
 
 		// Register Wago API routes
-		api.Register(se.Router, se.App, api.WebhookConfig{
-			PublicBaseURL: cfg.PublicBaseURL,
-			VerifyToken:   cfg.WA_WebhookVerifyToken,
+		api.Register(se.Router, se.App, api.Options{
+			Webhook: api.WebhookConfig{
+				PublicBaseURL: cfg.PublicBaseURL,
+				VerifyToken:   cfg.WA_WebhookVerifyToken,
+			},
+			AI: aichat.Config{
+				Enabled: cfg.AIEnabled,
+				BaseURL: cfg.AIBaseURL,
+				APIKey:  cfg.AIAPIKey,
+				Model:   cfg.AIModel,
+			},
 		})
 
 		// Start the broadcast worker. It drains queued recipients from a

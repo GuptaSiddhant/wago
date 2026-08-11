@@ -14,6 +14,7 @@ export interface Session {
   token: string
   user: UserSummary
   is_admin: boolean
+  ai_enabled: boolean
   orgs: OrgSummary[]
 }
 
