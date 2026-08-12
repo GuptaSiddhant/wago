@@ -20,7 +20,7 @@ export function OrgSwitcher() {
   return (
     <Select
       selectedKey={org?.id ?? null}
-      onSelectionChange={(key: Key) => {
+      onSelectionChange={(key: Key | null) => {
         if (typeof key === 'string') selectOrg(key)
       }}
       aria-label="Organization"

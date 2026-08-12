@@ -493,11 +493,11 @@ function MessageStatus({ message }: { message: MessageDTO }) {
   switch (message.status) {
     case 'read':
       return (
-        <CheckCheck size={11} className="text-sky-300" aria-label="Read" title="Read" />
+        <CheckCheck size={11} className="text-sky-300" aria-label="Read" />
       )
     case 'delivered':
       return (
-        <CheckCheck size={11} aria-label="Delivered" title="Delivered" />
+        <CheckCheck size={11} aria-label="Delivered" />
       )
     case 'failed':
       return (
@@ -506,7 +506,7 @@ function MessageStatus({ message }: { message: MessageDTO }) {
         </span>
       )
     default:
-      return <Check size={11} aria-label="Sent" title="Sent" />
+      return <Check size={11} aria-label="Sent" />
   }
 }
 

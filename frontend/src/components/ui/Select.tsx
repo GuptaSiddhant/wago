@@ -50,7 +50,7 @@ export function SelectField({
   return (
     <Select
       selectedKey={selectedKey}
-      onSelectionChange={(key: Key) => onSelectionChange?.(key)}
+      onSelectionChange={(key: Key | null) => onSelectionChange?.(key)}
       isDisabled={isDisabled}
       aria-label={ariaLabel ?? (typeof label === 'string' ? label : undefined)}
       className={`flex flex-col gap-1.5 ${className}`}
