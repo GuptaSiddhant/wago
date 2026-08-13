@@ -1,0 +1,10 @@
+frontend/e2e
+frontend/dist
+test-results
+.agent
+.github
+tmp
+node_modules
+*.log
+.tanstack
+.vite

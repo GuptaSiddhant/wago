@@ -9,6 +9,10 @@ import (
 // EnsureSuperuser creates the initial admin account if none exists yet. It is
 // safe to call on every boot and returns nil when an admin already exists.
 func EnsureSuperuser(app core.App, email, password string) error {
+	if (password == "") || (email == "") {
+		return fmt.Errorf("superuser email and password must be provided to create superuser")
+	}
+
 	superusersCol, err := app.FindCollectionByNameOrId(core.CollectionNameSuperusers)
 	if err != nil {
 		return err
