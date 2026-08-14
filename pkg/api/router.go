@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/guptasiddhant/wago/pkg/aichat"
+	"github.com/guptasiddhant/wago/pkg/runtimecfg"
 
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
@@ -19,10 +20,16 @@ type WebhookConfig struct {
 // the account webhook handlers.
 var webhookCfg WebhookConfig
 
+// runtimeMgr is the runtime configuration manager set on Register. It is used to
+// read the current webhook config live so superadmin edits take effect without a
+// restart.
+var runtimeMgr *runtimecfg.Manager
+
 // Options bundles the optional runtime configuration Register accepts.
 type Options struct {
 	Webhook WebhookConfig
 	AI      aichat.Config
+	Mgr     *runtimecfg.Manager
 }
 
 // Register mounts all Wago API routes under /api/wa.
@@ -32,6 +39,7 @@ func Register(r *router.Router[*core.RequestEvent], app core.App, opts ...Option
 		o = opts[0]
 	}
 	webhookCfg = o.Webhook
+	runtimeMgr = o.Mgr
 	aiCfg = o.AI
 	group := r.Group("/api/wa")
 
@@ -101,4 +109,10 @@ func Register(r *router.Router[*core.RequestEvent], app core.App, opts ...Option
 	authed.GET("/push/config", HandlePushConfig(app))
 	authed.POST("/push/subscribe", HandlePushSubscribe(app))
 	authed.DELETE("/push/subscribe", HandlePushUnsubscribe(app))
+
+	// superuser-only routes
+	super := group.Group("/admin")
+	super.Bind(apis.RequireSuperuserAuth())
+	super.GET("/config", HandleGetConfig(app))
+	super.PUT("/config", HandleUpdateConfig(app))
 }

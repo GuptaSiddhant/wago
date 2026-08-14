@@ -16,6 +16,9 @@ func DbxParams(m map[string]any) dbx.Params {
 // Ensure* functions are idempotent so this can run on every boot, migrating
 // pre-existing databases in place.
 func EnsureCollections(app core.App) error {
+	if err := EnsureSettingsCollection(app); err != nil {
+		return err
+	}
 	if err := EnsureOrgsCollection(app); err != nil {
 		return err
 	}

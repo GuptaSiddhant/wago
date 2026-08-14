@@ -15,6 +15,7 @@ import (
 	"github.com/guptasiddhant/wago/pkg/api"
 	"github.com/guptasiddhant/wago/pkg/notifications"
 	"github.com/guptasiddhant/wago/pkg/queue"
+	"github.com/guptasiddhant/wago/pkg/runtimecfg"
 	"github.com/guptasiddhant/wago/pkg/store"
 	"github.com/guptasiddhant/wago/pkg/utils"
 	"github.com/guptasiddhant/wago/pkg/webhooks"
@@ -40,64 +41,78 @@ func main() {
 func SetupApp(cfg *utils.AppConfig) *pocketbase.PocketBase {
 	app := pocketbase.New()
 
-	app.OnServe().BindFunc(handleOnServe(cfg))
+	mgr := runtimecfg.New(cfg)
+	app.OnServe().BindFunc(handleOnServe(mgr))
 
 	return app
 }
 
-func handleOnServe(cfg *utils.AppConfig) func(se *core.ServeEvent) error {
+func handleOnServe(mgr *runtimecfg.Manager) func(se *core.ServeEvent) error {
 	return func(se *core.ServeEvent) error {
+		// Admin credentials are always sourced from the environment (the only
+		// required env var) so the superuser can always be bootstrapped.
+		cfg := mgr.Env()
 		if err := store.EnsureSuperuser(se.App, cfg.AdminEmail, cfg.AdminPassword); err != nil {
 			log.Printf("⚠️ Superuser setup warning: %v", err)
 		}
 		if err := store.EnsureCollections(se.App); err != nil {
 			return fmt.Errorf("Failed to setup collections: %w", err)
 		}
+		if err := mgr.Seed(se.App); err != nil {
+			log.Printf("⚠️ Failed to seed app settings: %v", err)
+		}
+
+		// Live config so SMTP etc. reflect the persisted values each boot.
+		live, err := mgr.Load(se.App)
+		if err != nil {
+			live = cfg
+		}
 
 		// Enable PocketBase's SMTP mailer from config so notification emails work.
-		if cfg.SMTPHost != "" {
+		if live.SMTPHost != "" {
 			settings := se.App.Settings()
 			settings.SMTP = core.SMTPConfig{
 				Enabled:  true,
-				Host:     cfg.SMTPHost,
-				Port:     cfg.SMTPPort,
-				Username: cfg.SMTPUsername,
-				Password: cfg.SMTPPassword,
-				TLS:      cfg.SMTPTLS,
+				Host:     live.SMTPHost,
+				Port:     live.SMTPPort,
+				Username: live.SMTPUsername,
+				Password: live.SMTPPassword,
+				TLS:      live.SMTPTLS,
 			}
 			if err := se.App.Save(settings); err != nil {
 				log.Printf("⚠️ Failed to persist SMTP settings: %v", err)
 			}
 		}
 
-		notifier := notifications.NewNotifier(cfg)
+		notifier := notifications.NewNotifier(mgr)
 
 		// Register Wago API routes
 		api.Register(se.Router, se.App, api.Options{
 			Webhook: api.WebhookConfig{
-				PublicBaseURL: cfg.PublicBaseURL,
-				VerifyToken:   cfg.WA_WebhookVerifyToken,
+				PublicBaseURL: live.PublicBaseURL,
+				VerifyToken:   live.WA_WebhookVerifyToken,
 			},
 			AI: aichat.Config{
-				Enabled: cfg.AIEnabled,
-				BaseURL: cfg.AIBaseURL,
-				APIKey:  cfg.AIAPIKey,
-				Model:   cfg.AIModel,
+				Enabled: live.AIEnabled,
+				BaseURL: live.AIBaseURL,
+				APIKey:  live.AIAPIKey,
+				Model:   live.AIModel,
 			},
+			Mgr: mgr,
 		})
 
 		// Start the broadcast worker. It drains queued recipients from a
 		// SQLite-backed lease queue; no cron is needed (it self-recovers).
 		go queue.NewWorker(se.App, queue.Config{
-			MessagesPerMinute: cfg.MessagesPerMinute,
-			BatchSize:         cfg.BroadcastBatchSize,
-			LeaseSeconds:      cfg.BroadcastLeaseSeconds,
-			MaxAttempts:       cfg.BroadcastMaxAttempts,
+			MessagesPerMinute: live.MessagesPerMinute,
+			BatchSize:         live.BroadcastBatchSize,
+			LeaseSeconds:      live.BroadcastLeaseSeconds,
+			MaxAttempts:       live.BroadcastMaxAttempts,
 		}).Run(context.Background())
 
-		// Register Webhook endpoints
-		se.Router.GET("/api/wa/webhook", webhooks.HandleVerification(cfg.WA_WebhookVerifyToken))
-		se.Router.POST("/api/wa/webhook", webhooks.HandleIncomingMessage(cfg.MetaAppSecret, notifier))
+		// Register Webhook endpoints (read config live from the manager).
+		se.Router.GET("/api/wa/webhook", webhooks.HandleVerification(mgr))
+		se.Router.POST("/api/wa/webhook", webhooks.HandleIncomingMessage(mgr, notifier))
 		se.Router.POST("/api/wa/webhook/call", webhooks.HandleInboundCall())
 
 		// Serve embedded React SPA from root /

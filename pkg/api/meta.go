@@ -11,6 +11,7 @@ import (
 	"github.com/guptasiddhant/wago/pkg/store"
 
 	"github.com/pocketbase/pocketbase/core"
+	"github.com/pocketbase/pocketbase/tools/router"
 )
 
 var metaClient = meta.NewClient()
@@ -205,11 +206,15 @@ func HandleAccountWebhookConnect(app core.App) func(e *core.RequestEvent) error 
 			return e.NotFoundError("number not found", nil)
 		}
 
-		callback, err := webhookCallbackURL()
+		cfg, cfgErr := liveWebhookConfig(e)
+		if cfgErr != nil {
+			return cfgErr
+		}
+		callback, err := webhookCallbackURL(cfg)
 		if err != nil {
 			return e.BadRequestError(err.Error(), nil)
 		}
-		if webhookCfg.VerifyToken == "" {
+		if cfg.VerifyToken == "" {
 			return e.BadRequestError("this instance has no webhook verify token configured", nil)
 		}
 
@@ -222,7 +227,7 @@ func HandleAccountWebhookConnect(app core.App) func(e *core.RequestEvent) error 
 			return e.BadRequestError("number is missing a WABA ID — add it to connect the webhook", nil)
 		}
 
-		if err := metaClient.SubscribeWebhook(e.Request.Context(), token, wabaID, callback, webhookCfg.VerifyToken); err != nil {
+		if err := metaClient.SubscribeWebhook(e.Request.Context(), token, wabaID, callback, cfg.VerifyToken); err != nil {
 			return e.JSON(http.StatusOK, map[string]any{
 				"ok":           false,
 				"error":        err.Error(),
@@ -252,19 +257,37 @@ func HandleAccountWebhookStatus(app core.App) func(e *core.RequestEvent) error {
 			return e.NotFoundError("number not found", nil)
 		}
 
-		callback, _ := webhookCallbackURL()
+		cfg, _ := liveWebhookConfig(e)
+		callback, _ := webhookCallbackURL(cfg)
 		return e.JSON(http.StatusOK, map[string]any{
 			"ok":           acc.GetString("status") == "connected",
 			"callback_url": callback,
-			"verify_token": webhookCfg.VerifyToken != "",
+			"verify_token": cfg.VerifyToken != "",
 		})
 	}
 }
 
+// liveWebhookConfig reads the current webhook configuration live from the
+// runtime config manager so superadmin edits apply without a restart.
+func liveWebhookConfig(e *core.RequestEvent) (WebhookConfig, *router.ApiError) {
+	var cfg WebhookConfig
+	if runtimeMgr == nil {
+		// Fall back to the config set at Register (older boot order).
+		return webhookCfg, nil
+	}
+	appCfg, err := runtimeMgr.Load(e.App)
+	if err != nil {
+		return cfg, e.InternalServerError("Failed to load configuration", err)
+	}
+	cfg.PublicBaseURL = appCfg.PublicBaseURL
+	cfg.VerifyToken = appCfg.WA_WebhookVerifyToken
+	return cfg, nil
+}
+
 // webhookCallbackURL builds the public URL Meta delivers events to. It requires
 // the instance to be publicly reachable and have PUBLIC_BASE_URL configured.
-func webhookCallbackURL() (string, error) {
-	base := strings.TrimRight(webhookCfg.PublicBaseURL, "/")
+func webhookCallbackURL(cfg WebhookConfig) (string, error) {
+	base := strings.TrimRight(cfg.PublicBaseURL, "/")
 	if base == "" {
 		return "", errors.New("this instance has no PUBLIC_BASE_URL configured — set it to connect webhooks")
 	}

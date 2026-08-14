@@ -1,6 +1,7 @@
 import { ApiError, getStoredOrgId, getStoredSession } from '../lib/authStore'
 import type {
   AnalyticsResponse,
+  AppConfig,
   BroadcastCreateInput,
   BroadcastDetail,
   BroadcastDTO,
@@ -96,6 +97,19 @@ export async function login(email: string, password: string): Promise<Session> {
 
 export async function me(): Promise<Session> {
   return apiFetch<Session>('/auth/me')
+}
+
+/** Returns the runtime instance config (superadmin only). */
+export async function getConfig(): Promise<AppConfig> {
+  return apiFetch<AppConfig>('/admin/config')
+}
+
+/** Persists the runtime instance config (superadmin only). Applies immediately. */
+export async function updateConfig(input: AppConfig): Promise<AppConfig> {
+  return apiFetch<AppConfig>('/admin/config', {
+    method: 'PUT',
+    body: JSON.stringify(input),
+  })
 }
 
 export async function createOrg(name: string): Promise<OrgSummary> {

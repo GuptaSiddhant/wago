@@ -33,9 +33,8 @@ Behavior:
    | Variable | Purpose |
    | --- | --- |
    | `ADMIN_PASSWORD` | Seeds the PocketBase superuser on first boot |
-   | `WA_WEBHOOK_VERIFY_TOKEN` | WhatsApp Cloud API webhook verification |
 
-3. Set up SMTP (notification emails) and WhatsApp notification template — see [Environment variables](#environment-variables).
+3. (Optional) Set up SMTP (notification emails) and WhatsApp notification template — see [Environment variables](#environment-variables).
 4. Run the server (dev):
 
    ```sh
@@ -43,6 +42,11 @@ Behavior:
    ```
 
    The SPA and the Wago API are served from `/`.
+
+> All variables except `ADMIN_PASSWORD` are optional. Values set in the
+> environment seed the config on first boot and can then be edited at runtime by
+> a superadmin from **Settings → Instance Config** (stored in the SQLite DB,
+> applied immediately — no restart needed).
 
 ## Environment variables
 
@@ -54,12 +58,15 @@ All variables are read from the process environment and a `.env` file (see `.env
 | --- | --- | --- |
 | `ADMIN_EMAIL` | `admin@wago.local` | Superuser email seeded at boot |
 | `ADMIN_PASSWORD` | — | Required; seeds the superuser at boot |
-| `WA_WEBHOOK_VERIFY_TOKEN` | — | Required; WhatsApp webhook handshake |
+
+> Every other setting is optional and runtime-editable by a superadmin
+> (Settings → Instance Config).
 
 ### Optional
 
 | Variable | Default | Notes |
 | --- | --- | --- |
+| `WA_WEBHOOK_VERIFY_TOKEN` | *(empty)* | WhatsApp Cloud API webhook handshake. Optional; also editable at runtime. |
 | `META_APP_SECRET` | *(empty)* | Validates inbound webhook signatures when set |
 | `SMTP_HOST` | *(empty → email off)* | SMTP relay host; enabling this turns on notification emails |
 | `SMTP_PORT` | `587` | SMTP submit port |

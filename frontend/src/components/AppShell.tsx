@@ -29,6 +29,8 @@ const settingsNav = [
   { to: '/analytics', label: 'Analytics', icon: BarChart3 },
 ]
 
+const adminNav = [{ to: '/settings/config', label: 'Instance Config' }]
+
 function NavLink({
   to,
   label,
@@ -158,6 +160,11 @@ export function AppShell() {
           {settingsNav.map((item) => (
             <NavLink key={item.to} to={item.to} label={item.label} />
           ))}
+          {isAdmin
+            ? adminNav.map((item) => (
+                <NavLink key={item.to} to={item.to} label={item.label} />
+              ))
+            : null}
         </nav>
 
         <div className="border-t border-zinc-800/80 p-3">

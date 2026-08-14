@@ -8,49 +8,53 @@ import (
 	"strings"
 )
 
-// AppConfig bundles the runtime configuration read from environment variables.
+// AppConfig bundles the runtime configuration for a Wago instance. Values are
+// seeded from environment variables on first boot and persisted in the
+// app_settings collection so a superadmin can edit them from the UI at runtime.
+// AdminPassword and AdminEmail are always sourced from the environment and are
+// never persisted or exposed through the API.
 type AppConfig struct {
-	AdminEmail            string
-	AdminPassword         string
-	WA_WebhookVerifyToken string
-	MetaAppSecret         string
+	AdminEmail            string `json:"-"`
+	AdminPassword         string `json:"-"`
+	WA_WebhookVerifyToken string `json:"wa_webhook_verify_token"`
+	MetaAppSecret         string `json:"meta_app_secret"`
 
 	// PublicBaseURL is the externally reachable base URL of this Wago instance
 	// (e.g. https://wago.example.com). It is used to build the webhook callback
 	// URL Meta delivers messages to. Leave empty if Wago is not publicly reachable.
-	PublicBaseURL string
+	PublicBaseURL string `json:"public_base_url"`
 
 	// AI (assistant) feature. When AIEnabled is true the frontend surfaces the
 	// AI home dashboard and /api/wa/ai/chat streams replies from an
 	// OpenAI-compatible model endpoint. The backend stays provider-agnostic —
 	// point AIBaseURL at OpenAI, DeepSeek, Ollama, vLLM or a LiteLLM proxy.
-	AIEnabled bool
-	AIBaseURL string // OpenAI-compatible /chat/completions base URL, e.g. https://api.openai.com/v1
-	AIAPIKey  string
-	AIModel   string
+	AIEnabled bool   `json:"ai_enabled"`
+	AIBaseURL string `json:"ai_base_url"` // OpenAI-compatible /chat/completions base URL, e.g. https://api.openai.com/v1
+	AIAPIKey  string `json:"ai_api_key"`
+	AIModel   string `json:"ai_model"`
 
-	SMTPHost        string
-	SMTPPort        int
-	SMTPUsername    string
-	SMTPPassword    string
-	SMTPTLS         bool
-	SMTPFromAddress string
-	SMTPFromName    string
+	SMTPHost        string `json:"smtp_host"`
+	SMTPPort        int    `json:"smtp_port"`
+	SMTPUsername    string `json:"smtp_username"`
+	SMTPPassword    string `json:"smtp_password"`
+	SMTPTLS         bool   `json:"smtp_tls"`
+	SMTPFromAddress string `json:"smtp_from_address"`
+	SMTPFromName    string `json:"smtp_from_name"`
 
 	// VAPIDSubject is the contact (email or URL) sent in Web Push VAPID tokens
 	// so push services can reach the operator. Defaults to AdminEmail.
-	VAPIDSubject string
+	VAPIDSubject string `json:"vapid_subject"`
 
 	// WA_NotificationTemplate is an approved Meta template name used to send
 	// best-effort WhatsApp notifications to inactive users. Empty disables it.
-	WA_NotificationTemplate string
+	WA_NotificationTemplate string `json:"wa_notification_template"`
 
 	// Broadcast worker tuning. These bound how aggressively template broadcasts
 	// are sent so the account stays within Meta/WhatsApp rate limits.
-	MessagesPerMinute     int // global sustained rate across all active broadcasts
-	BroadcastBatchSize    int // recipients claimed per broadcast per worker tick
-	BroadcastLeaseSeconds int // how long a claimed recipient's lease lasts before redelivery
-	BroadcastMaxAttempts  int // send attempts before a recipient is marked failed
+	MessagesPerMinute     int `json:"messages_per_minute"` // global sustained rate across all active broadcasts
+	BroadcastBatchSize    int `json:"broadcast_batch_size"` // recipients claimed per broadcast per worker tick
+	BroadcastLeaseSeconds int `json:"broadcast_lease_seconds"` // how long a claimed recipient's lease lasts before redelivery
+	BroadcastMaxAttempts  int `json:"broadcast_max_attempts"` // send attempts before a recipient is marked failed
 }
 
 // WorkerDefaults are applied when the corresponding env vars are unset.
@@ -69,7 +73,7 @@ func LoadAppConfig() (*AppConfig, error) {
 
 	adminPassword := getRequiredEnv("ADMIN_PASSWORD")
 
-	waWebhookVerifyToken := getRequiredEnv("WA_WEBHOOK_VERIFY_TOKEN")
+	waWebhookVerifyToken := getEnvOrDefault("WA_WEBHOOK_VERIFY_TOKEN", "")
 
 	metaAppSecret := getEnvOrDefault("META_APP_SECRET", "")
 

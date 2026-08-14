@@ -19,6 +19,7 @@ import { Route as AppContactsRouteImport } from './routes/_app/contacts'
 import { Route as AppInboxRouteImport } from './routes/_app/inbox'
 import { Route as AppTemplatesRouteImport } from './routes/_app/templates'
 import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings/index'
+import { Route as AppSettingsConfigRouteImport } from './routes/_app/settings/config'
 import { Route as AppSettingsNumbersRouteImport } from './routes/_app/settings/numbers'
 import { Route as AppSettingsTeamRouteImport } from './routes/_app/settings/team'
 
@@ -71,6 +72,11 @@ const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
   path: '/settings/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSettingsConfigRoute = AppSettingsConfigRouteImport.update({
+  id: '/settings/config',
+  path: '/settings/config',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsNumbersRoute = AppSettingsNumbersRouteImport.update({
   id: '/settings/numbers',
   path: '/settings/numbers',
@@ -91,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/contacts': typeof AppContactsRoute
   '/inbox': typeof AppInboxRoute
   '/templates': typeof AppTemplatesRoute
+  '/settings/config': typeof AppSettingsConfigRoute
   '/settings/numbers': typeof AppSettingsNumbersRoute
   '/settings/team': typeof AppSettingsTeamRoute
   '/settings/': typeof AppSettingsIndexRoute
@@ -104,6 +111,7 @@ export interface FileRoutesByTo {
   '/inbox': typeof AppInboxRoute
   '/templates': typeof AppTemplatesRoute
   '/': typeof AppIndexRoute
+  '/settings/config': typeof AppSettingsConfigRoute
   '/settings/numbers': typeof AppSettingsNumbersRoute
   '/settings/team': typeof AppSettingsTeamRoute
   '/settings': typeof AppSettingsIndexRoute
@@ -119,6 +127,7 @@ export interface FileRoutesById {
   '/_app/inbox': typeof AppInboxRoute
   '/_app/templates': typeof AppTemplatesRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/settings/config': typeof AppSettingsConfigRoute
   '/_app/settings/numbers': typeof AppSettingsNumbersRoute
   '/_app/settings/team': typeof AppSettingsTeamRoute
   '/_app/settings/': typeof AppSettingsIndexRoute
@@ -134,6 +143,7 @@ export interface FileRouteTypes {
     | '/contacts'
     | '/inbox'
     | '/templates'
+    | '/settings/config'
     | '/settings/numbers'
     | '/settings/team'
     | '/settings/'
@@ -147,6 +157,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/templates'
     | '/'
+    | '/settings/config'
     | '/settings/numbers'
     | '/settings/team'
     | '/settings'
@@ -161,6 +172,7 @@ export interface FileRouteTypes {
     | '/_app/inbox'
     | '/_app/templates'
     | '/_app/'
+    | '/_app/settings/config'
     | '/_app/settings/numbers'
     | '/_app/settings/team'
     | '/_app/settings/'
@@ -244,6 +256,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/settings/config': {
+      id: '/_app/settings/config'
+      path: '/settings/config'
+      fullPath: '/settings/config'
+      preLoaderRoute: typeof AppSettingsConfigRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings/numbers': {
       id: '/_app/settings/numbers'
       path: '/settings/numbers'
@@ -268,6 +287,7 @@ interface AppRouteChildren {
   AppInboxRoute: typeof AppInboxRoute
   AppTemplatesRoute: typeof AppTemplatesRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppSettingsConfigRoute: typeof AppSettingsConfigRoute
   AppSettingsNumbersRoute: typeof AppSettingsNumbersRoute
   AppSettingsTeamRoute: typeof AppSettingsTeamRoute
   AppSettingsIndexRoute: typeof AppSettingsIndexRoute
@@ -280,6 +300,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppInboxRoute: AppInboxRoute,
   AppTemplatesRoute: AppTemplatesRoute,
   AppIndexRoute: AppIndexRoute,
+  AppSettingsConfigRoute: AppSettingsConfigRoute,
   AppSettingsNumbersRoute: AppSettingsNumbersRoute,
   AppSettingsTeamRoute: AppSettingsTeamRoute,
   AppSettingsIndexRoute: AppSettingsIndexRoute,

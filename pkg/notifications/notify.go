@@ -7,6 +7,7 @@ import (
 
 	"github.com/guptasiddhant/wago/pkg/meta"
 	"github.com/guptasiddhant/wago/pkg/push"
+	"github.com/guptasiddhant/wago/pkg/runtimecfg"
 	"github.com/guptasiddhant/wago/pkg/store"
 	"github.com/guptasiddhant/wago/pkg/utils"
 
@@ -20,13 +21,24 @@ const activeWindow = 5 * time.Minute
 
 // Notifier triggers notifications and delivers them to inactive users.
 type Notifier struct {
-	cfg    *utils.AppConfig
+	cfg    *runtimecfg.Manager
 	client *meta.Client
 }
 
-// NewNotifier builds a Notifier from configuration. It is safe to share.
-func NewNotifier(cfg *utils.AppConfig) *Notifier {
+// NewNotifier builds a Notifier backed by the runtime config manager. It is safe
+// to share.
+func NewNotifier(cfg *runtimecfg.Manager) *Notifier {
 	return &Notifier{cfg: cfg, client: meta.NewClient()}
+}
+
+// config loads the current runtime config. On failure it returns the env-seeded
+// config so delivery can proceed with safe defaults.
+func (n *Notifier) config(app core.App) *utils.AppConfig {
+	cfg, err := n.cfg.Load(app)
+	if err != nil {
+		return n.cfg.Env()
+	}
+	return cfg
 }
 
 // Trigger is called from the webhook after an inbound message is persisted and
@@ -57,7 +69,8 @@ func (n *Notifier) Trigger(app core.App, orgID, convID, assigneeID, preview stri
 	// is backgrounded or closed. The service worker suppresses the OS banner
 	// when a client is already focused, so active desktop users see it in-app.
 	contact := n.contactName(app, convID)
-	go push.NewSender(app, n.cfg.VAPIDSubject).Send(context.Background(), orgID, assigneeID, push.Payload{
+	cfg := n.config(app)
+	go push.NewSender(app, cfg.VAPIDSubject).Send(context.Background(), orgID, assigneeID, push.Payload{
 		Title:          "New message from " + contact,
 		Body:           preview,
 		ConversationID: convID,

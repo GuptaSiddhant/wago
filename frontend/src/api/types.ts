@@ -392,3 +392,31 @@ export interface CallEventDTO {
   phone?: string
   name?: string
 }
+
+/** Runtime instance configuration editable by a superadmin. */
+export interface AppConfig {
+  wa_webhook_verify_token: string
+  meta_app_secret: string
+  public_base_url: string
+
+  ai_enabled: boolean
+  ai_base_url: string
+  ai_api_key: string
+  ai_model: string
+
+  smtp_host: string
+  smtp_port: number
+  smtp_username: string
+  smtp_password: string
+  smtp_tls: boolean
+  smtp_from_address: string
+  smtp_from_name: string
+
+  vapid_subject: string
+  wa_notification_template: string
+
+  messages_per_minute: number
+  broadcast_batch_size: number
+  broadcast_lease_seconds: number
+  broadcast_max_attempts: number
+}

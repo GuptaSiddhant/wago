@@ -12,6 +12,7 @@ import (
 
 	"github.com/guptasiddhant/wago/pkg/meta"
 	"github.com/guptasiddhant/wago/pkg/notifications"
+	"github.com/guptasiddhant/wago/pkg/runtimecfg"
 	"github.com/guptasiddhant/wago/pkg/store"
 
 	"github.com/piusalfred/whatsapp/message"
@@ -22,14 +23,22 @@ import (
 // metaClient is used to download inbound media so it can be stored locally.
 var metaClient = meta.NewClient()
 
-// HandleVerification returns the handler for GET /api/wa/webhook
-func HandleVerification(verifyToken string) func(re *core.RequestEvent) error {
+// HandleVerification returns the handler for GET /api/wa/webhook. The verify
+// token is read live from the runtime config so Meta's handshake succeeds with
+// whatever token the superadmin has configured.
+func HandleVerification(mgr *runtimecfg.Manager) func(re *core.RequestEvent) error {
 	return func(re *core.RequestEvent) error {
+		cfg, err := mgr.Load(re.App)
+		if err != nil {
+			log.Printf("webhook: failed to load config: %v", err)
+			return re.String(http.StatusForbidden, "Verification failed")
+		}
+
 		mode := re.Request.URL.Query().Get("hub.mode")
 		token := re.Request.URL.Query().Get("hub.verify_token")
 		challenge := re.Request.URL.Query().Get("hub.challenge")
 
-		if mode == "subscribe" && token == verifyToken {
+		if mode == "subscribe" && token == cfg.WA_WebhookVerifyToken {
 			log.Println(" Meta Webhook verified successfully!")
 			return re.String(http.StatusOK, challenge)
 		}
@@ -39,14 +48,21 @@ func HandleVerification(verifyToken string) func(re *core.RequestEvent) error {
 }
 
 // HandleIncomingMessage returns the handler for POST /api/wa/webhook.
-// When appSecret is non-empty, inbound payloads are validated against the
-// X-Hub-Signature-256 header signed with the Meta App Secret. The notifier is
-// triggered for assigned conversations so users get notified of new chats.
-func HandleIncomingMessage(appSecret string, notifier *notifications.Notifier) func(re *core.RequestEvent) error {
+// When the current config has a non-empty Meta App Secret, inbound payloads are
+// validated against the X-Hub-Signature-256 header signed with that secret. The
+// notifier is triggered for assigned conversations so users get notified of new
+// chats.
+func HandleIncomingMessage(mgr *runtimecfg.Manager, notifier *notifications.Notifier) func(re *core.RequestEvent) error {
 	return func(re *core.RequestEvent) error {
+		cfg, err := mgr.Load(re.App)
+		if err != nil {
+			log.Printf("webhook: failed to load config: %v", err)
+			return re.String(http.StatusOK, "EVENT_RECEIVED")
+		}
+
 		notification, err := wawh.ExtractAndValidatePayload(re.Request, &wawh.ValidateOptions{
-			Validate:  appSecret != "",
-			AppSecret: appSecret,
+			Validate:  cfg.MetaAppSecret != "",
+			AppSecret: cfg.MetaAppSecret,
 		})
 		if err != nil {
 			log.Printf("Invalid webhook payload: %v", err)

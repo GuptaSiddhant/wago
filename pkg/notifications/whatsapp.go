@@ -14,7 +14,8 @@ import (
 // AND the user has a phone number on file. All failures are logged, never
 // propagated, so a broken notification path can't affect message handling.
 func (n *Notifier) sendWhatsApp(app core.App, orgID, convID string, user *core.Record, contact, preview string) {
-	if n.cfg.WA_NotificationTemplate == "" {
+	cfg := n.config(app)
+	if cfg.WA_NotificationTemplate == "" {
 		return // WhatsApp notifications disabled
 	}
 	phone := user.GetString("phone")
@@ -42,7 +43,7 @@ func (n *Notifier) sendWhatsApp(app core.App, orgID, convID string, user *core.R
 		acc.GetString("access_token"),
 		acc.GetString("phone_number_id"),
 		phone,
-		n.cfg.WA_NotificationTemplate,
+		cfg.WA_NotificationTemplate,
 		"en_US",
 		params,
 		nil,

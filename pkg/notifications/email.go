@@ -37,7 +37,8 @@ const notifEmailTemplate = `<!DOCTYPE html>
 // sendEmail sends a plain notification email using the PocketBase mailer
 // (SMTP is enabled from config at startup). Returns an error on failure.
 func (n *Notifier) sendEmail(app core.App, toEmail, contact, preview string) error {
-	if n.cfg.SMTPHost == "" {
+	cfg := n.config(app)
+	if cfg.SMTPHost == "" {
 		return nil // no SMTP configured — skip silently
 	}
 
@@ -45,7 +46,7 @@ func (n *Notifier) sendEmail(app core.App, toEmail, contact, preview string) err
 	html := fmt.Sprintf(notifEmailTemplate, html.EscapeString(contact), html.EscapeString(preview))
 
 	msg := &mailer.Message{
-		From:    mail.Address{Name: n.cfg.SMTPFromName, Address: n.cfg.SMTPFromAddress},
+		From:    mail.Address{Name: cfg.SMTPFromName, Address: cfg.SMTPFromAddress},
 		To:      []mail.Address{{Address: toEmail}},
 		Subject: subject,
 		HTML:    html,
