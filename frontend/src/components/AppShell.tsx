@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { Link, Outlet } from '@tanstack/react-router'
-import { BarChart3, FileText, LayoutDashboard, Megaphone, MessageSquare, Users, Settings, LogOut, Plus } from 'lucide-react'
+import { BarChart3, FileText, LayoutDashboard, Megaphone, MessageSquare, Users, Settings, LogOut, Plus, Menu } from 'lucide-react'
 import { createOrg } from '../api/client'
 import { OrgSwitcher } from './OrgSwitcher'
 import { Avatar } from './ui/Avatar'
@@ -35,15 +35,18 @@ function NavLink({
   to,
   label,
   icon: Icon,
+  onNavigate,
 }: {
   to: string
   label: string
   icon?: typeof MessageSquare
+  onNavigate?: () => void
 }) {
   return (
     <Link
       to={to}
       activeOptions={{ exact: to === '/inbox' }}
+      onClick={onNavigate}
       className="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-400 transition hover:bg-zinc-900 hover:text-zinc-100"
       activeProps={{
         className:
@@ -110,15 +113,34 @@ function NewOrgDialog({ onClose }: { onClose: () => void }) {
 export function AppShell() {
   const { session, org, logout } = useSession()
   const [showNewOrg, setShowNewOrg] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const isAdmin = session?.is_admin === true
+
+  function closeSidebar() {
+    setSidebarOpen(false)
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-zinc-950 text-zinc-100">
-      <aside className="flex w-64 shrink-0 flex-col border-r border-zinc-800/80 bg-zinc-950">
+      {/* Mobile backdrop behind the drawer sidebar */}
+      {sidebarOpen ? (
+        <div
+          className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden"
+          onClick={closeSidebar}
+          aria-hidden
+        />
+      ) : null}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col border-r border-zinc-800/80 bg-zinc-950 transition-transform duration-200 ease-out md:static md:translate-x-0 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
         <div className="flex items-center gap-2.5 px-5 pb-4 pt-5">
           <Link
             to="/"
             aria-label="Dashboard"
+            onClick={closeSidebar}
             className="flex items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-sm font-bold text-white">
@@ -150,7 +172,13 @@ export function AppShell() {
 
         <nav className="mt-4 flex-1 space-y-0.5 overflow-y-auto px-3">
           {mainNav.map((item) => (
-            <NavLink key={item.to} to={item.to} label={item.label} icon={item.icon} />
+            <NavLink
+              key={item.to}
+              to={item.to}
+              label={item.label}
+              icon={item.icon}
+              onNavigate={closeSidebar}
+            />
           ))}
 
           <div className="mt-5 flex items-center gap-2 px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-600">
@@ -158,11 +186,21 @@ export function AppShell() {
             Settings
           </div>
           {settingsNav.map((item) => (
-            <NavLink key={item.to} to={item.to} label={item.label} />
+            <NavLink
+              key={item.to}
+              to={item.to}
+              label={item.label}
+              onNavigate={closeSidebar}
+            />
           ))}
           {isAdmin
             ? adminNav.map((item) => (
-                <NavLink key={item.to} to={item.to} label={item.label} />
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  label={item.label}
+                  onNavigate={closeSidebar}
+                />
               ))
             : null}
         </nav>
@@ -190,6 +228,21 @@ export function AppShell() {
       </aside>
 
       <main className="flex min-w-0 flex-1 flex-col">
+        {/* Mobile top bar with hamburger menu */}
+        <div className="flex items-center gap-2 border-b border-zinc-800/80 px-3 py-2.5 md:hidden">
+          <Button
+            size="icon"
+            variant="ghost"
+            aria-label="Open navigation"
+            onPress={() => setSidebarOpen(true)}
+          >
+            <Menu size={18} className="text-zinc-400" />
+          </Button>
+          <div className="min-w-0 flex-1 truncate text-sm font-semibold text-zinc-100">
+            {org?.name ?? 'WaGo'}
+          </div>
+        </div>
+
         <CallsProvider>
           <Outlet />
           <CallOverlay />
