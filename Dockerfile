@@ -17,5 +17,5 @@ RUN CGO_ENABLED=0 go build -gcflags='all=-N -l' -o wago .
 FROM alpine:3.20 AS runner
 WORKDIR /app
 COPY --from=builder /app/wago /app/wago
-EXPOSE 8090
-CMD ["/app/wago", "serve", "--http=0.0.0.0:8090"]
+EXPOSE 8080
+CMD ["/app/wago", "serve", "--http=0.0.0.0:8080"]
