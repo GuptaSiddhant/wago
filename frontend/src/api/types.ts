@@ -8,6 +8,13 @@ export interface OrgSummary {
   id: string
   name: string
   role: string
+  about?: string
+  address?: string
+  description?: string
+  email?: string
+  websites?: string[]
+  vertical?: string
+  profile_picture_url?: string
 }
 
 export interface Session {

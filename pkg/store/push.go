@@ -3,18 +3,17 @@ package store
 import (
 	"log"
 
+	"github.com/SherClockHolmes/webpush-go"
+
 	"github.com/pocketbase/pocketbase/core"
 )
 
 const (
 	// PushSubscriptionsC stores Web Push device subscriptions per user.
 	PushSubscriptionsC = "push_subscriptions"
-	// VAPIDKeysC holds the app-global VAPID keypair used for Web Push.
-	VAPIDKeysC = "vapid_keys"
 )
 
-// EnsurePushCollections creates the push_subscriptions and vapid_keys
-// collections on first boot.
+// EnsurePushCollections creates the push_subscriptions collection on first boot.
 func EnsurePushCollections(app core.App) error {
 	if _, err := app.FindCollectionByNameOrId(PushSubscriptionsC); err != nil {
 		orgsCol, err := app.FindCollectionByNameOrId("orgs")
@@ -62,24 +61,29 @@ func EnsurePushCollections(app core.App) error {
 		log.Println("Auto-created 'push_subscriptions' collection")
 	}
 
-	if _, err := app.FindCollectionByNameOrId(VAPIDKeysC); err != nil {
-		col := core.NewBaseCollection(VAPIDKeysC)
-		col.ListRule = nil
-		col.ViewRule = nil
-		col.CreateRule = nil
-		col.UpdateRule = nil
-		col.DeleteRule = nil
-		col.Fields.Add(
-			&core.TextField{Name: "public_key"},
-			&core.TextField{Name: "private_key"},
-			&core.AutodateField{Name: "created", OnCreate: true},
-			&core.AutodateField{Name: "updated", OnCreate: true, OnUpdate: true})
-		if err := app.Save(col); err != nil {
-			return err
-		}
-		log.Println("Auto-created 'vapid_keys' collection")
+	return nil
+}
+
+// MigrateLegacyVAPIDKeys moves an existing keypair from the old vapid_keys
+// collection into the app_settings record and drops the legacy collection. It
+// is a no-op when the legacy collection was never created.
+func MigrateLegacyVAPIDKeys(app core.App) error {
+	col, err := app.FindCollectionByNameOrId("vapid_keys")
+	if err != nil {
+		return nil // never created
 	}
 
+	rec, findErr := app.FindFirstRecordByFilter("vapid_keys", "", nil)
+	if findErr == nil && rec.GetString("public_key") != "" {
+		if err := SaveVAPIDKeysToSettings(app, rec.GetString("public_key"), rec.GetString("private_key")); err != nil {
+			return err
+		}
+	}
+
+	if err := app.Delete(col); err != nil {
+		return err
+	}
+	log.Println("Migrated 'vapid_keys' into 'app_settings' and removed the legacy collection")
 	return nil
 }
 
@@ -137,27 +141,23 @@ func ListPushSubscriptions(app core.App, orgID, userID string) ([]*core.Record, 
 }
 
 // GetVAPIDKeys returns the app-wide VAPID keypair, generating and storing them
-// on first request if they don't exist yet.
-func GetVAPIDKeys(app core.App, generate func() (private, public string, err error)) (publicKey, privateKey string, err error) {
-	rec, err := app.FindFirstRecordByFilter(VAPIDKeysC, "", nil)
-	if err != nil || rec.GetString("public_key") == "" {
-		privateKey, publicKey, genErr := generate()
-		if genErr != nil {
-			return "", "", genErr
-		}
-		col, colErr := app.FindCollectionByNameOrId(VAPIDKeysC)
-		if colErr != nil {
-			return "", "", colErr
-		}
-		if rec == nil {
-			rec = core.NewRecord(col)
-		}
-		rec.Set("public_key", publicKey)
-		rec.Set("private_key", privateKey)
-		if err := app.Save(rec); err != nil {
-			return "", "", err
-		}
+// on first request if they don't exist yet. Keys live on the singleton
+// app_settings record.
+func GetVAPIDKeys(app core.App) (publicKey, privateKey string, err error) {
+	publicKey, privateKey, err = GetVAPIDKeysFromSettings(app)
+	if err != nil {
+		return "", "", err
+	}
+	if publicKey != "" {
 		return publicKey, privateKey, nil
 	}
-	return rec.GetString("public_key"), rec.GetString("private_key"), nil
+
+	privateKey, publicKey, genErr := webpush.GenerateVAPIDKeys()
+	if genErr != nil {
+		return "", "", genErr
+	}
+	if err := SaveVAPIDKeysToSettings(app, publicKey, privateKey); err != nil {
+		return "", "", err
+	}
+	return publicKey, privateKey, nil
 }

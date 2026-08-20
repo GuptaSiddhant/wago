@@ -21,6 +21,7 @@ import { Route as AppTemplatesRouteImport } from './routes/_app/templates'
 import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings/index'
 import { Route as AppSettingsConfigRouteImport } from './routes/_app/settings/config'
 import { Route as AppSettingsNumbersRouteImport } from './routes/_app/settings/numbers'
+import { Route as AppSettingsOrgRouteImport } from './routes/_app/settings/org'
 import { Route as AppSettingsTeamRouteImport } from './routes/_app/settings/team'
 
 const AppRoute = AppRouteImport.update({
@@ -82,6 +83,11 @@ const AppSettingsNumbersRoute = AppSettingsNumbersRouteImport.update({
   path: '/settings/numbers',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSettingsOrgRoute = AppSettingsOrgRouteImport.update({
+  id: '/settings/org',
+  path: '/settings/org',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSettingsTeamRoute = AppSettingsTeamRouteImport.update({
   id: '/settings/team',
   path: '/settings/team',
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/templates': typeof AppTemplatesRoute
   '/settings/config': typeof AppSettingsConfigRoute
   '/settings/numbers': typeof AppSettingsNumbersRoute
+  '/settings/org': typeof AppSettingsOrgRoute
   '/settings/team': typeof AppSettingsTeamRoute
   '/settings/': typeof AppSettingsIndexRoute
 }
@@ -113,6 +120,7 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/settings/config': typeof AppSettingsConfigRoute
   '/settings/numbers': typeof AppSettingsNumbersRoute
+  '/settings/org': typeof AppSettingsOrgRoute
   '/settings/team': typeof AppSettingsTeamRoute
   '/settings': typeof AppSettingsIndexRoute
 }
@@ -129,6 +137,7 @@ export interface FileRoutesById {
   '/_app/': typeof AppIndexRoute
   '/_app/settings/config': typeof AppSettingsConfigRoute
   '/_app/settings/numbers': typeof AppSettingsNumbersRoute
+  '/_app/settings/org': typeof AppSettingsOrgRoute
   '/_app/settings/team': typeof AppSettingsTeamRoute
   '/_app/settings/': typeof AppSettingsIndexRoute
 }
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/templates'
     | '/settings/config'
     | '/settings/numbers'
+    | '/settings/org'
     | '/settings/team'
     | '/settings/'
   fileRoutesByTo: FileRoutesByTo
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/'
     | '/settings/config'
     | '/settings/numbers'
+    | '/settings/org'
     | '/settings/team'
     | '/settings'
   id:
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/_app/'
     | '/_app/settings/config'
     | '/_app/settings/numbers'
+    | '/_app/settings/org'
     | '/_app/settings/team'
     | '/_app/settings/'
   fileRoutesById: FileRoutesById
@@ -270,6 +282,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsNumbersRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/settings/org': {
+      id: '/_app/settings/org'
+      path: '/settings/org'
+      fullPath: '/settings/org'
+      preLoaderRoute: typeof AppSettingsOrgRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/settings/team': {
       id: '/_app/settings/team'
       path: '/settings/team'
@@ -289,6 +308,7 @@ interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppSettingsConfigRoute: typeof AppSettingsConfigRoute
   AppSettingsNumbersRoute: typeof AppSettingsNumbersRoute
+  AppSettingsOrgRoute: typeof AppSettingsOrgRoute
   AppSettingsTeamRoute: typeof AppSettingsTeamRoute
   AppSettingsIndexRoute: typeof AppSettingsIndexRoute
 }
@@ -302,6 +322,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppSettingsConfigRoute: AppSettingsConfigRoute,
   AppSettingsNumbersRoute: AppSettingsNumbersRoute,
+  AppSettingsOrgRoute: AppSettingsOrgRoute,
   AppSettingsTeamRoute: AppSettingsTeamRoute,
   AppSettingsIndexRoute: AppSettingsIndexRoute,
 }

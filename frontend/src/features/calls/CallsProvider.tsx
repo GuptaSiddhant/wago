@@ -71,7 +71,7 @@ export function CallsProvider({ children }: { children: ReactNode }) {
     attemptedRef.current = null
   }
 
-  const startNegotiation = useCallback(
+  const startNegotiation = 
     (call: CallEventDTO) => {
       attemptedRef.current = call.id
       setError(null)
@@ -108,11 +108,7 @@ export function CallsProvider({ children }: { children: ReactNode }) {
           clearSession()
         }
       })()
-    },
-    // clearSession is stable enough for this effect-driven component.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  )
+    }
 
   // Listen for live call events; negotiate inbound calls immediately.
   useEffect(() => {
@@ -138,8 +134,7 @@ export function CallsProvider({ children }: { children: ReactNode }) {
     }, controller.signal).catch(() => {
       // Stream dropped; retried on next org change.
     })
-    return () => controller.abort()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {controller.abort()}
   }, [orgId])
 
   const answerCurrent = useCallback(() => {

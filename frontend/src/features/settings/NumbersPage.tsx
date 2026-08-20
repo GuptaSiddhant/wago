@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plug, Pencil, Plus, Smartphone, Trash2 } from 'lucide-react'
+import { Plug, Pencil, Plus, RefreshCw, Smartphone, Trash2 } from 'lucide-react'
 import {
+  accountBusinessProfile,
   accountMeta,
   accountWebhookStatus,
   connectAccountWebhook,
@@ -10,6 +11,7 @@ import {
   deleteAccount,
   listAccounts,
   listTeams,
+  syncAccountBusinessProfile,
   updateAccount,
 } from '../../api/client'
 import { useSession } from '../../lib/session'
@@ -267,6 +269,94 @@ function WebhookConnect({ accountId }: { accountId: string }) {
   )
 }
 
+function BusinessProfileSync({ accountId }: { accountId: string }) {
+  const { org } = useSession()
+  const orgId = org?.id ?? ''
+  const queryClient = useQueryClient()
+  const canManageData = org?.role === 'owner'
+
+  const profileQuery = useQuery({
+    queryKey: ['account-business-profile', orgId, accountId],
+    queryFn: () => accountBusinessProfile(accountId),
+    enabled: orgId !== '',
+    staleTime: 5 * 60_000,
+  })
+
+  const syncMutation = useMutation({
+    mutationFn: () => syncAccountBusinessProfile(accountId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['account-business-profile', orgId, accountId] })
+    },
+  })
+
+  const profile = profileQuery.data?.profile
+
+  return (
+    <div className="mt-2 space-y-2">
+      <div className="flex items-center gap-2">
+        <Badge tone={syncMutation.isSuccess ? 'green' : 'zinc'}>Business profile</Badge>
+        {canManageData ? (
+          <Button
+            size="sm"
+            variant="secondary"
+            onPress={() => syncMutation.mutate()}
+            isDisabled={syncMutation.isPending}
+          >
+            {syncMutation.isPending ? <Spinner className="h-3.5 w-3.5" /> : <RefreshCw size={13} />}
+            {syncMutation.isPending ? 'Syncing…' : 'Sync from org'}
+          </Button>
+        ) : null}
+      </div>
+
+      {syncMutation.isError ? (
+        <p className="text-xs text-red-400">
+          {syncMutation.error instanceof Error
+            ? syncMutation.error.message
+            : 'Failed to sync the business profile'}
+        </p>
+      ) : null}
+      {syncMutation.isSuccess ? (
+        <p className="text-xs text-emerald-400">{syncMutation.data?.message ?? 'Synced.'}</p>
+      ) : null}
+
+      {profileQuery.isLoading ? (
+        <p className="text-xs text-zinc-600">Fetching WhatsApp profile…</p>
+      ) : profileQuery.data && !profileQuery.data.ok ? (
+        <p className="text-xs text-zinc-600">
+          Profile unavailable{profileQuery.data.error ? ` — ${profileQuery.data.error}` : ''}
+        </p>
+      ) : profile ? (
+        <dl className="space-y-1 text-xs text-zinc-500">
+          <ProfileField label="About" value={stringOf(profile.about)} />
+          <ProfileField label="Address" value={stringOf(profile.address)} />
+          <ProfileField label="Description" value={stringOf(profile.description)} />
+          <ProfileField label="Email" value={stringOf(profile.email)} />
+          <ProfileField label="Websites" value={arrayOf(profile.websites).join(', ')} />
+          <ProfileField label="Vertical" value={stringOf(profile.vertical)} />
+        </dl>
+      ) : null}
+    </div>
+  )
+}
+
+function ProfileField({ label, value }: { label: string; value: string }) {
+  if (!value) return null
+  return (
+    <div className="flex gap-2">
+      <span className="w-24 shrink-0 text-zinc-600">{label}</span>
+      <span className="min-w-0 truncate text-zinc-400">{value}</span>
+    </div>
+  )
+}
+
+function stringOf(v: unknown): string {
+  return typeof v === 'string' ? v : ''
+}
+
+function arrayOf(v: unknown): string[] {
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []
+}
+
 function NumberHealth({ accountId }: { accountId: string }) {
   const { org } = useSession()
   const orgId = org?.id ?? ''
@@ -407,6 +497,7 @@ export function NumbersPage() {
                   </p>
                   <NumberHealth accountId={a.id} />
                   <WebhookConnect accountId={a.id} />
+                  <BusinessProfileSync accountId={a.id} />
                 </div>
                 {canManageData ? (
                   <div className="flex shrink-0 gap-1">

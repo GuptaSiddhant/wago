@@ -1,16 +1,12 @@
 import { useState } from 'react'
-import type { FormEvent } from 'react'
-import { useMutation } from '@tanstack/react-query'
 import { Link, Outlet } from '@tanstack/react-router'
 import { BarChart3, FileText, LayoutDashboard, Megaphone, MessageSquare, Users, Settings, LogOut, Plus, Menu } from 'lucide-react'
-import { createOrg } from '../api/client'
 import { OrgSwitcher } from './OrgSwitcher'
 import { Avatar } from './ui/Avatar'
 import { Button } from './ui/Button'
-import { FormError } from './ui/FormError'
-import { ModalDialog } from './ui/Modal'
-import { TextField } from './ui/TextField'
 import { NotificationBell } from './NotificationBell'
+import { NewOrgDialog } from './NewOrgDialog'
+import { OrgAvatar } from './OrgAvatar'
 import { useSession } from '../lib/session'
 import { CallsProvider } from '../features/calls/CallsProvider'
 import { CallOverlay } from '../features/calls/CallOverlay'
@@ -24,6 +20,7 @@ const mainNav = [
 ]
 
 const settingsNav = [
+  { to: '/settings/org', label: 'Organization' },
   { to: '/settings/team', label: 'Team' },
   { to: '/settings/numbers', label: 'WhatsApp Numbers' },
   { to: '/analytics', label: 'Analytics', icon: BarChart3 },
@@ -56,57 +53,6 @@ function NavLink({
       {Icon ? <Icon size={17} className="text-zinc-500 transition group-hover:text-zinc-300" /> : null}
       {label}
     </Link>
-  )
-}
-
-function NewOrgDialog({ onClose }: { onClose: () => void }) {
-  const { refresh, selectOrg } = useSession()
-  const [name, setName] = useState('')
-  const [error, setError] = useState<string | null>(null)
-
-  const mutation = useMutation({
-    mutationFn: () => createOrg(name.trim()),
-    onSuccess: async (org) => {
-      // Refresh memberships so the new org appears in the switcher, then jump
-      // into it so it becomes the active org on first use.
-      await refresh()
-      selectOrg(org.id)
-      onClose()
-    },
-    onError: (err) => {
-      setError(err instanceof Error ? err.message : 'Failed to create organization')
-    },
-  })
-
-  function handleSubmit(e: FormEvent) {
-    e.preventDefault()
-    if (!name.trim()) return setError('Organization name is required')
-    setError(null)
-    mutation.mutate()
-  }
-
-  return (
-    <ModalDialog isOpen onOpenChange={(open) => !open && onClose()} title="New organization">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <TextField
-          label="Organization name"
-          value={name}
-          onChange={setName}
-          placeholder="Acme Inc."
-          isRequired
-          autoFocus
-        />
-        <FormError message={error} />
-        <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" variant="ghost" onPress={onClose}>
-            Cancel
-          </Button>
-          <Button type="submit" isDisabled={mutation.isPending}>
-            {mutation.isPending ? 'Creating…' : 'Create organization'}
-          </Button>
-        </div>
-      </form>
-    </ModalDialog>
   )
 }
 
@@ -143,9 +89,13 @@ export function AppShell() {
             onClick={closeSidebar}
             className="flex items-center gap-2.5 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
           >
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-sm font-bold text-white">
-              W
-            </div>
+            {org ? (
+              <OrgAvatar org={org} size={32} />
+            ) : (
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-sm font-bold text-white">
+                W
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <div className="text-sm font-semibold tracking-tight">WaGo</div>
               <div className="truncate text-[11px] text-zinc-500">{org?.name ?? 'Support inbox'}</div>

@@ -82,8 +82,7 @@ export function InboxPage() {
   })
 
   useEffect(() => {
-    if (conv) readMutation.mutate(conv)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (conv) {readMutation.mutate(conv)}
   }, [conv])
 
   function selectConversation(id: string) {

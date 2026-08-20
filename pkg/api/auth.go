@@ -14,9 +14,16 @@ type loginRequest struct {
 }
 
 type orgSummary struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	Role string `json:"role"`
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Role        string   `json:"role"`
+	About       string   `json:"about,omitempty"`
+	Address     string   `json:"address,omitempty"`
+	Description string   `json:"description,omitempty"`
+	Email       string   `json:"email,omitempty"`
+	Websites    []string `json:"websites,omitempty"`
+	Vertical    string   `json:"vertical,omitempty"`
+	PictureURL  string   `json:"profile_picture_url,omitempty"`
 }
 
 // sessionResponse is returned by login and /auth/me.
@@ -86,7 +93,7 @@ func buildSession(app core.App, result *store.AuthResult) (*sessionResponse, err
 			return nil, err
 		}
 		for _, o := range all {
-			orgs = append(orgs, orgSummary{ID: o.Id, Name: o.GetString("name"), Role: store.RoleOwner})
+			orgs = append(orgs, orgToSummary(o, store.RoleOwner))
 		}
 	} else {
 		memberships, err := store.UserOrgs(app, rec.Id)
@@ -99,11 +106,7 @@ func buildSession(app core.App, result *store.AuthResult) (*sessionResponse, err
 			if err != nil {
 				continue
 			}
-			orgs = append(orgs, orgSummary{
-				ID:   orgID,
-				Name: orgRec.GetString("name"),
-				Role: m.GetString("role"),
-			})
+			orgs = append(orgs, orgToSummary(orgRec, m.GetString("role")))
 		}
 	}
 

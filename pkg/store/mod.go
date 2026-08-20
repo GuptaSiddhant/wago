@@ -49,6 +49,11 @@ func EnsureCollections(app core.App) error {
 	if err := EnsurePushCollections(app); err != nil {
 		return err
 	}
+	// Web Push VAPID keys used to live in their own collection; fold any
+	// existing keypair into app_settings and drop the legacy collection.
+	if err := MigrateLegacyVAPIDKeys(app); err != nil {
+		return err
+	}
 	if err := EnsureMessageTemplatesCollection(app); err != nil {
 		return err
 	}

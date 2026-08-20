@@ -46,7 +46,7 @@ func (t *toneLoop) run(track *webrtc.TrackLocalStaticSample) {
 			return
 		default:
 		}
-		for i := 0; i < tonePerFrame; i++ {
+		for i := range tonePerFrame {
 			sample := int16(toneAmplitude * math.Sin(2*math.Pi*toneFrequency*phase/toneSampleRate))
 			buf[i*2] = byte(sample)
 			buf[i*2+1] = byte(sample >> 8)

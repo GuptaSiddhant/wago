@@ -34,6 +34,7 @@ func EnsureOrgsCollection(app core.App) error {
 		col.UpdateRule = nil
 		col.DeleteRule = nil
 
+		col.Fields.Add(orgBusinessFields()...)
 		col.Fields.Add(
 			&core.TextField{Name: "name", Required: true},
 			&core.AutodateField{Name: "created", OnCreate: true},
@@ -45,7 +46,38 @@ func EnsureOrgsCollection(app core.App) error {
 		log.Println("Auto-created 'orgs' collection")
 	}
 
-	return nil
+	// Business profile fields mirror the WhatsApp Business Profile API so an
+	// org can later be synced 1:1 with a connected number's Meta profile.
+	// ensureFields adds any that are missing to pre-existing databases.
+	return ensureFields(app, "orgs", orgBusinessFields()...)
+}
+
+// orgBusinessFields returns the WhatsApp Business Profile API fields stored on
+// an org. Field names/limits mirror the Meta Graph API (`about` ≤139,
+// `address` ≤256, `description` ≤512, `email` ≤128, `websites` ≤2 URLs,
+// `vertical` enum, `profile_picture` file).
+func orgBusinessFields() []core.Field {
+	return []core.Field{
+		&core.TextField{Name: "about", Max: 139},
+		&core.TextField{Name: "address", Max: 256},
+		&core.TextField{Name: "description", Max: 512},
+		&core.EmailField{Name: "email"},
+		&core.JSONField{Name: "websites"},
+		&core.SelectField{
+			Name:      "vertical",
+			MaxSelect: 1,
+			Values: []string{
+				"OTHER", "AUTO", "BEAUTY", "APPAREL", "EDU", "ENTERTAIN",
+				"EVENT_PLAN", "FINANCE", "GROCERY", "GOVT", "HOTEL", "HEALTH",
+				"NONPROFIT", "PROF_SERVICES", "RETAIL", "TRAVEL", "RESTAURANT",
+			},
+		},
+		&core.FileField{
+			Name:      "profile_picture",
+			MaxSize:   5 << 20,
+			MimeTypes: []string{"image/jpeg", "image/png", "image/webp"},
+		},
+	}
 }
 
 // EnsureOrgMembersCollection creates the org_members join collection that maps

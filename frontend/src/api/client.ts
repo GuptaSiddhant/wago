@@ -112,10 +112,65 @@ export async function updateConfig(input: AppConfig): Promise<AppConfig> {
   })
 }
 
-export async function createOrg(name: string): Promise<OrgSummary> {
+export interface OrgCreateInput {
+  name: string
+  about?: string
+  address?: string
+  description?: string
+  email?: string
+  websites?: string[]
+  vertical?: string
+  profile_picture?: File
+}
+
+/** Creates an organization with its WhatsApp Business Profile details. */
+export async function createOrg(input: OrgCreateInput): Promise<OrgSummary> {
+  const form = new FormData()
+  form.append('name', input.name)
+  if (input.about) form.append('about', input.about)
+  if (input.address) form.append('address', input.address)
+  if (input.description) form.append('description', input.description)
+  if (input.email) form.append('email', input.email)
+  for (const w of input.websites ?? []) {
+    if (w.trim()) form.append('websites', w.trim())
+  }
+  if (input.vertical) form.append('vertical', input.vertical)
+  if (input.profile_picture) form.append('profile_picture', input.profile_picture)
   return apiFetch<OrgSummary>('/orgs', {
     method: 'POST',
-    body: JSON.stringify({ name }),
+    body: form,
+  })
+}
+
+export interface OrgUpdateInput {
+  name?: string
+  about?: string
+  address?: string
+  description?: string
+  email?: string
+  websites?: string[]
+  vertical?: string
+  profile_picture?: File
+  remove_picture?: boolean
+}
+
+/** Updates the current organization's details (owner/admin/superuser only). */
+export async function updateOrg(input: OrgUpdateInput): Promise<OrgSummary> {
+  const form = new FormData()
+  if (input.name) form.append('name', input.name)
+  form.append('about', input.about ?? '')
+  form.append('address', input.address ?? '')
+  form.append('description', input.description ?? '')
+  form.append('email', input.email ?? '')
+  for (const w of input.websites ?? []) {
+    if (w.trim()) form.append('websites', w.trim())
+  }
+  if (input.vertical) form.append('vertical', input.vertical)
+  if (input.remove_picture) form.append('remove_picture', '1')
+  if (input.profile_picture) form.append('profile_picture', input.profile_picture)
+  return apiFetch<OrgSummary>('/orgs', {
+    method: 'PATCH',
+    body: form,
   })
 }
 
@@ -281,6 +336,25 @@ export async function accountMeta(accountId: string): Promise<PhoneMetaResult> {
 /** Reports whether the account's WABA is subscribed to this app's webhooks. */
 export async function accountWebhookStatus(accountId: string): Promise<WebhookStatusResult> {
   return apiFetch<WebhookStatusResult>(`/accounts/${accountId}/webhook`)
+}
+
+/** Fetches the current WhatsApp business profile of a connected number. */
+export async function accountBusinessProfile(
+  accountId: string,
+): Promise<{ ok: boolean; error?: string; profile?: Record<string, unknown> }> {
+  return apiFetch<{ ok: boolean; error?: string; profile?: Record<string, unknown> }>(
+    `/accounts/${accountId}/business-profile`,
+  )
+}
+
+/** Pushes the org's business profile fields to a number's WhatsApp profile. */
+export async function syncAccountBusinessProfile(
+  accountId: string,
+): Promise<{ ok: boolean; message?: string; error?: string }> {
+  return apiFetch<{ ok: boolean; message?: string; error?: string }>(
+    `/accounts/${accountId}/business-profile/sync`,
+    { method: 'POST' },
+  )
 }
 
 /** Subscribes the Meta app to the account's WABA webhook events. */

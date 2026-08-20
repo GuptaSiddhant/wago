@@ -3,6 +3,7 @@ import type { Key, ListBoxItemRenderProps, SelectValueRenderProps } from 'react-
 import { Building2, Check, ChevronsUpDown } from 'lucide-react'
 import { useSession } from '../lib/session'
 import type { OrgSummary } from '../api/types'
+import { OrgAvatar } from './OrgAvatar'
 
 export function OrgSwitcher() {
   const { session, org, selectOrg } = useSession()
@@ -28,7 +29,7 @@ export function OrgSwitcher() {
     >
       <Label className="sr-only">Organization</Label>
       <Button className="flex h-10 w-full items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900 px-3 text-sm text-zinc-100 outline-none transition hover:border-zinc-700 focus-visible:ring-2 focus-visible:ring-emerald-500/50">
-        <Building2 size={16} className="shrink-0 text-emerald-500" />
+        {org ? <OrgAvatar org={org} size={20} /> : <Building2 size={16} className="shrink-0 text-emerald-500" />}
         <SelectValue className="truncate text-left font-medium">
           {({ selectedText }: SelectValueRenderProps<unknown>) =>
             selectedText ?? 'Select org'
@@ -51,6 +52,7 @@ export function OrgSwitcher() {
               {({ isSelected }: ListBoxItemRenderProps) => (
                 <>
                   <span className="flex min-w-0 items-center gap-2">
+                    <OrgAvatar org={o} size={20} />
                     <span className="truncate">{o.name}</span>
                     <span className="text-[10px] uppercase tracking-wide text-zinc-500">
                       {o.role}

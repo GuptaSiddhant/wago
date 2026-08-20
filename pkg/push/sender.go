@@ -48,7 +48,7 @@ func (s *Sender) Send(ctx context.Context, orgID, userID string, payload Payload
 		return
 	}
 
-	publicKey, privateKey, err := store.GetVAPIDKeys(s.app, webpush.GenerateVAPIDKeys)
+	publicKey, privateKey, err := store.GetVAPIDKeys(s.app)
 	if err != nil {
 		log.Printf("push: no VAPID keys: %v", err)
 		return

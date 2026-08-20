@@ -3,8 +3,6 @@ package api
 import (
 	"net/http"
 
-	"github.com/SherClockHolmes/webpush-go"
-
 	"github.com/guptasiddhant/wago/pkg/store"
 
 	"github.com/pocketbase/pocketbase/core"
@@ -14,7 +12,7 @@ import (
 // browser's push service.
 func HandlePushConfig(app core.App) func(e *core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
-		publicKey, _, err := store.GetVAPIDKeys(app, webpush.GenerateVAPIDKeys)
+		publicKey, _, err := store.GetVAPIDKeys(app)
 		if err != nil {
 			return e.InternalServerError("Failed to prepare push keys", err)
 		}

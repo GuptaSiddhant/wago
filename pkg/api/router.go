@@ -54,6 +54,9 @@ func Register(r *router.Router[*core.RequestEvent], app core.App, opts ...Option
 
 	authed.GET("/auth/me", HandleMe(app))
 	authed.POST("/orgs", HandleOrgCreate(app))
+	authed.GET("/orgs", HandleOrgGet(app))
+	authed.PATCH("/orgs", HandleOrgUpdate(app))
+	authed.GET("/orgs/{id}/picture", HandleOrgPicture(app))
 	authed.GET("/inbox", HandleInbox(app))
 	authed.GET("/contacts", HandleContacts(app))
 	authed.POST("/contacts", HandleContactCreate(app))
@@ -75,6 +78,8 @@ func Register(r *router.Router[*core.RequestEvent], app core.App, opts ...Option
 	authed.PATCH("/accounts/{id}", HandleAccountUpdate(app))
 	authed.DELETE("/accounts/{id}", HandleAccountDelete(app))
 	authed.GET("/accounts/{id}/meta", HandleAccountMeta(app))
+	authed.GET("/accounts/{id}/business-profile", HandleAccountBusinessProfile(app))
+	authed.POST("/accounts/{id}/business-profile/sync", HandleAccountBusinessProfileSync(app))
 	authed.GET("/accounts/{id}/webhook", HandleAccountWebhookStatus(app))
 	authed.POST("/accounts/{id}/webhook", HandleAccountWebhookConnect(app))
 	authed.GET("/analytics", HandleAnalytics(app))
