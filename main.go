@@ -49,6 +49,18 @@ func SetupApp(cfg *utils.AppConfig) *pocketbase.PocketBase {
 
 func handleOnServe(mgr *runtimecfg.Manager) func(se *core.ServeEvent) error {
 	return func(se *core.ServeEvent) error {
+		// Create application context with shutdown coordination.
+		ac := store.NewAppContext(context.Background())
+
+		// Store in app so handlers can access it via store.GetAppContext.
+		store.SetAppContext(se.App, ac)
+
+		// Bind to OnTerminate to cancel the root context when the server stops.
+		se.App.OnTerminate().BindFunc(func(e *core.TerminateEvent) error {
+			ac.Cancel()
+			return nil
+		})
+
 		// Admin credentials are always sourced from the environment (the only
 		// required env var) so the superuser can always be bootstrapped.
 		cfg := mgr.Env()
@@ -103,12 +115,15 @@ func handleOnServe(mgr *runtimecfg.Manager) func(se *core.ServeEvent) error {
 
 		// Start the broadcast worker. It drains queued recipients from a
 		// SQLite-backed lease queue; no cron is needed (it self-recovers).
-		go queue.NewWorker(se.App, queue.Config{
-			MessagesPerMinute: live.MessagesPerMinute,
-			BatchSize:         live.BroadcastBatchSize,
-			LeaseSeconds:      live.BroadcastLeaseSeconds,
-			MaxAttempts:       live.BroadcastMaxAttempts,
-		}).Run(context.Background())
+		// The context is cancelled on server shutdown via OnTerminate hook.
+		ac.Go(func(ctx context.Context) {
+			queue.NewWorker(se.App, queue.Config{
+				MessagesPerMinute: live.MessagesPerMinute,
+				BatchSize:         live.BroadcastBatchSize,
+				LeaseSeconds:      live.BroadcastLeaseSeconds,
+				MaxAttempts:       live.BroadcastMaxAttempts,
+			}).Run(ctx)
+		})
 
 		// Register Webhook endpoints (read config live from the manager).
 		se.Router.GET("/api/wa/webhook", webhooks.HandleVerification(mgr))

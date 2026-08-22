@@ -9,21 +9,18 @@ import (
 	"github.com/pocketbase/pocketbase/tools/router"
 )
 
+const (
+	webhookConfigKey = "wago.api.webhook_config"
+	runtimeMgrKey    = "wago.api.runtime_mgr"
+	aiConfigKey      = "wago.api.ai_config"
+)
+
 // WebhookConfig carries the public-facing webhook values used when connecting
 // a Meta number so Meta can deliver events to this instance.
 type WebhookConfig struct {
 	PublicBaseURL string // externally reachable base URL, e.g. https://wago.example.com
 	VerifyToken   string // matches the token validated in HandleVerification
 }
-
-// webhookCfg is the instance webhook configuration set on Register and read by
-// the account webhook handlers.
-var webhookCfg WebhookConfig
-
-// runtimeMgr is the runtime configuration manager set on Register. It is used to
-// read the current webhook config live so superadmin edits take effect without a
-// restart.
-var runtimeMgr *runtimecfg.Manager
 
 // Options bundles the optional runtime configuration Register accepts.
 type Options struct {
@@ -38,9 +35,10 @@ func Register(r *router.Router[*core.RequestEvent], app core.App, opts ...Option
 	if len(opts) > 0 {
 		o = opts[0]
 	}
-	webhookCfg = o.Webhook
-	runtimeMgr = o.Mgr
-	aiCfg = o.AI
+	// Store config in app.Store() so handlers can access it without globals.
+	app.Store().Set(webhookConfigKey, o.Webhook)
+	app.Store().Set(runtimeMgrKey, o.Mgr)
+	app.Store().Set(aiConfigKey, o.AI)
 	group := r.Group("/api/wa")
 
 	// public routes
@@ -106,7 +104,7 @@ func Register(r *router.Router[*core.RequestEvent], app core.App, opts ...Option
 	authed.POST("/messages/media", HandleSendMediaMessage(app))
 	authed.GET("/media/{wamid}", HandleMessageMedia(app))
 	authed.POST("/media/upload", HandleMediaUpload(app))
-	authed.POST("/ai/chat", HandleAIChat(app, aichat.NewClient(aiCfg)))
+	authed.POST("/ai/chat", HandleAIChat(app))
 	authed.GET("/notifications", HandleNotificationsList(app))
 	authed.GET("/notifications/unread-count", HandleNotificationsUnreadCount(app))
 	authed.POST("/notifications/read", HandleNotificationsRead(app))
@@ -120,4 +118,34 @@ func Register(r *router.Router[*core.RequestEvent], app core.App, opts ...Option
 	super.Bind(apis.RequireSuperuserAuth())
 	super.GET("/config", HandleGetConfig(app))
 	super.PUT("/config", HandleUpdateConfig(app))
+}
+
+// getWebhookConfig retrieves the webhook config from app store.
+func getWebhookConfig(app core.App) WebhookConfig {
+	if v := app.Store().Get(webhookConfigKey); v != nil {
+		if cfg, ok := v.(WebhookConfig); ok {
+			return cfg
+		}
+	}
+	return WebhookConfig{}
+}
+
+// getRuntimeMgr retrieves the runtime config manager from app store.
+func getRuntimeMgr(app core.App) *runtimecfg.Manager {
+	if v := app.Store().Get(runtimeMgrKey); v != nil {
+		if mgr, ok := v.(*runtimecfg.Manager); ok {
+			return mgr
+		}
+	}
+	return nil
+}
+
+// getAIConfig retrieves the AI config from app store.
+func getAIConfig(app core.App) aichat.Config {
+	if v := app.Store().Get(aiConfigKey); v != nil {
+		if cfg, ok := v.(aichat.Config); ok {
+			return cfg
+		}
+	}
+	return aichat.Config{}
 }

@@ -3,39 +3,15 @@ package queue
 import (
 	"context"
 	"encoding/json"
-	"log"
-	"math"
+	"fmt"
+	"log/slog"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/pocketbase/pocketbase/core"
 
-	"github.com/guptasiddhant/wago/pkg/meta"
 	"github.com/guptasiddhant/wago/pkg/store"
 )
-
-// Config tunes how aggressively the broadcast worker sends messages.
-type Config struct {
-	MessagesPerMinute     int
-	BatchSize             int
-	LeaseSeconds          int
-	MaxAttempts           int
-	BackoffBase           time.Duration
-	LeaseRecoveryInterval time.Duration // how often expired leases are swept
-}
-
-// DefaultConfig returns a sane single-instance configuration.
-func DefaultConfig() Config {
-	return Config{
-		MessagesPerMinute:     60,
-		BatchSize:             10,
-		LeaseSeconds:          300,
-		MaxAttempts:           3,
-		BackoffBase:           30 * time.Second,
-		LeaseRecoveryInterval: time.Minute,
-	}
-}
 
 // Worker drains queued broadcast recipients using a SQLite-backed lease queue.
 // A single in-process goroutine claims small batches, sends them under a global
@@ -44,44 +20,36 @@ func DefaultConfig() Config {
 // to wake the worker after a restart — it never double-sends, even if multiple
 // instances are running.
 type Worker struct {
-	app     core.App
-	client  *meta.Client
-	cfg     Config
+	app    core.App
+	store  BroadcastStore
+	sender MessageSender
+	cfg    Config
 	limiter *rateLimiter
+}
+
+// logf emits a structured log through PocketBase's slog logger when an app is
+// available, falling back to the standard logger (e.g. in unit tests).
+func (w *Worker) logf(level slog.Level, format string, args ...any) {
+	msg := fmt.Sprintf(format, args...)
+	if w.app != nil {
+		w.app.Logger().Log(context.Background(), level, msg,
+			slog.String("component", "queue"))
+		return
+	}
+	slog.Log(context.Background(), level, msg, slog.String("component", "queue"))
 }
 
 // NewWorker builds a worker. Zero/negative config values fall back to defaults.
 func NewWorker(app core.App, cfg Config) *Worker {
-	def := DefaultConfig()
-	if cfg.MessagesPerMinute < 1 {
-		cfg.MessagesPerMinute = def.MessagesPerMinute
-	}
-	if cfg.BatchSize < 1 {
-		cfg.BatchSize = def.BatchSize
-	}
-	if cfg.LeaseSeconds < 1 {
-		cfg.LeaseSeconds = def.LeaseSeconds
-	}
-	if cfg.MaxAttempts < 1 {
-		cfg.MaxAttempts = def.MaxAttempts
-	}
-	if cfg.BackoffBase <= 0 {
-		cfg.BackoffBase = def.BackoffBase
-	}
-	if cfg.LeaseRecoveryInterval <= 0 {
-		cfg.LeaseRecoveryInterval = def.LeaseRecoveryInterval
-	}
-	return &Worker{
-		app:     app,
-		client:  meta.NewClient(),
-		cfg:     cfg,
-		limiter: newRateLimiter(cfg.MessagesPerMinute),
-	}
+	return NewWorkerWithDeps(WorkerDeps{
+		App:    app,
+		Config: cfg,
+	})
 }
 
 // Run processes active broadcasts until ctx is cancelled.
 func (w *Worker) Run(ctx context.Context) {
-	log.Printf("queue: broadcast worker started (%d/min, batch %d, lease %ds)",
+	w.logf(slog.LevelInfo, "broadcast worker started (%d/min, batch %d, lease %ds)",
 		w.cfg.MessagesPerMinute, w.cfg.BatchSize, w.cfg.LeaseSeconds)
 
 	lastLeaseSweep := time.Time{}
@@ -97,7 +65,7 @@ func (w *Worker) Run(ctx context.Context) {
 
 		select {
 		case <-ctx.Done():
-			log.Println("queue: broadcast worker stopped")
+			w.logf(slog.LevelInfo, "broadcast worker stopped")
 			return
 		case <-time.After(tick):
 		}
@@ -107,13 +75,13 @@ func (w *Worker) Run(ctx context.Context) {
 // sweepExpiredLeases returns recipients stuck in "sending" past their lease
 // back to "queued" so they can be retried after a crash/restart.
 func (w *Worker) sweepExpiredLeases() {
-	released, err := store.ReleaseExpiredLeases(w.app, time.Now())
+	released, err := w.store.ReleaseExpiredLeases(w.app, time.Now())
 	if err != nil {
-		log.Printf("queue: lease sweep failed: %v", err)
+		w.logf(slog.LevelWarn, "lease sweep failed: %v", err)
 		return
 	}
 	if released > 0 {
-		log.Printf("queue: released %d expired recipient leases", released)
+		w.logf(slog.LevelInfo, "released %d expired recipient leases", released)
 	}
 }
 
@@ -121,14 +89,14 @@ func (w *Worker) sweepExpiredLeases() {
 // record results, and finalize broadcasts with no work left. It is safe to call
 // from tests and keeps the whole worker single-threaded per database.
 func (w *Worker) ProcessTick(ctx context.Context) {
-	broadcasts, err := store.FindActiveBroadcasts(w.app)
+	broadcasts, err := w.store.FindActiveBroadcasts(w.app)
 	if err != nil {
-		log.Printf("queue: list active broadcasts failed: %v", err)
+		w.logf(slog.LevelWarn, "list active broadcasts failed: %v", err)
 		return
 	}
 	for _, bc := range broadcasts {
 		if err := w.processBroadcast(ctx, bc); err != nil {
-			log.Printf("queue: broadcast %s processing failed: %v", bc.Id, err)
+			w.logf(slog.LevelError, "broadcast %s processing failed: %v", bc.Id, err)
 		}
 	}
 }
@@ -136,7 +104,7 @@ func (w *Worker) ProcessTick(ctx context.Context) {
 func (w *Worker) processBroadcast(ctx context.Context, bc *core.Record) error {
 	id := bc.Id
 
-	fresh, err := store.FindBroadcast(w.app, id)
+	fresh, err := w.store.FindBroadcast(w.app, id)
 	if err != nil {
 		return err
 	}
@@ -157,7 +125,7 @@ func (w *Worker) processBroadcast(ctx context.Context, bc *core.Record) error {
 		batch = perBc
 	}
 
-	claimed, err := store.ClaimDueRecipients(w.app, id, batch, w.cfg.LeaseSeconds)
+	claimed, err := w.store.ClaimDueRecipients(w.app, id, batch, w.cfg.LeaseSeconds)
 	if err != nil {
 		return err
 	}
@@ -172,20 +140,22 @@ func (w *Worker) processBroadcast(ctx context.Context, bc *core.Record) error {
 
 		wamid, sendErr := w.sendTemplate(ctx, fresh, rec)
 		if sendErr != nil {
-			isFinal, markErr := store.RetryOrFailRecipient(w.app, rec, w.cfg.MaxAttempts, w.cfg.BackoffBase)
+			isFinal, markErr := w.store.RetryOrFailRecipient(w.app, rec, w.cfg.MaxAttempts, w.cfg.BackoffBase)
 			if markErr != nil {
-				log.Printf("queue: broadcast %s recipient %s mark failed: %v", id, rec.GetString("phone"), markErr)
+				w.logf(slog.LevelError, "broadcast %s recipient %s mark failed: %v",
+					id, rec.GetString("phone"), markErr)
 				continue
 			}
 			if isFinal {
 				failed++
 			}
-			log.Printf("queue: broadcast %s send to %s failed (attempt %d): %v",
+			w.logf(slog.LevelWarn, "broadcast %s send to %s failed (attempt %d): %v",
 				id, rec.GetString("phone"), rec.GetInt("attempts"), sendErr)
 			continue
 		}
-		if err := store.MarkRecipientSent(w.app, rec, wamid); err != nil {
-			log.Printf("queue: broadcast %s recipient %s mark sent failed: %v", id, rec.GetString("phone"), err)
+		if err := w.store.MarkRecipientSent(w.app, rec, wamid); err != nil {
+			w.logf(slog.LevelError, "broadcast %s recipient %s mark sent failed: %v",
+				id, rec.GetString("phone"), err)
 			continue
 		}
 		sent++
@@ -193,25 +163,25 @@ func (w *Worker) processBroadcast(ctx context.Context, bc *core.Record) error {
 
 	// Persist counters atomically so concurrent workers never lose updates.
 	if sent > 0 || failed > 0 {
-		if err := store.IncrementBroadcastCounters(w.app, id, sent, failed); err != nil {
+		if err := w.store.IncrementBroadcastCounters(w.app, id, sent, failed); err != nil {
 			return err
 		}
 	}
 
 	// Finalize once nothing is left queued or mid-flight.
-	outstanding, err := store.HasOutstandingWork(w.app, id)
+	outstanding, err := w.store.HasOutstandingWork(w.app, id)
 	if err != nil {
 		return err
 	}
 	if !outstanding {
-		latest, err := store.FindBroadcast(w.app, id)
+		latest, err := w.store.FindBroadcast(w.app, id)
 		if err != nil {
 			return err
 		}
-		if err := store.FinalizeBroadcast(w.app, latest); err != nil {
+		if err := w.store.FinalizeBroadcast(w.app, latest); err != nil {
 			return err
 		}
-		log.Printf("queue: broadcast %s finalized (%d sent, %d failed)",
+		w.logf(slog.LevelInfo, "broadcast %s finalized (%d sent, %d failed)",
 			id, latest.GetInt("sent_count"), latest.GetInt("failed_count"))
 	}
 	return nil
@@ -231,14 +201,17 @@ func (w *Worker) sendTemplate(ctx context.Context, bc *core.Record, recipient *c
 	params := decodeBroadcastParams(bc)
 
 	// A per-broadcast media override wins over the template's own header media.
-	header := store.TemplateHeaderMedia(tmpl)
+	var header *TemplateHeaderMedia
+	if h := store.TemplateHeaderMedia(tmpl); h != nil {
+		header = &TemplateHeaderMedia{Kind: h.Kind, MediaID: h.MediaID}
+	}
 	if kind := bc.GetString("header_media_type"); kind != "" {
 		if id := bc.GetString("header_media_id"); id != "" {
-			header = &meta.TemplateHeaderMedia{Kind: strings.ToLower(kind), MediaID: id}
+			header = &TemplateHeaderMedia{Kind: strings.ToLower(kind), MediaID: id}
 		}
 	}
 
-	return w.client.SendTemplate(ctx,
+	return w.sender.SendTemplate(ctx,
 		account.GetString("access_token"),
 		account.GetString("phone_number_id"),
 		recipient.GetString("phone"),
@@ -274,49 +247,4 @@ func decodeBroadcastParams(bc *core.Record) []map[string]any {
 
 	_ = json.Unmarshal(data, &params)
 	return params
-}
-
-// rateLimiter is a token bucket that paces sends to `perMinute` while allowing
-// bursts of up to one second's worth of tokens (that's the "batching": we grab
-// a batch fast, but the sustained rate stays capped).
-type rateLimiter struct {
-	mu         sync.Mutex
-	tokens     float64
-	capacity   float64
-	ratePerSec float64
-	last       time.Time
-}
-
-func newRateLimiter(perMinute int) *rateLimiter {
-	rate := float64(perMinute) / 60.0
-	return &rateLimiter{tokens: rate, capacity: rate, ratePerSec: rate, last: time.Now()}
-}
-
-// Wait blocks until a token is available or the context is cancelled.
-func (l *rateLimiter) Wait(ctx context.Context) {
-	for {
-		if l.allow() {
-			return
-		}
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(50 * time.Millisecond):
-		}
-	}
-}
-
-func (l *rateLimiter) allow() bool {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	now := time.Now()
-	elapsed := now.Sub(l.last).Seconds()
-	l.last = now
-	l.tokens = math.Min(l.capacity, l.tokens+elapsed*l.ratePerSec)
-	if l.tokens >= 1 {
-		l.tokens--
-		return true
-	}
-	return false
 }

@@ -41,7 +41,11 @@ type configRequest struct {
 // HandleGetConfig returns the current runtime configuration to a superadmin.
 func HandleGetConfig(app core.App) func(e *core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
-		cfg, err := runtimeMgr.Load(app)
+		mgr := getRuntimeMgr(app)
+		if mgr == nil {
+			return e.InternalServerError("Configuration manager not available", nil)
+		}
+		cfg, err := mgr.Load(app)
 		if err != nil {
 			return e.InternalServerError("Failed to load configuration", err)
 		}
@@ -58,7 +62,11 @@ func HandleUpdateConfig(app core.App) func(e *core.RequestEvent) error {
 			return e.BadRequestError("Invalid request body", err)
 		}
 
-		cfg, err := runtimeMgr.Load(app)
+		mgr := getRuntimeMgr(app)
+		if mgr == nil {
+			return e.InternalServerError("Configuration manager not available", nil)
+		}
+		cfg, err := mgr.Load(app)
 		if err != nil {
 			return e.InternalServerError("Failed to load configuration", err)
 		}
@@ -86,7 +94,7 @@ func HandleUpdateConfig(app core.App) func(e *core.RequestEvent) error {
 		cfg.BroadcastLeaseSeconds = body.BroadcastLeaseSeconds
 		cfg.BroadcastMaxAttempts = body.BroadcastMaxAttempts
 
-		if err := runtimeMgr.Save(app, cfg); err != nil {
+		if err := mgr.Save(app, cfg); err != nil {
 			return e.InternalServerError("Failed to save configuration", err)
 		}
 

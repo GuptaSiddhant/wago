@@ -69,22 +69,22 @@ func HandleIncomingMessage(mgr *runtimecfg.Manager, notifier *notifications.Noti
 			return re.String(http.StatusOK, "EVENT_RECEIVED")
 		}
 
-		processNotification(re.App, notification, notifier)
+		processNotification(re.Request.Context(), re.App, notification, notifier)
 
 		// Always return 200 OK to Meta immediately
 		return re.String(http.StatusOK, "EVENT_RECEIVED")
 	}
 }
 
-func processNotification(app core.App, notification *wawh.Notification, notifier *notifications.Notifier) {
+func processNotification(ctx context.Context, app core.App, notification *wawh.Notification, notifier *notifications.Notifier) {
 	for _, entry := range notification.Entry {
 		for _, change := range entry.Changes {
-			processChange(app, change, notifier)
+			processChange(ctx, app, change, notifier)
 		}
 	}
 }
 
-func processChange(app core.App, change wawh.Change, notifier *notifications.Notifier) {
+func processChange(ctx context.Context, app core.App, change wawh.Change, notifier *notifications.Notifier) {
 	val := change.Value
 	if val == nil || val.Metadata == nil {
 		return
@@ -166,7 +166,7 @@ func processChange(app core.App, change wawh.Change, notifier *notifications.Not
 			if token == "" {
 				log.Printf("Cannot download media for message %s: account has no access token", msg.ID)
 			} else {
-				data, err := downloadInboundMedia(context.Background(), app, token, mediaInfo)
+				data, err := downloadInboundMedia(ctx, app, token, mediaInfo)
 				if err != nil {
 					log.Printf("Failed to download media for message %s: %v", msg.ID, err)
 				} else {
@@ -190,7 +190,7 @@ func processChange(app core.App, change wawh.Change, notifier *notifications.Not
 		_ = store.IncrementConversationUnread(app, conv.Id)
 
 		// Notify the assigned agent (desktop push if active, email/WhatsApp if not).
-		notifier.Trigger(app, orgID, conv.Id, conv.GetString("assignee"), body)
+		notifier.Trigger(ctx, app, orgID, conv.Id, conv.GetString("assignee"), body)
 	}
 }
 
@@ -246,6 +246,10 @@ func mediaPayloadOf(kind string, info *message.MediaInfo, caption string) map[st
 // downloadInboundMedia retrieves the file bytes for a received media message
 // from Meta so they can be stored in PocketBase storage.
 func downloadInboundMedia(ctx context.Context, app core.App, accessToken string, info *message.MediaInfo) ([]byte, error) {
+	// Add timeout for media download
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
 	url, _, err := metaClient.GetMediaRetrieve(ctx, accessToken, info.ID)
 	if err != nil {
 		return nil, err

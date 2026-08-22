@@ -13,10 +13,6 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
-// aiCfg is the AI provider configuration set on Register and read by the
-// chat handler.
-var aiCfg = aichat.Config{}
-
 // aiChatMessage is the message shape the TanStack AI client sends over the
 // wire (UIMessage). Only the text parts are meaningful to the assistant.
 type aiChatMessage struct {
@@ -47,8 +43,9 @@ type aiChatRequest struct {
 //	data: [DONE]
 //
 // The endpoint is only reachable when AI is enabled in the backend config.
-func HandleAIChat(app core.App, ai *aichat.Client) func(e *core.RequestEvent) error {
+func HandleAIChat(app core.App) func(e *core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
+		ai := aichat.NewClient(getAIConfig(app))
 		if !ai.Enabled() {
 			return e.ForbiddenError("the AI assistant is not enabled on this instance", nil)
 		}

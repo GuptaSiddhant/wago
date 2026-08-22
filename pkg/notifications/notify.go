@@ -45,7 +45,7 @@ func (n *Notifier) config(app core.App) *utils.AppConfig {
 // its conversation unread counter incremented. If the conversation is assigned
 // to a user, it records a notification for them and, if they are inactive,
 // delivers it asynchronously via email and/or WhatsApp.
-func (n *Notifier) Trigger(app core.App, orgID, convID, assigneeID, preview string) {
+func (n *Notifier) Trigger(ctx context.Context, app core.App, orgID, convID, assigneeID, preview string) {
 	if assigneeID == "" {
 		return // not assigned to anyone yet — nothing to notify
 	}
@@ -70,11 +70,19 @@ func (n *Notifier) Trigger(app core.App, orgID, convID, assigneeID, preview stri
 	// when a client is already focused, so active desktop users see it in-app.
 	contact := n.contactName(app, convID)
 	cfg := n.config(app)
-	go push.NewSender(app, cfg.VAPIDSubject).Send(context.Background(), orgID, assigneeID, push.Payload{
-		Title:          "New message from " + contact,
-		Body:           preview,
-		ConversationID: convID,
-		Org:            orgID,
+
+	// Use app context for background work so it's cancelled on shutdown
+	appCtx := store.GetAppContext(app)
+	if appCtx == nil {
+		appCtx = store.NewAppContext(ctx)
+	}
+	appCtx.Go(func(ctx context.Context) {
+		push.NewSender(app, cfg.VAPIDSubject).Send(ctx, orgID, assigneeID, push.Payload{
+			Title:          "New message from " + contact,
+			Body:           preview,
+			ConversationID: convID,
+			Org:            orgID,
+		})
 	})
 
 	if active {
@@ -82,11 +90,13 @@ func (n *Notifier) Trigger(app core.App, orgID, convID, assigneeID, preview stri
 	}
 
 	// Deliver outside the request so the webhook can return to Meta promptly.
-	go n.deliver(app, orgID, assigneeID, convID, preview)
+	appCtx.Go(func(ctx context.Context) {
+		n.deliver(ctx, app, orgID, assigneeID, convID, preview)
+	})
 }
 
 // deliver sends email and WhatsApp notifications to an inactive assignee.
-func (n *Notifier) deliver(app core.App, orgID, userID, convID, preview string) {
+func (n *Notifier) deliver(ctx context.Context, app core.App, orgID, userID, convID, preview string) {
 	user, err := app.FindRecordById("users", userID)
 	if err != nil {
 		log.Printf("notifications: user not found: %v", err)
@@ -98,7 +108,7 @@ func (n *Notifier) deliver(app core.App, orgID, userID, convID, preview string) 
 	if err := n.sendEmail(app, user.Email(), contact, preview); err != nil {
 		log.Printf("notifications: email delivery failed: %v", err)
 	}
-	n.sendWhatsApp(app, orgID, convID, user, contact, preview)
+	n.sendWhatsApp(ctx, app, orgID, convID, user, contact, preview)
 }
 
 // contactName resolves the human-readable contact associated with a conversation.

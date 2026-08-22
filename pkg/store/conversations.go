@@ -2,90 +2,10 @@ package store
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/pocketbase/pocketbase/core"
 )
-
-// EnsureConversationsCollection creates the org-scoped conversations collection
-// that ties a contact to a WhatsApp account, tracking the thread state.
-func EnsureConversationsCollection(app core.App) error {
-	orgsCol, err := app.FindCollectionByNameOrId("orgs")
-	if err != nil {
-		return fmt.Errorf("orgs collection not found: %w", err)
-	}
-	contactsCol, err := app.FindCollectionByNameOrId("contacts")
-	if err != nil {
-		return fmt.Errorf("contacts collection not found: %w", err)
-	}
-	accountsCol, err := app.FindCollectionByNameOrId("whatsapp_accounts")
-	if err != nil {
-		return fmt.Errorf("whatsapp_accounts collection not found: %w", err)
-	}
-	usersCol, err := app.FindCollectionByNameOrId("users")
-	if err != nil {
-		return fmt.Errorf("users collection not found: %w", err)
-	}
-
-	if _, err := app.FindCollectionByNameOrId("conversations"); err != nil {
-		collection := core.NewBaseCollection("conversations")
-
-		collection.ListRule = nil
-		collection.ViewRule = nil
-		collection.CreateRule = nil
-		collection.UpdateRule = nil
-		collection.DeleteRule = nil
-
-		collection.Fields.Add(
-			&core.RelationField{
-				Name:          "org",
-				CollectionId:  orgsCol.Id,
-				MaxSelect:     1,
-				Required:      true,
-				CascadeDelete: true,
-			},
-			&core.RelationField{
-				Name:          "contact",
-				CollectionId:  contactsCol.Id,
-				MaxSelect:     1,
-				Required:      true,
-				CascadeDelete: true,
-			},
-			&core.RelationField{
-				Name:          "whatsapp_account",
-				CollectionId:  accountsCol.Id,
-				MaxSelect:     1,
-				Required:      true,
-				CascadeDelete: true,
-			},
-			&core.RelationField{
-				Name:         "assignee",
-				CollectionId: usersCol.Id,
-				MaxSelect:    1,
-			},
-			&core.NumberField{Name: "unread_count"},
-			&core.DateField{Name: "last_message_at"},
-			&core.SelectField{
-				Name:      "status",
-				MaxSelect: 1,
-				Values:    []string{"open", "closed"},
-			},
-
-			&core.AutodateField{Name: "created", OnCreate: true},
-			&core.AutodateField{Name: "updated", OnCreate: true, OnUpdate: true})
-
-		// One conversation per (org, contact, whatsapp account)
-		collection.AddIndex("idx_conversations_unique", true, "org, contact, whatsapp_account", "")
-
-		if err := app.Save(collection); err != nil {
-			return fmt.Errorf("failed to auto-create conversations collection: %w", err)
-		}
-		log.Println("Auto-created 'conversations' collection")
-	}
-
-	return nil
-}
 
 // UpsertConversation finds or creates the conversation for org+contact+account
 // and bumps its last_message_at. It reports whether a new conversation was

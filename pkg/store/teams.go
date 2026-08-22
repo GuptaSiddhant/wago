@@ -2,51 +2,9 @@ package store
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/pocketbase/pocketbase/core"
-)
-
-// EnsureTeamsCollection creates the org-scoped teams collection.
-func EnsureTeamsCollection(app core.App) error {
-	orgsCol, err := app.FindCollectionByNameOrId("orgs")
-	if err != nil {
-		return fmt.Errorf("orgs collection not found: %w", err)
-	}
-
-	col, err := app.FindCollectionByNameOrId("teams")
-	if err != nil {
-		col = core.NewBaseCollection("teams")
-		col.ListRule = nil
-		col.ViewRule = nil
-		col.CreateRule = nil
-		col.UpdateRule = nil
-		col.DeleteRule = nil
-
-		col.Fields.Add(
-			&core.RelationField{
-				Name:          "org",
-				CollectionId:  orgsCol.Id,
-				MaxSelect:     1,
-				Required:      true,
-				CascadeDelete: true,
-			},
-			&core.TextField{Name: "name", Required: true},
-			&core.AutodateField{Name: "created", OnCreate: true},
-			&core.AutodateField{Name: "updated", OnCreate: true, OnUpdate: true})
-
-		col.AddIndex("idx_teams_org_name", true, "org, name", "")
-
-		if err := app.Save(col); err != nil {
-			return fmt.Errorf("failed to auto-create teams collection: %w", err)
-		}
-		log.Println("Auto-created 'teams' collection")
-	}
-
-	return nil
-}
-
-// EnsureTeamReferenceField adds the nullable team relation to a collection
+)// EnsureTeamReferenceField adds the nullable team relation to a collection
 // whose records belong to an org (org_members, whatsapp_accounts, conversations).
 func EnsureTeamReferenceField(app core.App, collectionName string) error {
 	teamsCol, err := app.FindCollectionByNameOrId("teams")

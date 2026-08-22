@@ -8,8 +8,9 @@
     "setup": "go mod tidy && nub ci",
     "dev": "go tool air",
     "serve": "./tmp/wago serve",
-    "build": "CGO_ENABLED=0 go build -trimpath -gcflags='all=-N -l' -o ./tmp/wago .",
+    "build": "nub run build:backend",
     "prebuild": "nub run build:frontend",
+    "build:backend": "CGO_ENABLED=0 go build -trimpath -gcflags='all=-N -l' -o ./tmp/wago .",
     "build:frontend": "nub run --filter frontend build",
     "dev:frontend": "nub run --filter frontend dev",
     "lint:frontend": "nub run --filter frontend lint"

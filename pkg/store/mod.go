@@ -1,10 +1,82 @@
 package store
 
 import (
+	"context"
+	"log"
+	"runtime/debug"
+	"sync"
+
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tools/types"
 )
+
+const appContextKey = "wago.app.ctx"
+
+// AppContext holds the root context cancelled on shutdown and a waitgroup
+// for tracking in-flight background work.
+type AppContext struct {
+	ctx    context.Context
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
+}
+
+// WithContext returns a new context that inherits from the app root context.
+func (ac *AppContext) WithContext(ctx context.Context) context.Context {
+	return context.WithValue(ctx, appContextKey, ac)
+}
+
+// Root returns the root application context (cancelled on shutdown).
+func (ac *AppContext) Root() context.Context {
+	return ac.ctx
+}
+
+// Cancel cancels the root context.
+func (ac *AppContext) Cancel() {
+	ac.cancel()
+}
+
+// Go launches a background goroutine tracked by the waitgroup. Panics inside
+// fn are recovered and logged so one bad delivery can't crash the server;
+// cancellation still propagates through the root context.
+func (ac *AppContext) Go(fn func(context.Context)) {
+	ac.wg.Add(1)
+	go func() {
+		defer ac.wg.Done()
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("background task panicked: %v\n%s", r, debug.Stack())
+			}
+		}()
+		fn(ac.ctx)
+	}()
+}
+
+// Wait blocks until all tracked goroutines complete.
+func (ac *AppContext) Wait() {
+	ac.wg.Wait()
+}
+
+// GetAppContext retrieves the AppContext from the app's store.
+func GetAppContext(app core.App) *AppContext {
+	if v := app.Store().Get(appContextKey); v != nil {
+		if ac, ok := v.(*AppContext); ok {
+			return ac
+		}
+	}
+	return nil
+}
+
+// NewAppContext creates a new AppContext with the given context.
+func NewAppContext(ctx context.Context) *AppContext {
+	ctx, cancel := context.WithCancel(ctx)
+	return &AppContext{ctx: ctx, cancel: cancel}
+}
+
+// SetAppContext stores the AppContext in the app's store.
+func SetAppContext(app core.App, ac *AppContext) {
+	app.Store().Set(appContextKey, ac)
+}
 
 // DbxParams converts a map[string]any into dbx.Params for use with
 // the FindRecordsByFilter/FindFirstRecordByFilter filter builders.
@@ -12,57 +84,28 @@ func DbxParams(m map[string]any) dbx.Params {
 	return dbx.Params(m)
 }
 
-// EnsureCollections creates every collection the app relies on. Individual
-// Ensure* functions are idempotent so this can run on every boot, migrating
-// pre-existing databases in place.
+// EnsureCollections creates every collection the app relies on using the
+// declarative schema system. Falls back to legacy Ensure* functions for
+// collections not yet migrated.
 func EnsureCollections(app core.App) error {
-	if err := EnsureSettingsCollection(app); err != nil {
+	// Register all schemas
+	RegisterCoreSchemas()
+
+	// Create/update all collections from schemas
+	if err := EnsureSchema(app); err != nil {
 		return err
 	}
-	if err := EnsureOrgsCollection(app); err != nil {
+
+	// Resolve relation field CollectionIds
+	if err := ResolveRelationFields(app); err != nil {
 		return err
 	}
-	if err := EnsureOrgMembersCollection(app); err != nil {
-		return err
-	}
-	if err := EnsureTeamsCollection(app); err != nil {
-		return err
-	}
-	if err := EnsureWhatsAppAccountsCollection(app); err != nil {
-		return err
-	}
-	if err := EnsureContactsCollection(app); err != nil {
-		return err
-	}
-	if err := EnsureConversationsCollection(app); err != nil {
-		return err
-	}
-	if err := EnsureMessagesCollection(app); err != nil {
-		return err
-	}
-	if err := EnsureInvitesCollection(app); err != nil {
-		return err
-	}
-	if err := EnsureNotificationsCollection(app); err != nil {
-		return err
-	}
-	if err := EnsurePushCollections(app); err != nil {
-		return err
-	}
-	// Web Push VAPID keys used to live in their own collection; fold any
-	// existing keypair into app_settings and drop the legacy collection.
+
+	// Legacy migrations that don't fit the schema system
 	if err := MigrateLegacyVAPIDKeys(app); err != nil {
 		return err
 	}
-	if err := EnsureMessageTemplatesCollection(app); err != nil {
-		return err
-	}
-	if err := EnsureBroadcastsCollection(app); err != nil {
-		return err
-	}
-	if err := EnsureVoiceCallsCollection(app); err != nil {
-		return err
-	}
+
 	// The team relation must exist on org_members before any member is created,
 	// and on whatsapp_accounts/conversations for team-scoped routing.
 	if err := EnsureTeamReferenceField(app, "org_members"); err != nil {

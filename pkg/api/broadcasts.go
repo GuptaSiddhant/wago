@@ -11,7 +11,9 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
-// HandleBroadcastList lists broadcasts for the org.
+// HandleBroadcastList lists broadcasts for the org. Account names, template
+// names and recipient progress are resolved with three batched queries instead
+// of per-broadcast lookups (which made the list O(3n) queries).
 func HandleBroadcastList(app core.App) func(e *core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
 		access, apiErr := orgAccessFromRequest(e, app)
@@ -23,10 +25,8 @@ func HandleBroadcastList(app core.App) func(e *core.RequestEvent) error {
 		if err != nil {
 			return e.InternalServerError("Failed to list broadcasts", err)
 		}
-		items := make([]broadcastDTO, 0, len(records))
-		for _, r := range records {
-			items = append(items, broadcastFromRecord(app, r))
-		}
+
+		items := broadcastDTOList(app, records)
 		return e.JSON(http.StatusOK, map[string]any{"items": items})
 	}
 }
@@ -312,12 +312,33 @@ type broadcastDTO struct {
 }
 
 func broadcastFromRecord(app core.App, r *core.Record) broadcastDTO {
+	accountName := ""
+	if account, err := app.FindRecordById("whatsapp_accounts", r.GetString("account")); err == nil {
+		accountName = account.GetString("display_name")
+	}
+	templateName := ""
+	if tmpl, err := app.FindRecordById("message_templates", r.GetString("template")); err == nil {
+		templateName = tmpl.GetString("name")
+	}
+	var pending, sending int
+	if counts, err := store.CountBroadcastRecipients(app, r.Id); err == nil {
+		pending = counts[store.RecipientQueued] + counts[store.RecipientSending]
+		sending = counts[store.RecipientSending]
+	}
+	return broadcastFromRecordParts(r, accountName, templateName, pending, sending)
+}
+
+// broadcastFromRecordParts assembles the DTO from pre-resolved values so list
+// endpoints can batch their lookups instead of querying per record.
+func broadcastFromRecordParts(r *core.Record, accountName, templateName string, pending, sending int) broadcastDTO {
 	dto := broadcastDTO{
 		ID:              r.Id,
 		Name:            r.GetString("name"),
 		Status:          r.GetString("status"),
 		AccountID:       r.GetString("account"),
+		AccountName:     accountName,
 		TemplateID:      r.GetString("template"),
+		TemplateName:    templateName,
 		HeaderMediaType: r.GetString("header_media_type"),
 		HeaderMediaID:   r.GetString("header_media_id"),
 		HeaderMediaName: r.GetString("header_media_name"),
@@ -326,19 +347,70 @@ func broadcastFromRecord(app core.App, r *core.Record) broadcastDTO {
 		RecipientCount:  r.GetInt("recipient_count"),
 		SentCount:       r.GetInt("sent_count"),
 		FailedCount:     r.GetInt("failed_count"),
+		Pending:         pending,
+		Sending:         sending,
 	}
 	dto.Created = fmtDateTime(r.GetDateTime("created"))
 	dto.StartedAt = fmtDateTime(r.GetDateTime("started_at"))
 	dto.FinishedAt = fmtDateTime(r.GetDateTime("finished_at"))
-	if account, err := app.FindRecordById("whatsapp_accounts", dto.AccountID); err == nil {
-		dto.AccountName = account.GetString("display_name")
-	}
-	if tmpl, err := app.FindRecordById("message_templates", dto.TemplateID); err == nil {
-		dto.TemplateName = tmpl.GetString("name")
-	}
-	if counts, err := store.CountBroadcastRecipients(app, r.Id); err == nil {
-		dto.Pending = counts[store.RecipientQueued] + counts[store.RecipientSending]
-		dto.Sending = counts[store.RecipientSending]
-	}
 	return dto
+}
+
+// broadcastDTOList builds DTOs for many broadcasts with a constant number of
+// queries: one batched fetch per referenced collection plus one grouped count.
+func broadcastDTOList(app core.App, records []*core.Record) []broadcastDTO {
+	accountIDs := map[string]struct{}{}
+	templateIDs := map[string]struct{}{}
+	bcIDs := make([]string, 0, len(records))
+	for _, r := range records {
+		if id := r.GetString("account"); id != "" {
+			accountIDs[id] = struct{}{}
+		}
+		if id := r.GetString("template"); id != "" {
+			templateIDs[id] = struct{}{}
+		}
+		bcIDs = append(bcIDs, r.Id)
+	}
+
+	accountNames := batchNames(app, "whatsapp_accounts", "display_name", keys(accountIDs))
+	templateNames := batchNames(app, "message_templates", "name", keys(templateIDs))
+	counts, _ := store.CountBroadcastRecipientsBatch(app, bcIDs)
+
+	items := make([]broadcastDTO, 0, len(records))
+	for _, r := range records {
+		var pending, sending int
+		if c := counts[r.Id]; c != nil {
+			pending = int(c[store.RecipientQueued] + c[store.RecipientSending])
+			sending = int(c[store.RecipientSending])
+		}
+		items = append(items, broadcastFromRecordParts(r,
+			accountNames[r.GetString("account")],
+			templateNames[r.GetString("template")],
+			pending, sending))
+	}
+	return items
+}
+
+func keys(m map[string]struct{}) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	return out
+}
+
+// batchNames resolves a display field for many record ids in one query.
+func batchNames(app core.App, collection, field string, ids []string) map[string]string {
+	names := make(map[string]string, len(ids))
+	if len(ids) == 0 {
+		return names
+	}
+	recs, err := app.FindRecordsByIds(collection, ids)
+	if err != nil {
+		return names // degrade to empty names rather than failing the list
+	}
+	for _, rec := range recs {
+		names[rec.Id] = rec.GetString(field)
+	}
+	return names
 }

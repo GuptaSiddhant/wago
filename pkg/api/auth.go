@@ -113,7 +113,7 @@ func buildSession(app core.App, result *store.AuthResult) (*sessionResponse, err
 	return &sessionResponse{
 		Token:     result.Token,
 		IsAdmin:   result.IsAdmin,
-		AIEnabled: aiCfg.Enabled,
+		AIEnabled: getAIConfig(app).Enabled,
 		User: &userSummary{
 			ID:    rec.Id,
 			Email: rec.Email(),

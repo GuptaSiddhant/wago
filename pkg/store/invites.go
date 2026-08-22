@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/pocketbase/pocketbase/core"
@@ -17,75 +16,6 @@ const (
 	InviteStatusAccepted = "accepted"
 	InviteStatusRevoked  = "revoked"
 )
-
-// EnsureInvitesCollection creates the org-scoped invites collection that holds
-// pending/expired team-member onboarding invitations.
-func EnsureInvitesCollection(app core.App) error {
-	orgsCol, err := app.FindCollectionByNameOrId("orgs")
-	if err != nil {
-		return fmt.Errorf("orgs collection not found: %w", err)
-	}
-	teamsCol, err := app.FindCollectionByNameOrId("teams")
-	if err != nil {
-		return fmt.Errorf("teams collection not found: %w", err)
-	}
-	usersCol, err := app.FindCollectionByNameOrId("users")
-	if err != nil {
-		return fmt.Errorf("users collection not found: %w", err)
-	}
-
-	if _, err := app.FindCollectionByNameOrId("invites"); err != nil {
-		col := core.NewBaseCollection("invites")
-		// Invites are managed through the Wago API handlers only and scoped
-		// to org_id (hidden from raw API access for non-superusers).
-		col.ListRule = nil
-		col.ViewRule = nil
-		col.CreateRule = nil
-		col.UpdateRule = nil
-		col.DeleteRule = nil
-
-		col.Fields.Add(
-			&core.RelationField{
-				Name:          "org",
-				CollectionId:  orgsCol.Id,
-				MaxSelect:     1,
-				Required:      true,
-				CascadeDelete: true,
-			},
-			&core.RelationField{
-				Name:         "team",
-				CollectionId: teamsCol.Id,
-				MaxSelect:    1,
-			},
-			&core.RelationField{
-				Name:         "created_by",
-				CollectionId: usersCol.Id,
-				MaxSelect:    1,
-			},
-			&core.TextField{Name: "email", Required: true},
-			&core.SelectField{Name: "role", MaxSelect: 1, Required: true, Values: AllRoles},
-			&core.TextField{Name: "token", Required: true},
-			&core.SelectField{
-				Name:      "status",
-				MaxSelect: 1,
-				Required:  true,
-				Values:    []string{InviteStatusPending, InviteStatusAccepted, InviteStatusRevoked},
-			},
-			&core.DateField{Name: "expires_at"},
-			&core.AutodateField{Name: "created", OnCreate: true},
-			&core.AutodateField{Name: "updated", OnCreate: true, OnUpdate: true})
-
-		col.AddIndex("idx_invites_token", true, "token", "")
-		col.AddIndex("idx_invites_org_email", false, "org, email", "")
-
-		if err := app.Save(col); err != nil {
-			return fmt.Errorf("failed to auto-create invites collection: %w", err)
-		}
-		log.Println("Auto-created 'invites' collection")
-	}
-
-	return nil
-}
 
 // GenerateInviteToken returns a cryptographically random URL-safe token.
 func GenerateInviteToken() (string, error) {

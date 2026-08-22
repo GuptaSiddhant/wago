@@ -3,6 +3,7 @@ package notifications
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/guptasiddhant/wago/pkg/store"
 
@@ -13,7 +14,7 @@ import (
 // assignee. It only fires when an approved notification template is configured
 // AND the user has a phone number on file. All failures are logged, never
 // propagated, so a broken notification path can't affect message handling.
-func (n *Notifier) sendWhatsApp(app core.App, orgID, convID string, user *core.Record, contact, preview string) {
+func (n *Notifier) sendWhatsApp(ctx context.Context, app core.App, orgID, convID string, user *core.Record, contact, preview string) {
 	cfg := n.config(app)
 	if cfg.WA_NotificationTemplate == "" {
 		return // WhatsApp notifications disabled
@@ -38,8 +39,12 @@ func (n *Notifier) sendWhatsApp(app core.App, orgID, convID string, user *core.R
 		{"type": "text", "text": preview},
 	}
 
+	// Add timeout for WhatsApp API call
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+
 	if _, err := n.client.SendTemplate(
-		context.Background(),
+		ctx,
 		acc.GetString("access_token"),
 		acc.GetString("phone_number_id"),
 		phone,

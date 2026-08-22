@@ -2,7 +2,6 @@ package store
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/pocketbase/pocketbase/core"
 )
@@ -15,34 +14,6 @@ const (
 	// created with a stable, well-known id.
 	settingsRecordID = "defaultsettings"
 )
-
-// EnsureSettingsCollection creates the singleton app_settings collection that
-// holds the runtime-editable Wago configuration. It is a single-record base
-// collection (fixed id "default") locked down to superusers only, so the config
-// can only be read/updated through the Wago API.
-func EnsureSettingsCollection(app core.App) error {
-	if _, err := app.FindCollectionByNameOrId(settingsCollectionName); err != nil {
-		col := core.NewBaseCollection(settingsCollectionName)
-		col.ListRule = nil
-		col.ViewRule = nil
-		col.CreateRule = nil
-		col.UpdateRule = nil
-		col.DeleteRule = nil
-
-		col.Fields.Add(&core.JSONField{Name: "config"})
-
-		if err := app.Save(col); err != nil {
-			return fmt.Errorf("failed to auto-create app_settings collection: %w", err)
-		}
-		log.Println("Auto-created 'app_settings' collection")
-	}
-
-	// Add the Web Push VAPID keypair fields, including to pre-existing
-	// databases (the collection may already exist from an earlier boot).
-	return ensureFields(app, settingsCollectionName,
-		&core.TextField{Name: "vapid_public_key"},
-		&core.TextField{Name: "vapid_private_key"})
-}
 
 // GetVAPIDKeysFromSettings returns the VAPID keypair stored on the singleton
 // settings record, or empty strings when not yet generated.

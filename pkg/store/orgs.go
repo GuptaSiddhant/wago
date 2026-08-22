@@ -3,12 +3,10 @@ package store
 import (
 	"crypto/rand"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase/core"
-	"github.com/pocketbase/pocketbase/tools/types"
 )
 
 const (
@@ -20,121 +18,6 @@ const (
 
 // valid roles in ascending access order
 var AllRoles = []string{RoleOwner, RoleAdmin, RoleAgent, RoleViewer}
-
-// EnsureOrgsCollection creates the orgs collection if it doesn't exist.
-func EnsureOrgsCollection(app core.App) error {
-	if _, err := app.FindCollectionByNameOrId("orgs"); err != nil {
-		col := core.NewBaseCollection("orgs")
-		// Orgs are only reachable through the scoped API (and PB superusers
-		// which always bypass rules). Hidden from regular raw API access so
-		// users can't enumerate other organizations.
-		col.ListRule = nil
-		col.ViewRule = nil
-		col.CreateRule = nil
-		col.UpdateRule = nil
-		col.DeleteRule = nil
-
-		col.Fields.Add(orgBusinessFields()...)
-		col.Fields.Add(
-			&core.TextField{Name: "name", Required: true},
-			&core.AutodateField{Name: "created", OnCreate: true},
-			&core.AutodateField{Name: "updated", OnCreate: true, OnUpdate: true})
-
-		if err := app.Save(col); err != nil {
-			return fmt.Errorf("failed to auto-create orgs collection: %w", err)
-		}
-		log.Println("Auto-created 'orgs' collection")
-	}
-
-	// Business profile fields mirror the WhatsApp Business Profile API so an
-	// org can later be synced 1:1 with a connected number's Meta profile.
-	// ensureFields adds any that are missing to pre-existing databases.
-	return ensureFields(app, "orgs", orgBusinessFields()...)
-}
-
-// orgBusinessFields returns the WhatsApp Business Profile API fields stored on
-// an org. Field names/limits mirror the Meta Graph API (`about` ≤139,
-// `address` ≤256, `description` ≤512, `email` ≤128, `websites` ≤2 URLs,
-// `vertical` enum, `profile_picture` file).
-func orgBusinessFields() []core.Field {
-	return []core.Field{
-		&core.TextField{Name: "about", Max: 139},
-		&core.TextField{Name: "address", Max: 256},
-		&core.TextField{Name: "description", Max: 512},
-		&core.EmailField{Name: "email"},
-		&core.JSONField{Name: "websites"},
-		&core.SelectField{
-			Name:      "vertical",
-			MaxSelect: 1,
-			Values: []string{
-				"OTHER", "AUTO", "BEAUTY", "APPAREL", "EDU", "ENTERTAIN",
-				"EVENT_PLAN", "FINANCE", "GROCERY", "GOVT", "HOTEL", "HEALTH",
-				"NONPROFIT", "PROF_SERVICES", "RETAIL", "TRAVEL", "RESTAURANT",
-			},
-		},
-		&core.FileField{
-			Name:      "profile_picture",
-			MaxSize:   5 << 20,
-			MimeTypes: []string{"image/jpeg", "image/png", "image/webp"},
-		},
-	}
-}
-
-// EnsureOrgMembersCollection creates the org_members join collection that maps
-// users to orgs with a role, scoping every member to their own row.
-func EnsureOrgMembersCollection(app core.App) error {
-	orgsCol, err := app.FindCollectionByNameOrId("orgs")
-	if err != nil {
-		return fmt.Errorf("orgs collection not found: %w", err)
-	}
-	usersCol, err := app.FindCollectionByNameOrId("users")
-	if err != nil {
-		return fmt.Errorf("users collection not found: %w", err)
-	}
-
-	if _, err := app.FindCollectionByNameOrId("org_members"); err != nil {
-		collection := core.NewBaseCollection("org_members")
-
-		collection.ListRule = types.Pointer("user = @request.auth.id")
-		collection.ViewRule = types.Pointer("user = @request.auth.id")
-		collection.CreateRule = nil
-		collection.UpdateRule = nil
-		collection.DeleteRule = nil
-
-		collection.Fields.Add(
-			&core.RelationField{
-				Name:          "org",
-				CollectionId:  orgsCol.Id,
-				MaxSelect:     1,
-				Required:      true,
-				CascadeDelete: true,
-			},
-			&core.RelationField{
-				Name:          "user",
-				CollectionId:  usersCol.Id,
-				MaxSelect:     1,
-				Required:      true,
-				CascadeDelete: true,
-			},
-			&core.SelectField{
-				Name:      "role",
-				MaxSelect: 1,
-				Required:  true,
-				Values:    AllRoles,
-			},
-			&core.AutodateField{Name: "created", OnCreate: true},
-			&core.AutodateField{Name: "updated", OnCreate: true, OnUpdate: true})
-
-		collection.AddIndex("idx_org_members_unique", true, "org, user", "")
-
-		if err := app.Save(collection); err != nil {
-			return fmt.Errorf("failed to auto-create org_members collection: %w", err)
-		}
-		log.Println("Auto-created 'org_members' collection")
-	}
-
-	return nil
-}
 
 // EnsureOrgMember makes sure the given user is a member of the given org.
 // Returns the (possibly new) org_members record.

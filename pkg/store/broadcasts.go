@@ -44,126 +44,7 @@ func sqlTime(t time.Time) string {
 // no value (PocketBase stores NOT NULL date columns and uses this as "empty").
 const sqlZeroTime = "0001-01-01 00:00:00.000Z"
 
-// EnsureBroadcastsCollection creates the broadcast header and recipient queue
-// collections and back-fills the worker columns on pre-existing collections.
-func EnsureBroadcastsCollection(app core.App) error {
-	orgsCol, err := app.FindCollectionByNameOrId("orgs")
-	if err != nil {
-		return fmt.Errorf("orgs collection not found: %w", err)
-	}
-	accountsCol, err := app.FindCollectionByNameOrId("whatsapp_accounts")
-	if err != nil {
-		return fmt.Errorf("whatsapp_accounts collection not found: %w", err)
-	}
-	templatesCol, err := app.FindCollectionByNameOrId("message_templates")
-	if err != nil {
-		return fmt.Errorf("message_templates collection not found: %w", err)
-	}
-	usersCol, err := app.FindCollectionByNameOrId("users")
-	if err != nil {
-		return fmt.Errorf("users collection not found: %w", err)
-	}
-	contactsCol, err := app.FindCollectionByNameOrId("contacts")
-	if err != nil {
-		return fmt.Errorf("contacts collection not found: %w", err)
-	}
-
-	if _, err := app.FindCollectionByNameOrId("broadcasts"); err != nil {
-		col := core.NewBaseCollection("broadcasts")
-		col.ListRule = nil
-		col.ViewRule = nil
-		col.CreateRule = nil
-		col.UpdateRule = nil
-		col.DeleteRule = nil
-
-		col.Fields.Add(
-			&core.RelationField{Name: "org", CollectionId: orgsCol.Id, MaxSelect: 1, Required: true, CascadeDelete: true},
-			&core.RelationField{Name: "account", CollectionId: accountsCol.Id, MaxSelect: 1, Required: true, CascadeDelete: true},
-			&core.RelationField{Name: "template", CollectionId: templatesCol.Id, MaxSelect: 1, Required: true, CascadeDelete: true},
-			&core.RelationField{Name: "created_by", CollectionId: usersCol.Id, MaxSelect: 1},
-			&core.TextField{Name: "name", Required: true},
-			&core.SelectField{Name: "status", MaxSelect: 1, Values: []string{"queued", "running", "completed", "failed", "cancelled"}},
-			&core.JSONField{Name: "params"},
-			&core.TextField{Name: "header_media_type"},
-			&core.TextField{Name: "header_media_id"},
-			&core.TextField{Name: "header_media_name"},
-			&core.NumberField{Name: "rate_per_minute"},
-			&core.NumberField{Name: "batch_size"},
-			&core.NumberField{Name: "recipient_count"},
-			&core.NumberField{Name: "sent_count"},
-			&core.NumberField{Name: "failed_count"},
-			&core.DateField{Name: "started_at"},
-			&core.DateField{Name: "finished_at"},
-			&core.AutodateField{Name: "created", OnCreate: true},
-			&core.AutodateField{Name: "updated", OnCreate: true, OnUpdate: true})
-
-		if err := app.Save(col); err != nil {
-			return fmt.Errorf("failed to auto-create broadcasts collection: %w", err)
-		}
-		log.Println("Auto-created 'broadcasts' collection")
-	} else {
-		if err := ensureFields(app, "broadcasts",
-			&core.NumberField{Name: "rate_per_minute"},
-			&core.NumberField{Name: "batch_size"},
-			&core.TextField{Name: "header_media_type"},
-			&core.TextField{Name: "header_media_id"},
-			&core.TextField{Name: "header_media_name"},
-		); err != nil {
-			return err
-		}
-	}
-
-	broadcastsCol, err := app.FindCollectionByNameOrId("broadcasts")
-	if err != nil {
-		return fmt.Errorf("broadcasts collection not found: %w", err)
-	}
-
-	if _, err := app.FindCollectionByNameOrId("broadcast_recipients"); err != nil {
-		col := core.NewBaseCollection("broadcast_recipients")
-		col.ListRule = nil
-		col.ViewRule = nil
-		col.CreateRule = nil
-		col.UpdateRule = nil
-		col.DeleteRule = nil
-
-		col.Fields.Add(
-			&core.RelationField{Name: "org", CollectionId: orgsCol.Id, MaxSelect: 1, Required: true, CascadeDelete: true},
-			&core.RelationField{Name: "broadcast", CollectionId: broadcastsCol.Id, MaxSelect: 1, Required: true, CascadeDelete: true},
-			&core.RelationField{Name: "contact", CollectionId: contactsCol.Id, MaxSelect: 1, Required: true, CascadeDelete: true},
-			&core.TextField{Name: "phone", Required: true},
-			&core.TextField{Name: "name"},
-			&core.SelectField{Name: "status", MaxSelect: 1, Values: []string{"queued", "sending", "sent", "failed"}},
-			&core.NumberField{Name: "attempts"},
-			&core.DateField{Name: "next_attempt_at"},
-			&core.DateField{Name: "lease_until"},
-			&core.TextField{Name: "wamid"},
-			&core.TextField{Name: "error"},
-			&core.DateField{Name: "sent_at"},
-			&core.AutodateField{Name: "created", OnCreate: true},
-			&core.AutodateField{Name: "updated", OnCreate: true, OnUpdate: true})
-
-		col.AddIndex("idx_bc_recipients_broadcast", false, "broadcast", "")
-		col.AddIndex("idx_bc_recipients_status", false, "broadcast", "status")
-
-		if err := app.Save(col); err != nil {
-			return fmt.Errorf("failed to auto-create broadcast_recipients collection: %w", err)
-		}
-		log.Println("Auto-created 'broadcast_recipients' collection")
-	} else {
-		if err := ensureFields(app, "broadcast_recipients",
-			&core.NumberField{Name: "attempts"},
-			&core.DateField{Name: "next_attempt_at"},
-			&core.DateField{Name: "lease_until"},
-		); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// ensureFields adds any of the given fields that don't exist yet to a
-// collection, saving only when something changed.
+// CreateBroadcast atomically creates a broadcast header plus one queued
 func ensureFields(app core.App, colName string, fields ...core.Field) error {
 	col, err := app.FindCollectionByNameOrId(colName)
 	if err != nil {
@@ -443,6 +324,44 @@ func CountBroadcastRecipients(app core.App, broadcastID string) (map[string]int,
 		counts[status] = int(total)
 	}
 	return counts, nil
+}
+
+// CountBroadcastRecipientsBatch returns recipient counts per status for many
+// broadcasts in a single grouped query. The result is keyed by broadcast id,
+// then by status; broadcasts with no rows are absent from the result.
+func CountBroadcastRecipientsBatch(app core.App, broadcastIDs []string) (map[string]map[string]int64, error) {
+	out := make(map[string]map[string]int64, len(broadcastIDs))
+	if len(broadcastIDs) == 0 {
+		return out, nil
+	}
+
+	ids := make([]any, len(broadcastIDs))
+	for i, id := range broadcastIDs {
+		ids[i] = id
+	}
+
+	rows := []struct {
+		Broadcast string `db:"broadcast"`
+		Status    string `db:"status"`
+		Total     int64  `db:"total"`
+	}{}
+	err := app.DB().
+		Select("broadcast", "status", "COUNT(*) AS total").
+		From("broadcast_recipients").
+		Where(dbx.In("broadcast", ids...)).
+		GroupBy("broadcast", "status").
+		All(&rows)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, row := range rows {
+		if out[row.Broadcast] == nil {
+			out[row.Broadcast] = map[string]int64{}
+		}
+		out[row.Broadcast][row.Status] = row.Total
+	}
+	return out, nil
 }
 
 // ListBroadcastRecipients returns recipient rows (used for progress/detail).

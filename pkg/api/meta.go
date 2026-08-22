@@ -270,18 +270,19 @@ func HandleAccountWebhookStatus(app core.App) func(e *core.RequestEvent) error {
 // liveWebhookConfig reads the current webhook configuration live from the
 // runtime config manager so superadmin edits apply without a restart.
 func liveWebhookConfig(e *core.RequestEvent) (WebhookConfig, *router.ApiError) {
-	var cfg WebhookConfig
-	if runtimeMgr == nil {
-		// Fall back to the config set at Register (older boot order).
-		return webhookCfg, nil
+	// First try to get live config from runtime manager.
+	if mgr := getRuntimeMgr(e.App); mgr != nil {
+		appCfg, err := mgr.Load(e.App)
+		if err != nil {
+			return WebhookConfig{}, e.InternalServerError("Failed to load configuration", err)
+		}
+		return WebhookConfig{
+			PublicBaseURL: appCfg.PublicBaseURL,
+			VerifyToken:   appCfg.WA_WebhookVerifyToken,
+		}, nil
 	}
-	appCfg, err := runtimeMgr.Load(e.App)
-	if err != nil {
-		return cfg, e.InternalServerError("Failed to load configuration", err)
-	}
-	cfg.PublicBaseURL = appCfg.PublicBaseURL
-	cfg.VerifyToken = appCfg.WA_WebhookVerifyToken
-	return cfg, nil
+	// Fall back to the config set at Register.
+	return getWebhookConfig(e.App), nil
 }
 
 // webhookCallbackURL builds the public URL Meta delivers events to. It requires
