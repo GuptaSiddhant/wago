@@ -78,6 +78,25 @@ func SetAppContext(app core.App, ac *AppContext) {
 	app.Store().Set(appContextKey, ac)
 }
 
+// GoBackground runs fn as tracked background work when an AppContext is
+// registered on app (so shutdown awaits it); otherwise it runs as a detached,
+// panic-recovered goroutine. Use it from request handlers that must return to
+// the caller promptly while deferring work.
+func GoBackground(app core.App, ctx context.Context, fn func(context.Context)) {
+	if ac := GetAppContext(app); ac != nil {
+		ac.Go(fn)
+		return
+	}
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("background task panicked: %v\n%s", r, debug.Stack())
+			}
+		}()
+		fn(ctx)
+	}()
+}
+
 // DbxParams converts a map[string]any into dbx.Params for use with
 // the FindRecordsByFilter/FindFirstRecordByFilter filter builders.
 func DbxParams(m map[string]any) dbx.Params {
@@ -106,27 +125,15 @@ func EnsureCollections(app core.App) error {
 		return err
 	}
 
-	// The team relation must exist on org_members before any member is created,
-	// and on whatsapp_accounts/conversations for team-scoped routing.
-	if err := EnsureTeamReferenceField(app, "org_members"); err != nil {
-		return err
-	}
-	if err := EnsureTeamReferenceField(app, "whatsapp_accounts"); err != nil {
-		return err
-	}
-	if err := EnsureTeamReferenceField(app, "conversations"); err != nil {
-		return err
-	}
-	if err := EnsurePresenceField(app); err != nil {
-		return err
-	}
+	// users is a PocketBase-owned auth collection, so its optional phone field
+	// (used for WhatsApp notifications) is added imperatively.
 	if err := EnsureUserPhoneField(app); err != nil {
 		return err
 	}
 
-	// Enforce org data isolation on existing collections too (the Ensure*
-	// functions above only set rules when a collection is first created, so
-	// pre-existing databases would otherwise keep their old, looser rules).
+	// Enforce org data isolation on existing collections too (the schema system
+	// sets rules declaratively, but pre-existing databases created before the
+	// schema system may still carry old, looser rules).
 	if err := EnforceCollectionSecurity(app); err != nil {
 		return err
 	}

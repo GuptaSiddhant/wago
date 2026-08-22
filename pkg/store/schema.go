@@ -3,6 +3,7 @@ package store
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/tools/types"
@@ -45,11 +46,24 @@ type IndexSchema struct {
 	Exp     string
 }
 
-// schemaRegistry holds all collection schemas.
-var schemaRegistry []CollectionSchema
+// schemaRegistry holds all collection schemas keyed implicitly by collection
+// name. Guarded by registryMu; re-registering a name replaces its entry.
+var (
+	registryMu     sync.Mutex
+	schemaRegistry []CollectionSchema
+)
 
-// RegisterSchema registers a collection schema.
+// RegisterSchema registers a collection schema. Registering an existing name
+// replaces the previous definition, so repeated registration is idempotent.
 func RegisterSchema(schema CollectionSchema) {
+	registryMu.Lock()
+	defer registryMu.Unlock()
+	for i, existing := range schemaRegistry {
+		if existing.Name == schema.Name {
+			schemaRegistry[i] = schema
+			return
+		}
+	}
 	schemaRegistry = append(schemaRegistry, schema)
 }
 

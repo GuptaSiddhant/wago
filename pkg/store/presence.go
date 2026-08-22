@@ -6,11 +6,6 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
-// EnsurePresenceField adds the last_active_at presence marker to org_members.
-func EnsurePresenceField(app core.App) error {
-	return ensureFields(app, "org_members", &core.DateField{Name: "last_active_at"})
-}
-
 // TouchPresence marks the member's last_active_at as now. Called by the
 // frontend heartbeat while the user is using the app.
 func TouchPresence(app core.App, orgID, userID string) error {

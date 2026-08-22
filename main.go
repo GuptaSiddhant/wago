@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"time"
 
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
@@ -23,6 +24,10 @@ import (
 
 //go:embed all:frontend/dist
 var frontendFS embed.FS
+
+// shutdownGrace bounds how long termination waits for in-flight background
+// tasks (push sends, notification emails) after the root context is cancelled.
+const shutdownGrace = 5 * time.Second
 
 func main() {
 	cfg, err := utils.LoadAppConfig()
@@ -55,10 +60,22 @@ func handleOnServe(mgr *runtimecfg.Manager) func(se *core.ServeEvent) error {
 		// Store in app so handlers can access it via store.GetAppContext.
 		store.SetAppContext(se.App, ac)
 
-		// Bind to OnTerminate to cancel the root context when the server stops.
+		// Bind to OnTerminate to cancel the root context when the server stops,
+		// then give in-flight background work (pushes, notification emails)
+		// a short grace period to finish before the process exits.
 		se.App.OnTerminate().BindFunc(func(e *core.TerminateEvent) error {
 			ac.Cancel()
-			return nil
+			done := make(chan struct{})
+			go func() {
+				ac.Wait()
+				close(done)
+			}()
+			select {
+			case <-done:
+			case <-time.After(shutdownGrace):
+				log.Printf("shutdown: background tasks still running after %v", shutdownGrace)
+			}
+			return e.Next()
 		})
 
 		// Admin credentials are always sourced from the environment (the only

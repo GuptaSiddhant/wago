@@ -1,23 +1,8 @@
 package store
 
 import (
-	"fmt"
-
 	"github.com/pocketbase/pocketbase/core"
-)// EnsureTeamReferenceField adds the nullable team relation to a collection
-// whose records belong to an org (org_members, whatsapp_accounts, conversations).
-func EnsureTeamReferenceField(app core.App, collectionName string) error {
-	teamsCol, err := app.FindCollectionByNameOrId("teams")
-	if err != nil {
-		return fmt.Errorf("teams collection not found: %w", err)
-	}
-
-	return ensureFields(app, collectionName, &core.RelationField{
-		Name:         "team",
-		CollectionId: teamsCol.Id,
-		MaxSelect:    1,
-	})
-}
+)
 
 // FindTeamsByOrg returns the teams of an org, most recently created last.
 func FindTeamsByOrg(app core.App, orgID string) ([]*core.Record, error) {

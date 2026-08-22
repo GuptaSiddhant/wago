@@ -3,10 +3,8 @@ package store
 // RegisterCoreSchemas registers all core Wago collection schemas. The
 // definitions mirror the original per-collection Ensure* functions so the
 // declarative system produces identical schemas on fresh databases.
+// Registration is idempotent: re-registering a collection name replaces it.
 func RegisterCoreSchemas() {
-	if len(schemaRegistry) > 0 {
-		return // already registered (idempotent)
-	}
 
 	// orgs: business profile fields mirror the WhatsApp Business Profile API.
 	RegisterSchema(NewSchemaBuilder("orgs").
@@ -27,13 +25,17 @@ func RegisterCoreSchemas() {
 		Build())
 
 	// org_members: join table mapping users to orgs with a role. Each user can
-	// list/view only their own memberships through the raw API.
+	// list/view only their own memberships through the raw API. The team
+	// relation scopes a member to an agent team; last_active_at is the
+	// presence heartbeat used to suppress redundant notifications.
 	RegisterSchema(NewSchemaBuilder("org_members").
 		ListRule("user = @request.auth.id").
 		ViewRule("user = @request.auth.id").
 		Field("org", "relation", Required(), Relation("orgs", true)).
 		Field("user", "relation", Required(), Relation("users", true)).
 		Field("role", "select", Required(), MaxSelect(1), Values(AllRoles...)).
+		Field("team", "relation", Relation("teams", false)).
+		Field("last_active_at", "date").
 		AutodateFields().
 		Index("idx_org_members_unique", true, "org, user", "").
 		Build())
@@ -47,7 +49,8 @@ func RegisterCoreSchemas() {
 		Index("idx_teams_org_name", true, "org, name", "").
 		Build())
 
-	// whatsapp_accounts: Meta credentials for each connected number.
+	// whatsapp_accounts: Meta credentials for each connected number. The
+	// nullable team relation routes its conversations to an agent team.
 	RegisterSchema(NewSchemaBuilder("whatsapp_accounts").
 		HiddenFromAPI().
 		Field("org", "relation", Required(), Relation("orgs", true)).
@@ -56,6 +59,7 @@ func RegisterCoreSchemas() {
 		Field("phone_number_id", "text", Required()).
 		Field("access_token", "text", Required()).
 		Field("verify_token", "text").
+		Field("team", "relation", Relation("teams", false)).
 		Field("status", "select", MaxSelect(1), Values("connected", "disconnected")).
 		AutodateFields().
 		Index("idx_whatsapp_accounts_phone_number_id", true, "phone_number_id", "").
@@ -81,6 +85,7 @@ func RegisterCoreSchemas() {
 		Field("contact", "relation", Required(), Relation("contacts", true)).
 		Field("whatsapp_account", "relation", Required(), Relation("whatsapp_accounts", true)).
 		Field("assignee", "relation", Relation("users", false)).
+		Field("team", "relation", Relation("teams", false)).
 		Field("unread_count", "number").
 		Field("last_message_at", "date").
 		Field("status", "select", MaxSelect(1), Values("open", "closed")).

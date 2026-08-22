@@ -10,6 +10,7 @@ import (
 
 	"github.com/pocketbase/pocketbase/core"
 
+	"github.com/guptasiddhant/wago/pkg/meta"
 	"github.com/guptasiddhant/wago/pkg/store"
 )
 
@@ -201,13 +202,10 @@ func (w *Worker) sendTemplate(ctx context.Context, bc *core.Record, recipient *c
 	params := decodeBroadcastParams(bc)
 
 	// A per-broadcast media override wins over the template's own header media.
-	var header *TemplateHeaderMedia
-	if h := store.TemplateHeaderMedia(tmpl); h != nil {
-		header = &TemplateHeaderMedia{Kind: h.Kind, MediaID: h.MediaID}
-	}
+	header := store.TemplateHeaderMedia(tmpl)
 	if kind := bc.GetString("header_media_type"); kind != "" {
 		if id := bc.GetString("header_media_id"); id != "" {
-			header = &TemplateHeaderMedia{Kind: strings.ToLower(kind), MediaID: id}
+			header = &meta.TemplateHeaderMedia{Kind: strings.ToLower(kind), MediaID: id}
 		}
 	}
 

@@ -71,12 +71,7 @@ func (n *Notifier) Trigger(ctx context.Context, app core.App, orgID, convID, ass
 	contact := n.contactName(app, convID)
 	cfg := n.config(app)
 
-	// Use app context for background work so it's cancelled on shutdown
-	appCtx := store.GetAppContext(app)
-	if appCtx == nil {
-		appCtx = store.NewAppContext(ctx)
-	}
-	appCtx.Go(func(ctx context.Context) {
+	store.GoBackground(app, ctx, func(ctx context.Context) {
 		push.NewSender(app, cfg.VAPIDSubject).Send(ctx, orgID, assigneeID, push.Payload{
 			Title:          "New message from " + contact,
 			Body:           preview,
@@ -90,7 +85,7 @@ func (n *Notifier) Trigger(ctx context.Context, app core.App, orgID, convID, ass
 	}
 
 	// Deliver outside the request so the webhook can return to Meta promptly.
-	appCtx.Go(func(ctx context.Context) {
+	store.GoBackground(app, ctx, func(ctx context.Context) {
 		n.deliver(ctx, app, orgID, assigneeID, convID, preview)
 	})
 }

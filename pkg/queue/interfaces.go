@@ -6,20 +6,15 @@ import (
 
 	"github.com/pocketbase/pocketbase/core"
 
+	"github.com/guptasiddhant/wago/pkg/meta"
 	"github.com/guptasiddhant/wago/pkg/store"
 )
 
-// MessageSender defines the interface for sending WhatsApp messages.
-// This allows the worker to be tested with a mock sender.
+// MessageSender defines the interface for sending WhatsApp messages. It is
+// satisfied by *meta.Client; tests can supply a mock instead.
 type MessageSender interface {
 	SendText(ctx context.Context, accessToken, phoneNumberID, to, body string) (string, error)
-	SendTemplate(ctx context.Context, accessToken, phoneNumberID, to, name, language string, params []map[string]any, header *TemplateHeaderMedia) (string, error)
-}
-
-// TemplateHeaderMedia describes a media override for a template's header component.
-type TemplateHeaderMedia struct {
-	Kind    string // "image", "video", "document"
-	MediaID string
+	SendTemplate(ctx context.Context, accessToken, phoneNumberID, to, name, language string, params []map[string]any, header *meta.TemplateHeaderMedia) (string, error)
 }
 
 // BroadcastStore defines the interface for broadcast queue operations.
@@ -36,19 +31,13 @@ type BroadcastStore interface {
 	ReleaseExpiredLeases(app core.App, cutoff time.Time) (int64, error)
 }
 
-// MetaClientProvider provides a meta client for sending messages.
-type MetaClientProvider interface {
-	NewClient() MessageSender
-}
-
-// WorkerDeps holds the dependencies for the broadcast worker.
-// This enables dependency injection for testing.
+// WorkerDeps holds the dependencies for the broadcast worker. Nil Store/Sender
+// fall back to the real implementations; tests inject mocks.
 type WorkerDeps struct {
-	App        core.App
-	Store      BroadcastStore
-	Sender     MessageSender
-	Config     Config
-	MetaClient MetaClientProvider // optional, for default sender
+	App    core.App
+	Store  BroadcastStore
+	Sender MessageSender
+	Config Config
 }
 
 // NewWorkerWithDeps creates a worker with injected dependencies.
@@ -74,26 +63,20 @@ func NewWorkerWithDeps(deps WorkerDeps) *Worker {
 		cfg.LeaseRecoveryInterval = def.LeaseRecoveryInterval
 	}
 
-	// Use provided deps or defaults
-	app := deps.App
-	store := deps.Store
-	if store == nil {
-		store = &defaultBroadcastStore{}
+	st := deps.Store
+	if st == nil {
+		st = &defaultBroadcastStore{}
 	}
 	sender := deps.Sender
 	if sender == nil {
-		if deps.MetaClient != nil {
-			sender = deps.MetaClient.NewClient()
-		} else {
-			sender = &defaultMetaClient{}
-		}
+		sender = meta.NewClient()
 	}
 
 	return &Worker{
-		app:    app,
-		store:  store,
-		sender: sender,
-		cfg:    cfg,
+		app:     deps.App,
+		store:   st,
+		sender:  sender,
+		cfg:     cfg,
 		limiter: newRateLimiter(cfg.MessagesPerMinute),
 	}
 }
@@ -135,22 +118,4 @@ func (d *defaultBroadcastStore) FinalizeBroadcast(app core.App, bc *core.Record)
 
 func (d *defaultBroadcastStore) ReleaseExpiredLeases(app core.App, cutoff time.Time) (int64, error) {
 	return store.ReleaseExpiredLeases(app, cutoff)
-}
-
-// defaultMetaClient provides a no-op implementation for testing.
-type defaultMetaClient struct{}
-
-func (d *defaultMetaClient) SendText(ctx context.Context, accessToken, phoneNumberID, to, body string) (string, error) {
-	return "", nil
-}
-
-func (d *defaultMetaClient) SendTemplate(ctx context.Context, accessToken, phoneNumberID, to, name, language string, params []map[string]any, header *TemplateHeaderMedia) (string, error) {
-	return "", nil
-}
-
-// defaultMetaProvider provides a default meta client.
-type defaultMetaProvider struct{}
-
-func (d *defaultMetaProvider) NewClient() MessageSender {
-	return &defaultMetaClient{}
 }
