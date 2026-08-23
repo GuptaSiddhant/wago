@@ -11,6 +11,7 @@ import {
 } from '../../api/client'
 import type { BroadcastDTO, BroadcastRecipient } from '../../api/types'
 import { useSession } from '../../lib/session'
+import { useConfirm } from '../../lib/confirm'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
@@ -176,10 +177,16 @@ export function BroadcastPage() {
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['broadcasts', orgId] }),
   })
 
+  const confirm = useConfirm()
   const broadcasts = broadcastsQuery.data?.items ?? []
 
-  function handleCancel(b: BroadcastDTO) {
-    if (!window.confirm(`Cancel broadcast "${b.name}"?`)) return
+  async function handleCancel(b: BroadcastDTO) {
+    const confirmed = await confirm({
+      title: 'Cancel broadcast',
+      message: `"${b.name}" will stop sending. Recipients already messaged are unaffected.`,
+      confirmLabel: 'Cancel broadcast',
+    })
+    if (!confirmed) return
     cancelMutation.mutate(b.id)
   }
 
@@ -229,7 +236,7 @@ export function BroadcastPage() {
                     <button
                       type="button"
                       onClick={() => setDetailId(b.id)}
-                      className="min-w-0 flex-1 text-left"
+                      className="min-w-0 flex-1 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
                     >
                       <span className="block truncate text-sm font-medium text-zinc-100">
                         {b.name}

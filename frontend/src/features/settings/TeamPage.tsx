@@ -16,6 +16,7 @@ import {
   updateTeamMember,
 } from '../../api/client'
 import { useSession } from '../../lib/session'
+import { useConfirm } from '../../lib/confirm'
 import { formatDate } from '../../lib/format'
 import { Avatar } from '../../components/ui/Avatar'
 import { Badge } from '../../components/ui/Badge'
@@ -260,8 +261,15 @@ function TeamsSection({
     },
   })
 
-  function handleDelete(team: TeamDTO) {
-    if (!window.confirm(`Delete the "${team.name}" team?`)) return
+  const confirm = useConfirm()
+
+  async function handleDelete(team: TeamDTO) {
+    const confirmed = await confirm({
+      title: 'Delete team',
+      message: `"${team.name}" will be removed. Members stay in the organization.`,
+      confirmLabel: 'Delete',
+    })
+    if (!confirmed) return
     deleteMutation.mutate(team.id)
   }
 
@@ -296,7 +304,7 @@ function TeamsSection({
                   <button
                     type="button"
                     aria-label={`Rename ${t.name}`}
-                    className="rounded p-1 text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200"
+                    className="rounded p-1 text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
                     onClick={() => onTeamDialog({ mode: 'rename', team: t })}
                   >
                     <Pencil size={13} />
@@ -304,7 +312,7 @@ function TeamsSection({
                   <button
                     type="button"
                     aria-label={`Delete ${t.name}`}
-                    className="rounded p-1 text-zinc-500 transition hover:bg-zinc-800 hover:text-red-400"
+                    className="rounded p-1 text-zinc-500 transition hover:bg-zinc-800 hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
                     onClick={() => handleDelete(t)}
                   >
                     <Trash2 size={13} />
@@ -469,9 +477,15 @@ export function TeamPage() {
   const teams = teamsQuery.data?.items ?? []
   const teamOptions = teams.map((t) => ({ id: t.id, label: t.name }))
   const invites = invitesQuery.data?.items ?? []
+  const confirm = useConfirm()
 
-  function handleRevokeInvite(inv: InviteDTO) {
-    if (!window.confirm(`Revoke the invite for ${inv.email}?`)) return
+  async function handleRevokeInvite(inv: InviteDTO) {
+    const confirmed = await confirm({
+      title: 'Revoke invite',
+      message: `${inv.email} will no longer be able to join with this invite.`,
+      confirmLabel: 'Revoke',
+    })
+    if (!confirmed) return
     revokeMutation.mutate(inv.id)
   }
 
@@ -487,8 +501,13 @@ export function TeamPage() {
     void updateMutation.mutateAsync({ userId: m.id, input: { team_id: teamId } })
   }
 
-  function handleDelete(m: TeamMemberDTO) {
-    if (!window.confirm(`Remove ${m.name || m.email} from this organization?`)) return
+  async function handleDelete(m: TeamMemberDTO) {
+    const confirmed = await confirm({
+      title: 'Remove member',
+      message: `${m.name || m.email} will lose access to this organization.`,
+      confirmLabel: 'Remove',
+    })
+    if (!confirmed) return
     deleteMutation.mutate(m.id)
   }
 

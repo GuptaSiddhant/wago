@@ -219,7 +219,7 @@ export function BroadcastForm({
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploadMutation.isPending}
-                    className="mt-2 flex items-center justify-center gap-2 rounded-lg border border-dashed border-zinc-600 bg-zinc-900 px-3 py-2 text-sm text-zinc-400 transition hover:border-emerald-500 hover:text-emerald-400 disabled:opacity-60"
+                    className="mt-2 flex items-center justify-center gap-2 rounded-lg border border-dashed border-zinc-600 bg-zinc-900 px-3 py-2 text-sm text-zinc-400 transition hover:border-emerald-500 hover:text-emerald-400 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
                   >
                     <Paperclip size={14} />
                     {uploadMutation.isPending ? 'Uploading…' : 'Overwrite with a file'}

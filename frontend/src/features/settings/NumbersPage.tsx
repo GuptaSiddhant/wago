@@ -15,6 +15,7 @@ import {
   updateAccount,
 } from '../../api/client'
 import { useSession } from '../../lib/session'
+import { useConfirm } from '../../lib/confirm'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
@@ -426,9 +427,15 @@ export function NumbersPage() {
 
   const accounts = accountsQuery.data?.items ?? []
   const teams = teamsQuery.data?.items ?? []
+  const confirm = useConfirm()
 
-  function handleDelete(a: WaAccountDTO) {
-    if (!window.confirm(`Disconnect ${a.display_name || a.phone_number_id}?`)) return
+  async function handleDelete(a: WaAccountDTO) {
+    const confirmed = await confirm({
+      title: 'Disconnect number',
+      message: `${a.display_name || a.phone_number_id} will be disconnected. This workspace will stop sending and receiving its messages.`,
+      confirmLabel: 'Disconnect',
+    })
+    if (!confirmed) return
     deleteMutation.mutate(a.id)
   }
 

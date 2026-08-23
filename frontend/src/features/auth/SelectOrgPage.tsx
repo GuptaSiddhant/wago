@@ -57,7 +57,7 @@ export function SelectOrgPage() {
                   <button
                     type="button"
                     onClick={() => choose(o.id)}
-                    className="group flex w-full items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 text-left transition hover:border-emerald-600/60 hover:bg-zinc-900"
+                    className="group flex w-full items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 text-left transition hover:border-emerald-600/60 hover:bg-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
                   >
                     <OrgAvatar org={o} size={36} />
                     <span className="min-w-0 flex-1">

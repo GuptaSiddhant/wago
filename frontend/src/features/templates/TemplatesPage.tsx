@@ -9,6 +9,7 @@ import {
 } from '../../api/client'
 import type { MessageTemplateDTO } from '../../api/types'
 import { useSession } from '../../lib/session'
+import { useConfirm } from '../../lib/confirm'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
@@ -65,9 +66,15 @@ export function TemplatesPage() {
 
   const templates = templatesQuery.data?.items ?? []
   const accounts = accountsQuery.data?.items ?? []
+  const confirm = useConfirm()
 
-  function handleDelete(t: MessageTemplateDTO) {
-    if (!window.confirm(`Delete template "${t.name}" from Meta and this workspace?`)) return
+  async function handleDelete(t: MessageTemplateDTO) {
+    const confirmed = await confirm({
+      title: 'Delete template',
+      message: `"${t.name}" will be deleted from Meta and this workspace. Broadcasts using it will stop working.`,
+      confirmLabel: 'Delete',
+    })
+    if (!confirmed) return
     deleteMutation.mutate(t.id)
   }
 

@@ -18,7 +18,7 @@ const variants: Record<Variant, string> = {
 const sizes: Record<Size, string> = {
   sm: 'h-8 px-3 text-sm rounded-lg gap-1.5',
   md: 'h-10 px-4 text-sm rounded-xl gap-2',
-  icon: 'h-8 w-8 rounded-lg',
+  icon: 'h-9 w-9 rounded-lg',
 }
 
 export interface WButtonProps extends Omit<ButtonProps, 'className'> {

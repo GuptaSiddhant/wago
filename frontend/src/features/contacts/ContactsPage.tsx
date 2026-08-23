@@ -11,6 +11,7 @@ import {
   updateContact,
 } from '../../api/client'
 import { useSession } from '../../lib/session'
+import { useConfirm } from '../../lib/confirm'
 import { formatDate } from '../../lib/format'
 import { Avatar } from '../../components/ui/Avatar'
 import { Badge } from '../../components/ui/Badge'
@@ -244,7 +245,7 @@ function ContactDetailDialog({ contact, onClose }: { contact: ContactDTO; onClos
                   <button
                     type="button"
                     onClick={() => openChat(c.id)}
-                    className="flex w-full items-center justify-between gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-zinc-800/60"
+                    className="flex w-full items-center justify-between gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-zinc-800/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm text-zinc-200">
@@ -292,9 +293,15 @@ export function ContactsPage() {
   })
 
   const contacts = contactsQuery.data?.items ?? []
+  const confirm = useConfirm()
 
-  function handleDelete(c: ContactDTO) {
-    if (!window.confirm(`Delete contact ${c.name || c.phone}?`)) return
+  async function handleDelete(c: ContactDTO) {
+    const confirmed = await confirm({
+      title: 'Delete contact',
+      message: `${c.name || c.phone} will be removed permanently. Their chat history stays in the inbox.`,
+      confirmLabel: 'Delete',
+    })
+    if (!confirmed) return
     deleteMutation.mutate(c.id)
   }
 
@@ -359,8 +366,16 @@ export function ContactsPage() {
               {contacts.map((c) => (
                 <tr
                   key={c.id}
-                  className="cursor-pointer border-b border-zinc-800/60 transition hover:bg-zinc-900/40"
+                  tabIndex={0}
+                  aria-label={`Open details for ${c.name || c.phone}`}
+                  className="cursor-pointer border-b border-zinc-800/60 transition hover:bg-zinc-900/40 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-emerald-500/60"
                   onClick={() => setDetail(c)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setDetail(c)
+                    }
+                  }}
                 >
                   <td className="py-3 pr-4">
                     <div className="flex items-center gap-3">

@@ -5,6 +5,7 @@ import { getStoredSession } from '../lib/authStore'
 // Personal settings are the one authenticated area that does NOT require an
 // organization — this route deliberately sits outside the org-gated _app layout.
 export const Route = createFileRoute('/account')({
+  staticData: { title: 'Account' },
   beforeLoad: () => {
     if (!getStoredSession()) {
       throw redirect({ to: '/login' })

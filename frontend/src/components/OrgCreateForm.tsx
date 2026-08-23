@@ -164,7 +164,7 @@ export function OrgCreateForm({ onCreated, onCancel, submitLabel }: OrgCreateFor
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex h-16 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-700 bg-zinc-900 text-sm text-zinc-500 transition hover:border-zinc-600 hover:text-zinc-300"
+              className="flex h-16 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-700 bg-zinc-900 text-sm text-zinc-500 transition hover:border-zinc-600 hover:text-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
             >
               <ImagePlus size={18} />
               Upload picture (JPEG/PNG/WebP)

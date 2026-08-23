@@ -68,6 +68,13 @@ export function AppShell() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-zinc-950 text-zinc-100">
+      {/* Skip to main content link for keyboard users */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only fixed top-4 left-4 z-50 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium z-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/60"
+      >
+        Skip to main content
+      </a>
       {/* Mobile backdrop behind the drawer sidebar */}
       {sidebarOpen ? (
         <div
@@ -81,6 +88,8 @@ export function AppShell() {
         className={`fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col border-r border-zinc-800/80 bg-zinc-950 transition-transform duration-200 ease-out md:static md:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
+        role="navigation"
+        aria-label="Main navigation"
       >
         <div className="flex items-center gap-2.5 px-5 pb-4 pt-5">
           <Link
@@ -185,7 +194,11 @@ export function AppShell() {
         </div>
       </aside>
 
-      <main className="flex min-w-0 flex-1 flex-col">
+      <main
+        id="main-content"
+        className="flex min-w-0 flex-1 flex-col"
+        role="main"
+      >
         {/* Mobile top bar with hamburger menu */}
         <div className="flex items-center gap-2 border-b border-zinc-800/80 px-3 py-2.5 md:hidden">
           <Button

@@ -210,7 +210,7 @@ function ConversationRow({
       <button
         type="button"
         onClick={onSelect}
-        className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition ${
+        className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 ${
           active ? 'bg-zinc-900' : 'hover:bg-zinc-900/50'
         }`}
       >

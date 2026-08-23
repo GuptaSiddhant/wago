@@ -233,7 +233,7 @@ export function TemplateForm({
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploadMutation.isPending}
-                    className="flex items-center justify-center gap-2 rounded-xl bg-zinc-900 border border-dashed border-zinc-600 px-3 py-2 text-sm text-zinc-400 transition hover:border-emerald-500 hover:text-emerald-400 disabled:opacity-60"
+                    className="flex items-center justify-center gap-2 rounded-xl bg-zinc-900 border border-dashed border-zinc-600 px-3 py-2 text-sm text-zinc-400 transition hover:border-emerald-500 hover:text-emerald-400 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
                   >
                     <Paperclip size={15} />
                     {uploadMutation.isPending ? 'Uploading…' : 'Attach image, video or document'}

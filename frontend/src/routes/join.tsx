@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { JoinPage } from '../features/auth/JoinPage'
 
 export const Route = createFileRoute('/join')({
+  staticData: { title: 'Join workspace' },
   validateSearch: (search: Record<string, unknown>) => ({
     token: typeof search.token === 'string' ? search.token : undefined,
   }),
