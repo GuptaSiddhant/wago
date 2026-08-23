@@ -230,21 +230,25 @@ func HandleBroadcastCreate(app core.App) func(e *core.RequestEvent) error {
 
 func resolveBroadcastRecipients(app core.App, orgID string, body broadcastCreateRequest) ([]store.RecipientSnapshot, error) {
 	var contacts []*core.Record
-	var err error
 
 	if body.AllContacts {
+		var err error
 		contacts, err = app.FindRecordsByFilter("contacts", "org = {:org}", "-created", 100000, 0,
 			store.DbxParams(map[string]any{"org": orgID}))
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		for _, id := range body.ContactIDs {
-			c, e := store.FindOrgRecord(app, orgID, "contacts", id)
-			if e != nil {
-				continue
+		// One batched fetch; silently drop ids that don't exist or belong to
+		// another org so a stale client list can't leak cross-org contacts.
+		recs, err := app.FindRecordsByIds("contacts", body.ContactIDs)
+		if err != nil {
+			return nil, err
+		}
+		for _, r := range recs {
+			if r.GetString("org") == orgID {
+				contacts = append(contacts, r)
 			}
-			contacts = append(contacts, c)
 		}
 	}
 
