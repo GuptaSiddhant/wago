@@ -10,8 +10,10 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as AccountRouteImport } from './routes/account'
 import { Route as JoinRouteImport } from './routes/join'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as SelectOrgRouteImport } from './routes/select-org'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAnalyticsRouteImport } from './routes/_app/analytics'
 import { Route as AppBroadcastRouteImport } from './routes/_app/broadcast'
@@ -28,6 +30,11 @@ const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const JoinRoute = JoinRouteImport.update({
   id: '/join',
   path: '/join',
@@ -36,6 +43,11 @@ const JoinRoute = JoinRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SelectOrgRoute = SelectOrgRouteImport.update({
+  id: '/select-org',
+  path: '/select-org',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -96,8 +108,10 @@ const AppSettingsTeamRoute = AppSettingsTeamRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/account': typeof AccountRoute
   '/join': typeof JoinRoute
   '/login': typeof LoginRoute
+  '/select-org': typeof SelectOrgRoute
   '/analytics': typeof AppAnalyticsRoute
   '/broadcast': typeof AppBroadcastRoute
   '/contacts': typeof AppContactsRoute
@@ -110,8 +124,10 @@ export interface FileRoutesByFullPath {
   '/settings/': typeof AppSettingsIndexRoute
 }
 export interface FileRoutesByTo {
+  '/account': typeof AccountRoute
   '/join': typeof JoinRoute
   '/login': typeof LoginRoute
+  '/select-org': typeof SelectOrgRoute
   '/analytics': typeof AppAnalyticsRoute
   '/broadcast': typeof AppBroadcastRoute
   '/contacts': typeof AppContactsRoute
@@ -127,8 +143,10 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
+  '/account': typeof AccountRoute
   '/join': typeof JoinRoute
   '/login': typeof LoginRoute
+  '/select-org': typeof SelectOrgRoute
   '/_app/analytics': typeof AppAnalyticsRoute
   '/_app/broadcast': typeof AppBroadcastRoute
   '/_app/contacts': typeof AppContactsRoute
@@ -145,8 +163,10 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/account'
     | '/join'
     | '/login'
+    | '/select-org'
     | '/analytics'
     | '/broadcast'
     | '/contacts'
@@ -159,8 +179,10 @@ export interface FileRouteTypes {
     | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/account'
     | '/join'
     | '/login'
+    | '/select-org'
     | '/analytics'
     | '/broadcast'
     | '/contacts'
@@ -175,8 +197,10 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_app'
+    | '/account'
     | '/join'
     | '/login'
+    | '/select-org'
     | '/_app/analytics'
     | '/_app/broadcast'
     | '/_app/contacts'
@@ -192,8 +216,10 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
+  AccountRoute: typeof AccountRoute
   JoinRoute: typeof JoinRoute
   LoginRoute: typeof LoginRoute
+  SelectOrgRoute: typeof SelectOrgRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -203,6 +229,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/join': {
@@ -217,6 +250,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/select-org': {
+      id: '/select-org'
+      path: '/select-org'
+      fullPath: '/select-org'
+      preLoaderRoute: typeof SelectOrgRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/': {
@@ -331,8 +371,10 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
+  AccountRoute: AccountRoute,
   JoinRoute: JoinRoute,
   LoginRoute: LoginRoute,
+  SelectOrgRoute: SelectOrgRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

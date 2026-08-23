@@ -157,13 +157,21 @@ export function AppShell() {
 
         <div className="border-t border-zinc-800/80 p-3">
           <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
-            <Avatar name={session?.user.name} size={32} />
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-sm text-zinc-200">
-                {session?.user.name || session?.user.email}
-              </div>
-              <div className="truncate text-[11px] text-zinc-500">{session?.user.email}</div>
-            </div>
+            <Link
+              to="/account"
+              onClick={closeSidebar}
+              aria-label="Your account"
+              title="Your account"
+              className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg outline-none transition hover:bg-zinc-900 focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+            >
+              <Avatar name={session?.user.name} size={32} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm text-zinc-200">
+                  {session?.user.name || session?.user.email}
+                </span>
+                <span className="block truncate text-[11px] text-zinc-500">{session?.user.email}</span>
+              </span>
+            </Link>
             <button
               type="button"
               onClick={logout}

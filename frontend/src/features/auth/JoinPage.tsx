@@ -81,8 +81,8 @@ export function JoinPage() {
   async function handleSignIn() {
     if (!info) return;
     try {
-      await login(info.email, password);
-      await navigate({ to: "/inbox" });
+      const dest = await login(info.email, password);
+      await navigate({ to: dest });
     } catch {
       await navigate({ to: "/login" });
     }

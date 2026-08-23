@@ -28,10 +28,33 @@ interface SessionContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   org: OrgSummary | null;
-  login: (email: string, password: string) => Promise<void>;
+  /** Signs in and returns the destination route ("inbox" or "select-org"). */
+  login: (email: string, password: string) => Promise<PostLoginRoute>;
   logout: () => void;
   selectOrg: (orgId: string) => void;
   refresh: () => Promise<Session | null>;
+}
+
+/** Where the app should send a freshly authenticated user. */
+export type PostLoginRoute = "/inbox" | "/select-org";
+
+/**
+ * Resolves the mandatory org-selection policy:
+ * - 0 orgs   -> onboarding picker (superadmin can create, users see invite hint)
+ * - 1 org    -> auto-selected
+ * - >1 orgs  -> remembered selection wins; otherwise show the picker once
+ */
+export function resolvePostLoginRoute(session: Session): PostLoginRoute {
+  const orgs = session.orgs ?? [];
+  if (orgs.length === 0) return "/select-org";
+  const stored = getStoredOrgId();
+  if (stored && orgs.some((o) => o.id === stored)) return "/inbox";
+  if (orgs.length === 1) {
+    setStoredOrgId(orgs[0].id);
+    return "/inbox";
+  }
+  clearStoredOrgId();
+  return "/select-org";
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -90,19 +113,31 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const org = useMemo(() => {
     if (!session?.orgs) return null;
+    // Strict: an org is active only when explicitly selected and still a
+    // membership of this user. The _app guard and the effect below route
+    // org-less users to /select-org; no silent fallback here.
     const orgId = getStoredOrgId();
-    return session.orgs.find((o) => o.id === orgId) ?? session.orgs[0] ?? null;
+    return session.orgs.find((o) => o.id === orgId) ?? null;
   }, [session]);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const result = await apiLogin(email, password);
-    setStoredSession(result);
-    setSession(result);
-    const orgs = result.orgs ?? [];
-    if (orgs.length > 0) {
-      setStoredOrgId(orgs[0].id);
+  // An authenticated user without a valid active org (never selected, removed
+  // from their org mid-session, or the org was deleted) must land on the
+  // picker before touching any org-scoped page.
+  useEffect(() => {
+    if (!isLoading && session && !org) {
+      void navigate({ to: "/select-org" });
     }
-  }, []);
+  }, [isLoading, session, org, navigate]);
+
+  const login = useCallback(
+    async (email: string, password: string): Promise<PostLoginRoute> => {
+      const result = await apiLogin(email, password);
+      setStoredSession(result);
+      setSession(result);
+      return resolvePostLoginRoute(result);
+    },
+    [],
+  );
 
   const logout = useCallback(() => {
     setSession(null);

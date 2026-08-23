@@ -99,6 +99,14 @@ export async function me(): Promise<Session> {
   return apiFetch<Session>('/auth/me')
 }
 
+/** Updates the logged-in user's own display name. */
+export async function updateProfile(name: string): Promise<{ id: string; name: string; email: string }> {
+  return apiFetch('/account', {
+    method: 'PATCH',
+    body: JSON.stringify({ name }),
+  })
+}
+
 /** Returns the runtime instance config (superadmin only). */
 export async function getConfig(): Promise<AppConfig> {
   return apiFetch<AppConfig>('/admin/config')

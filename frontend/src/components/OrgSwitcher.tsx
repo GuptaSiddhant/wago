@@ -5,18 +5,11 @@ import { useSession } from '../lib/session'
 import type { OrgSummary } from '../api/types'
 import { OrgAvatar } from './OrgAvatar'
 
+// Rendered inside AppShell only, where the route guard guarantees an active
+// organization — so there is no empty state to handle here.
 export function OrgSwitcher() {
   const { session, org, selectOrg } = useSession()
-  if (!session) return null
-
-  if ((session.orgs?.length ?? 0) === 0) {
-    return (
-      <div className="flex items-center gap-2">
-        <Building2 size={16} className="shrink-0 text-emerald-500" />
-        <span className="text-sm font-medium text-zinc-200">No orgs</span>
-      </div>
-    )
-  }
+  if (!session || (session.orgs?.length ?? 0) === 0) return null
 
   return (
     <Select

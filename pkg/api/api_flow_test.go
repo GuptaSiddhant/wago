@@ -87,6 +87,55 @@ func newEvent(app core.App, auth *core.Record, method, target, body string) *cor
 	return ev
 }
 
+func TestHandleProfileUpdate(t *testing.T) {
+	app, _, user := setupAPIApp(t)
+
+	t.Run("requires auth", func(t *testing.T) {
+		e := newEvent(app, nil, http.MethodPatch, "/api/wa/account", `{"name":"New"}`)
+		err := HandleProfileUpdate(app)(e)
+		var apiErr *router.ApiError
+		if !errors.As(err, &apiErr) || apiErr.Status != http.StatusUnauthorized {
+			t.Fatalf("expected 401 ApiError, got %#v", err)
+		}
+	})
+
+	t.Run("rejects blank name", func(t *testing.T) {
+		e := newEvent(app, user, http.MethodPatch, "/api/wa/account", `{"name":"   "}`)
+		err := HandleProfileUpdate(app)(e)
+		var apiErr *router.ApiError
+		if !errors.As(err, &apiErr) || apiErr.Status != http.StatusBadRequest {
+			t.Fatalf("expected 400 ApiError, got %#v", err)
+		}
+	})
+
+	t.Run("updates own name only", func(t *testing.T) {
+		e := newEvent(app, user, http.MethodPatch, "/api/wa/account", `{"name":"Renamed Agent"}`)
+		if err := HandleProfileUpdate(app)(e); err != nil {
+			t.Fatalf("update failed: %v", err)
+		}
+
+		fresh, err := app.FindRecordById("users", user.Id)
+		if err != nil {
+			t.Fatalf("reload user: %v", err)
+		}
+		if fresh.GetString("name") != "Renamed Agent" {
+			t.Errorf("name = %q, want Renamed Agent", fresh.GetString("name"))
+		}
+		if fresh.Email() != "agent@example.com" {
+			t.Errorf("email must stay untouched, got %q", fresh.Email())
+		}
+
+		rec := e.Response.(*httptest.ResponseRecorder)
+		var out map[string]any
+		if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+			t.Fatalf("decode response: %v (%s)", err, rec.Body.String())
+		}
+		if out["name"] != "Renamed Agent" || out["id"] != user.Id {
+			t.Errorf("unexpected response body: %v", out)
+		}
+	})
+}
+
 func TestOrgAccessRequiresHeader(t *testing.T) {
 	app, _, user := setupAPIApp(t)
 

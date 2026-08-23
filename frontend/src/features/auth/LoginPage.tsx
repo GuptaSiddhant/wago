@@ -19,8 +19,8 @@ export function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await login(email, password);
-      await navigate({ to: "/inbox" });
+      const dest = await login(email, password);
+      await navigate({ to: dest });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Unable to sign in");
     } finally {

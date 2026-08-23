@@ -51,6 +51,7 @@ func Register(r *router.Router[*core.RequestEvent], app core.App, opts ...Option
 	authed.Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 	authed.GET("/auth/me", HandleMe(app))
+	authed.PATCH("/account", HandleProfileUpdate(app))
 	authed.POST("/orgs", HandleOrgCreate(app))
 	authed.GET("/orgs", HandleOrgGet(app))
 	authed.PATCH("/orgs", HandleOrgUpdate(app))
@@ -73,7 +74,7 @@ func Register(r *router.Router[*core.RequestEvent], app core.App, opts ...Option
 	authed.DELETE("/teams/{id}", HandleTeamsDelete(app))
 	authed.GET("/accounts", HandleAccounts(app))
 	authed.POST("/accounts", HandleAccountCreate(app))
-	authed.PATCH("/accounts/{id}", HandleAccountUpdate(app))
+	authed.PATCH("/accounts/{id}", HandleProfileUpdate(app))
 	authed.DELETE("/accounts/{id}", HandleAccountDelete(app))
 	authed.GET("/accounts/{id}/meta", HandleAccountMeta(app))
 	authed.GET("/accounts/{id}/business-profile", HandleAccountBusinessProfile(app))
