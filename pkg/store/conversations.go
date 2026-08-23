@@ -102,7 +102,7 @@ func AssignConversationRR(app core.App, conv *core.Record) (string, error) {
 // conversation is routed to a team, only that team's members are considered;
 // untagged conversations consider every eligible member of the org.
 func PickRoundRobinAssignee(app core.App, orgID, teamID string) (string, error) {
-	filter := "org = {:org} && role in ['owner', 'admin', 'agent']"
+	filter := "org = {:org} && (role = 'owner' || role = 'admin' || role = 'agent')"
 	params := map[string]any{"org": orgID}
 	if teamID != "" {
 		filter += " && team = {:team}"

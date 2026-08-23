@@ -94,6 +94,10 @@ func HandleUpdateConfig(app core.App) func(e *core.RequestEvent) error {
 		cfg.BroadcastLeaseSeconds = body.BroadcastLeaseSeconds
 		cfg.BroadcastMaxAttempts = body.BroadcastMaxAttempts
 
+		if err := cfg.Validate(); err != nil {
+			return e.BadRequestError("Invalid configuration: "+err.Error(), nil)
+		}
+
 		if err := mgr.Save(app, cfg); err != nil {
 			return e.InternalServerError("Failed to save configuration", err)
 		}

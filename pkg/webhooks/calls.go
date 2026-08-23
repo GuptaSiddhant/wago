@@ -1,7 +1,7 @@
 package webhooks
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -40,7 +40,7 @@ func HandleInboundCall() func(re *core.RequestEvent) error {
 		app := re.App
 		account, err := store.FindWhatsAppAccountByPhoneNumberID(app, req.PhoneNumberID)
 		if err != nil {
-			log.Printf("Ignoring call for unknown phone_number_id %q", req.PhoneNumberID)
+			logf(app, slog.LevelWarn, "ignoring call for unknown phone_number_id %q", req.PhoneNumberID)
 			return re.String(http.StatusOK, "EVENT_RECEIVED")
 		}
 		orgID := account.GetString("org")
@@ -57,9 +57,9 @@ func HandleInboundCall() func(re *core.RequestEvent) error {
 		}
 		if created {
 			if assignee, err := store.AssignConversationRR(app, conv); err != nil {
-				log.Printf("Failed to round-robin assign conversation %s: %v", conv.Id, err)
+				logf(app, slog.LevelWarn, "failed to round-robin assign conversation %s: %v", conv.Id, err)
 			} else if assignee != "" {
-				log.Printf("Round-robin assigned conversation %s to %s", conv.Id, assignee)
+				logf(app, slog.LevelInfo, "round-robin assigned conversation %s to %s", conv.Id, assignee)
 			}
 		}
 
@@ -77,7 +77,7 @@ func HandleInboundCall() func(re *core.RequestEvent) error {
 			Name:      call.GetString("peer_name"),
 		})
 
-		log.Printf("Inbound call %s for org %s from %s", call.Id, orgID, req.FromID)
+		logf(app, slog.LevelInfo, "inbound call %s for org %s from %s", call.Id, orgID, req.FromID)
 		return re.String(http.StatusOK, "EVENT_RECEIVED")
 	}
 }

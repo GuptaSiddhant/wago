@@ -3,7 +3,7 @@ package webhooks
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"path"
 	"strconv"
@@ -23,6 +23,20 @@ import (
 // metaClient is used to download inbound media so it can be stored locally.
 var metaClient = meta.NewClient()
 
+// logf emits a structured log through PocketBase's slog logger when an app is
+// available, falling back to the standard logger (e.g. in unit tests). The
+// webhook path deliberately swallows errors to satisfy Meta's 200-expectation,
+// so these logs are the only trace of processing problems.
+func logf(app core.App, level slog.Level, format string, args ...any) {
+	msg := fmt.Sprintf(format, args...)
+	if app != nil {
+		app.Logger().Log(context.Background(), level, msg,
+			slog.String("component", "webhook"))
+		return
+	}
+	slog.Log(context.Background(), level, msg, slog.String("component", "webhook"))
+}
+
 // HandleVerification returns the handler for GET /api/wa/webhook. The verify
 // token is read live from the runtime config so Meta's handshake succeeds with
 // whatever token the superadmin has configured.
@@ -30,7 +44,7 @@ func HandleVerification(mgr *runtimecfg.Manager) func(re *core.RequestEvent) err
 	return func(re *core.RequestEvent) error {
 		cfg, err := mgr.Load(re.App)
 		if err != nil {
-			log.Printf("webhook: failed to load config: %v", err)
+			logf(re.App, slog.LevelWarn, "failed to load config: %v", err)
 			return re.String(http.StatusForbidden, "Verification failed")
 		}
 
@@ -39,7 +53,7 @@ func HandleVerification(mgr *runtimecfg.Manager) func(re *core.RequestEvent) err
 		challenge := re.Request.URL.Query().Get("hub.challenge")
 
 		if mode == "subscribe" && token == cfg.WA_WebhookVerifyToken {
-			log.Println(" Meta Webhook verified successfully!")
+			logf(re.App, slog.LevelInfo, "Meta Webhook verified successfully")
 			return re.String(http.StatusOK, challenge)
 		}
 
@@ -56,7 +70,7 @@ func HandleIncomingMessage(mgr *runtimecfg.Manager, notifier *notifications.Noti
 	return func(re *core.RequestEvent) error {
 		cfg, err := mgr.Load(re.App)
 		if err != nil {
-			log.Printf("webhook: failed to load config: %v", err)
+			logf(re.App, slog.LevelWarn, "failed to load config: %v", err)
 			return re.String(http.StatusOK, "EVENT_RECEIVED")
 		}
 
@@ -65,7 +79,7 @@ func HandleIncomingMessage(mgr *runtimecfg.Manager, notifier *notifications.Noti
 			AppSecret: cfg.MetaAppSecret,
 		})
 		if err != nil {
-			log.Printf("Invalid webhook payload: %v", err)
+			logf(re.App, slog.LevelWarn, "invalid webhook payload: %v", err)
 			return re.String(http.StatusOK, "EVENT_RECEIVED")
 		}
 
@@ -93,7 +107,7 @@ func processChange(ctx context.Context, app core.App, change wawh.Change, notifi
 	// route to the org owning this phone number
 	account, err := store.FindWhatsAppAccountByPhoneNumberID(app, val.Metadata.PhoneNumberID)
 	if err != nil {
-		log.Printf("Ignoring webhook for unknown phone_number_id %q", val.Metadata.PhoneNumberID)
+		logf(app, slog.LevelWarn, "ignoring webhook for unknown phone_number_id %q", val.Metadata.PhoneNumberID)
 		return
 	}
 	orgID := account.GetString("org")
@@ -101,7 +115,7 @@ func processChange(ctx context.Context, app core.App, change wawh.Change, notifi
 	// delivery status updates (sent/delivered/read/failed)
 	for _, st := range val.Statuses {
 		if err := store.UpdateMessageStatus(app, st.ID, st.StatusValue); err != nil {
-			log.Printf("Failed to update message status %q -> %s: %v", st.ID, st.StatusValue, err)
+			logf(app, slog.LevelWarn, "failed to update message status %q -> %s: %v", st.ID, st.StatusValue, err)
 		}
 	}
 
@@ -124,23 +138,23 @@ func processChange(ctx context.Context, app core.App, change wawh.Change, notifi
 
 	contact, err := store.UpsertContact(app, orgID, waID, senderName)
 	if err != nil {
-		log.Printf("Failed to upsert contact: %v", err)
+		logf(app, slog.LevelWarn, "failed to upsert contact: %v", err)
 		return
 	}
 
 	ts := time.Now()
 	conv, created, err := store.UpsertConversation(app, orgID, contact.Id, account.Id, ts)
 	if err != nil {
-		log.Printf("Failed to upsert conversation: %v", err)
+		logf(app, slog.LevelWarn, "failed to upsert conversation: %v", err)
 		return
 	}
 
 	// New conversations are auto-assigned round-robin to an eligible agent.
 	if created {
 		if assignee, err := store.AssignConversationRR(app, conv); err != nil {
-			log.Printf("Failed to round-robin assign conversation %s: %v", conv.Id, err)
+			logf(app, slog.LevelWarn, "failed to round-robin assign conversation %s: %v", conv.Id, err)
 		} else if assignee != "" {
-			log.Printf("Round-robin assigned conversation %s to %s", conv.Id, assignee)
+			logf(app, slog.LevelInfo, "round-robin assigned conversation %s to %s", conv.Id, assignee)
 		}
 	}
 
@@ -164,11 +178,11 @@ func processChange(ctx context.Context, app core.App, change wawh.Change, notifi
 		if mediaInfo != nil && mediaInfo.ID != "" {
 			token := account.GetString("access_token")
 			if token == "" {
-				log.Printf("Cannot download media for message %s: account has no access token", msg.ID)
+				logf(app, slog.LevelWarn, "cannot download media for message %s: account has no access token", msg.ID)
 			} else {
 				data, err := downloadInboundMedia(ctx, app, token, mediaInfo)
 				if err != nil {
-					log.Printf("Failed to download media for message %s: %v", msg.ID, err)
+					logf(app, slog.LevelWarn, "failed to download media for message %s: %v", msg.ID, err)
 				} else {
 					mediaData = data
 					mediaName = mediaFilename(mediaInfo)
@@ -182,7 +196,7 @@ func processChange(ctx context.Context, app core.App, change wawh.Change, notifi
 			mediaData, mediaName,
 		)
 		if err != nil {
-			log.Printf("Failed to save message: %v", err)
+			logf(app, slog.LevelError, "failed to save message: %v", err)
 			continue
 		}
 

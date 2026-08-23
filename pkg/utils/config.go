@@ -2,6 +2,8 @@ package utils
 
 import (
 	"bufio"
+	"errors"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -65,6 +67,48 @@ const (
 	DefaultBroadcastMaxAttempts  = 3
 )
 
+// Validate checks the configuration for obviously broken values so bad state
+// is caught at boot (env) or rejected at write time (admin API) instead of
+// failing later at send time. Empty optional values (webhook token, SMTP,
+// AI settings) are valid — features simply stay disabled.
+func (c *AppConfig) Validate() error {
+	var errs []error
+
+	if c.PublicBaseURL != "" &&
+		!strings.HasPrefix(c.PublicBaseURL, "http://") &&
+		!strings.HasPrefix(c.PublicBaseURL, "https://") {
+		errs = append(errs, fmt.Errorf("public_base_url must include http(s)://"))
+	}
+
+	if c.AIEnabled {
+		if c.AIBaseURL == "" {
+			errs = append(errs, fmt.Errorf("ai_base_url is required when ai_enabled"))
+		}
+		if c.AIModel == "" {
+			errs = append(errs, fmt.Errorf("ai_model is required when ai_enabled"))
+		}
+	}
+
+	if c.SMTPHost != "" && (c.SMTPPort < 1 || c.SMTPPort > 65535) {
+		errs = append(errs, fmt.Errorf("smtp_port must be between 1 and 65535"))
+	}
+
+	if c.MessagesPerMinute < 1 {
+		errs = append(errs, fmt.Errorf("messages_per_minute must be >= 1"))
+	}
+	if c.BroadcastBatchSize < 1 {
+		errs = append(errs, fmt.Errorf("broadcast_batch_size must be >= 1"))
+	}
+	if c.BroadcastLeaseSeconds < 1 {
+		errs = append(errs, fmt.Errorf("broadcast_lease_seconds must be >= 1"))
+	}
+	if c.BroadcastMaxAttempts < 1 {
+		errs = append(errs, fmt.Errorf("broadcast_max_attempts must be >= 1"))
+	}
+
+	return errors.Join(errs...)
+}
+
 // Helper to load environment variables
 func LoadAppConfig() (*AppConfig, error) {
 	_ = loadDotEnvFile(".env")
@@ -112,6 +156,9 @@ func LoadAppConfig() (*AppConfig, error) {
 		BroadcastMaxAttempts:  parseEnvIntOrDefault("BROADCAST_MAX_ATTEMPTS", DefaultBroadcastMaxAttempts),
 	}
 
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
 	return cfg, nil
 }
 
