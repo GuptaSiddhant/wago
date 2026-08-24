@@ -3,7 +3,7 @@ import type { Tone } from '../../lib/format'
 
 const tones: Record<Tone, string> = {
   green: 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/25',
-  zinc: 'bg-zinc-500/10 text-zinc-400 ring-zinc-500/25',
+  zinc: 'bg-panel-strong text-ink-muted ring-edge-strong',
   red: 'bg-red-500/10 text-red-400 ring-red-500/25',
   blue: 'bg-blue-500/10 text-blue-400 ring-blue-500/25',
   amber: 'bg-amber-500/10 text-amber-400 ring-amber-500/25',

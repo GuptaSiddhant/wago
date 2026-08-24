@@ -35,19 +35,19 @@ export function NotificationBell() {
         type="button"
         onClick={() => setOpen(!open)}
         aria-label="Notifications"
-        className="relative rounded-lg p-2 text-zinc-400 transition hover:bg-zinc-900 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+        className="relative rounded-lg p-2 text-ink-muted transition hover:bg-panel-hover hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
       >
         <Bell size={18} />
         {unread > 0 ? (
-          <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-bold text-zinc-950">
+          <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-bold text-emerald-950">
             {unread > 99 ? '99+' : unread}
           </span>
         ) : null}
       </button>
 
       {open ? (
-        <div className="absolute right-0 top-10 z-50 w-80 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 shadow-2xl">
-          <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-2.5">
+        <div className="absolute right-0 top-10 z-50 w-80 overflow-hidden rounded-xl border border-edge bg-panel shadow-2xl">
+          <div className="flex items-center justify-between border-b border-edge px-4 py-2.5">
             <span className="text-sm font-semibold">Notifications</span>
             {unread > 0 ? (
               <button
@@ -62,7 +62,7 @@ export function NotificationBell() {
           </div>
           <div className="max-h-96 overflow-y-auto">
             {items.length === 0 ? (
-              <div className="px-4 py-10 text-center text-sm text-zinc-500">No notifications yet</div>
+              <div className="px-4 py-10 text-center text-sm text-ink-faint">No notifications yet</div>
             ) : (
               items.map((n) => (
                 <button
@@ -72,17 +72,17 @@ export function NotificationBell() {
                     setOpen(false)
                     void navigate({ to: '/inbox', search: { conv: n.conversation_id } })
                   }}
-                  className="flex w-full flex-col gap-0.5 border-b border-zinc-800/60 px-4 py-3 text-left transition hover:bg-zinc-800/60"
+                  className="flex w-full flex-col gap-0.5 border-b border-edge px-4 py-3 text-left transition hover:bg-panel-strong-hover"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-sm font-medium text-zinc-100">
+                    <span className="truncate text-sm font-medium text-ink">
                       {n.contact_name || 'customer'}
                     </span>
                     {!n.read ? (
                       <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
                     ) : null}
                   </div>
-                  <span className="line-clamp-2 text-xs text-zinc-400">{n.body}</span>
+                  <span className="line-clamp-2 text-xs text-ink-muted">{n.body}</span>
                 </button>
               ))
             )}

@@ -89,15 +89,15 @@ export function JoinPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-canvas px-4">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex items-center justify-center gap-2.5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-lg font-bold text-white">
             W
           </div>
           <div>
-            <h1 className="text-xl font-semibold tracking-tight text-zinc-100">WaGo</h1>
-            <p className="text-xs text-zinc-500">WhatsApp Business on the Go</p>
+            <h1 className="text-xl font-semibold tracking-tight text-ink">WaGo</h1>
+            <p className="text-xs text-ink-faint">WhatsApp Business on the Go</p>
           </div>
         </div>
 
@@ -106,18 +106,18 @@ export function JoinPage() {
             <Spinner className="h-6 w-6" />
           </div>
         ) : loadError ? (
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 text-center shadow-xl shadow-black/30">
-            <p className="text-sm text-zinc-400">{loadError}</p>
+          <div className="rounded-2xl border border-edge bg-panel p-6 text-center shadow-xl shadow-black/30">
+            <p className="text-sm text-ink-muted">{loadError}</p>
             <Link to="/login" className="mt-4 inline-block text-sm font-medium text-emerald-400 hover:underline">
               Back to sign in
             </Link>
           </div>
         ) : accepted ? (
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 text-center shadow-xl shadow-black/30">
-            <p className="text-sm text-zinc-300">
-              You're in! <span className="font-medium text-zinc-100">{info?.email}</span> is now a{" "}
+          <div className="rounded-2xl border border-edge bg-panel p-6 text-center shadow-xl shadow-black/30">
+            <p className="text-sm text-ink-muted">
+              You're in! <span className="font-medium text-ink">{info?.email}</span> is now a{" "}
               <span className="font-medium text-emerald-400">{info?.role}</span> at{" "}
-              <span className="font-medium text-zinc-100">{info?.org_name}</span>.
+              <span className="font-medium text-ink">{info?.org_name}</span>.
             </p>
             <Button className="mt-4 w-full" onPress={handleSignIn}>
               Sign in
@@ -126,14 +126,14 @@ export function JoinPage() {
         ) : (
           <form
             onSubmit={handleSubmit}
-            className="space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 shadow-xl shadow-black/30"
+            className="space-y-4 rounded-2xl border border-edge bg-panel p-6 shadow-xl shadow-black/30"
           >
             <div>
-              <h2 className="text-sm font-medium text-zinc-100">Accept your invite</h2>
-              <p className="mt-1 text-xs text-zinc-500">
-                You're joining <span className="font-medium text-zinc-300">{info?.org_name}</span> as a{" "}
+              <h2 className="text-sm font-medium text-ink">Accept your invite</h2>
+              <p className="mt-1 text-xs text-ink-faint">
+                You're joining <span className="font-medium text-ink-muted">{info?.org_name}</span> as a{" "}
                 <span className="font-medium text-emerald-400">{info?.role}</span>
-                {info?.team_name ? <> on <span className="font-medium text-zinc-300">{info.team_name}</span></> : null}
+                {info?.team_name ? <> on <span className="font-medium text-ink-muted">{info.team_name}</span></> : null}
                 . Set a password to create your account.
               </p>
             </div>

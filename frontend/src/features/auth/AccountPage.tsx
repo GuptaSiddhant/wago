@@ -40,10 +40,10 @@ export function AccountPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-canvas px-4">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-lg font-semibold tracking-tight text-zinc-100">
+          <h1 className="text-lg font-semibold tracking-tight text-ink">
             Your account
           </h1>
           <Button
@@ -61,7 +61,7 @@ export function AccountPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 shadow-xl shadow-black/30"
+          className="space-y-4 rounded-2xl border border-edge bg-panel p-6 shadow-xl shadow-black/30"
         >
           <TextField
             label="Email"

@@ -7,12 +7,12 @@ type Size = 'sm' | 'md' | 'icon'
 
 const variants: Record<Variant, string> = {
   primary:
-    'bg-emerald-600 text-white hover:bg-emerald-500 disabled:bg-emerald-600/40 shadow-sm',
+    'bg-emerald-700 text-white hover:bg-emerald-600 disabled:bg-emerald-700/40 shadow-sm',
   secondary:
-    'bg-zinc-800 text-zinc-100 hover:bg-zinc-700 disabled:bg-zinc-800/60 border border-zinc-700',
+    'bg-panel-strong text-ink hover:bg-panel-strong-hover disabled:bg-panel-strong border border-edge-strong',
   ghost:
-    'bg-transparent text-zinc-300 hover:bg-zinc-800/70 hover:text-zinc-100 disabled:opacity-40',
-  danger: 'bg-red-600 text-white hover:bg-red-500 disabled:bg-red-600/40',
+    'bg-transparent text-ink-muted hover:bg-panel-strong-hover hover:text-ink disabled:opacity-40',
+  danger: 'bg-red-700 text-white hover:bg-red-600 disabled:bg-red-700/40',
 }
 
 const sizes: Record<Size, string> = {

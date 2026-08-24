@@ -115,15 +115,15 @@ function InviteDialog({ teams }: { teams: TeamDTO[] }) {
     <ModalDialog title="Invite member">
       {invite ? (
         <div className="space-y-3">
-          <p className="text-sm text-zinc-300">
-            Invite sent to <span className="font-medium text-zinc-100">{invite.email}</span>.
+          <p className="text-sm text-ink-muted">
+            Invite sent to <span className="font-medium text-ink">{invite.email}</span>.
           </p>
           <div>
-            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-zinc-500">
+            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-ink-faint">
               Invite link
             </span>
             <div className="flex items-center gap-2">
-              <code className="min-w-0 flex-1 truncate rounded-lg bg-zinc-800 px-3 py-2 font-mono text-xs text-emerald-300">
+              <code className="min-w-0 flex-1 truncate rounded-lg bg-panel-strong px-3 py-2 font-mono text-xs text-emerald-300">
                 {joinUrl}
               </code>
               <Button type="button" size="sm" variant="secondary" onPress={copyLink}>
@@ -131,7 +131,7 @@ function InviteDialog({ teams }: { teams: TeamDTO[] }) {
               </Button>
             </div>
           </div>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-ink-faint">
             Share this link with {invite.email}. It expires in 7 days.
           </p>
           <div className="mt-2 flex justify-end">
@@ -150,7 +150,7 @@ function InviteDialog({ teams }: { teams: TeamDTO[] }) {
             placeholder="teammate@example.com"
           />
           <div>
-            <span className="mb-1.5 block text-sm font-medium text-zinc-300">Role</span>
+            <span className="mb-1.5 block text-sm font-medium text-ink-muted">Role</span>
             <SelectField
               options={roleOptionsFiltered}
               selectedKey={role}
@@ -160,7 +160,7 @@ function InviteDialog({ teams }: { teams: TeamDTO[] }) {
             />
           </div>
           <div>
-            <span className="mb-1.5 block text-sm font-medium text-zinc-300">Team</span>
+            <span className="mb-1.5 block text-sm font-medium text-ink-muted">Team</span>
             <SelectField
               options={teamOptions}
               selectedKey={needsTeam ? teamId : null}
@@ -276,7 +276,7 @@ function TeamsSection({
   return (
     <div className="mb-6">
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500">Teams</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-faint">Teams</h2>
         {canManage ? (
           <Button size="sm" variant="ghost" onPress={() => onTeamDialog({ mode: 'create' })}>
             <Plus size={14} />
@@ -285,7 +285,7 @@ function TeamsSection({
         ) : null}
       </div>
       {teams.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-zinc-800 px-4 py-3 text-sm text-zinc-500">
+        <p className="rounded-xl border border-dashed border-edge px-4 py-3 text-sm text-ink-faint">
           No teams yet. Teams group members and route conversations to the right people.
         </p>
       ) : (
@@ -293,10 +293,10 @@ function TeamsSection({
           {teams.map((t) => (
             <div
               key={t.id}
-              className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/50 px-3 py-2"
+              className="flex items-center gap-2 rounded-xl border border-edge bg-panel px-3 py-2"
             >
-              <span className="text-sm font-medium text-zinc-100">{t.name}</span>
-              <span className="text-xs text-zinc-500">
+              <span className="text-sm font-medium text-ink">{t.name}</span>
+              <span className="text-xs text-ink-faint">
                 {t.member_count} {t.member_count === 1 ? 'member' : 'members'}
               </span>
               {canManage ? (
@@ -304,7 +304,7 @@ function TeamsSection({
                   <button
                     type="button"
                     aria-label={`Rename ${t.name}`}
-                    className="rounded p-1 text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+                    className="rounded p-1 text-ink-faint transition hover:bg-panel-strong-hover hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
                     onClick={() => onTeamDialog({ mode: 'rename', team: t })}
                   >
                     <Pencil size={13} />
@@ -312,7 +312,7 @@ function TeamsSection({
                   <button
                     type="button"
                     aria-label={`Delete ${t.name}`}
-                    className="rounded p-1 text-zinc-500 transition hover:bg-zinc-800 hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+                    className="rounded p-1 text-ink-faint transition hover:bg-panel-strong-hover hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
                     onClick={() => handleDelete(t)}
                   >
                     <Trash2 size={13} />
@@ -353,19 +353,19 @@ function InvitesSection({
   return (
     <div className="mb-6">
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-500">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-faint">
           Pending invites
         </h2>
       </div>
       {pending.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-zinc-800 px-4 py-3 text-sm text-zinc-500">
+        <p className="rounded-xl border border-dashed border-edge px-4 py-3 text-sm text-ink-faint">
           No pending invites. Invite people by email — they'll get a join link to set their own
           password and sign in.
         </p>
       ) : (
         <table className="w-full border-collapse text-left text-sm">
           <thead>
-            <tr className="border-b border-zinc-800 text-xs uppercase tracking-wider text-zinc-500">
+            <tr className="border-b border-edge text-xs uppercase tracking-wider text-ink-faint">
               <th className="py-2.5 pr-4 font-medium">Email</th>
               <th className="py-2.5 pr-4 font-medium">Role</th>
               <th className="py-2.5 pr-4 font-medium">Team</th>
@@ -375,13 +375,13 @@ function InvitesSection({
           </thead>
           <tbody>
             {pending.map((i) => (
-              <tr key={i.id} className="border-b border-zinc-800/60">
-                <td className="py-3 pr-4 text-zinc-100">{i.email}</td>
+              <tr key={i.id} className="border-b border-edge">
+                <td className="py-3 pr-4 text-ink">{i.email}</td>
                 <td className="py-3 pr-4">
                   <Badge tone={inviteStatusTone(i.status)}>{i.role}</Badge>
                 </td>
-                <td className="py-3 pr-4 text-zinc-400">{i.team_name ?? '—'}</td>
-                <td className="py-3 pr-4 text-zinc-400">{formatDate(i.expires_at)}</td>
+                <td className="py-3 pr-4 text-ink-muted">{i.team_name ?? '—'}</td>
+                <td className="py-3 pr-4 text-ink-muted">{formatDate(i.expires_at)}</td>
                 {canManage ? (
                   <td className="py-3 pl-4 text-right">
                     <Button
@@ -391,7 +391,7 @@ function InvitesSection({
                       onPress={() => onRevoke(i)}
                       isDisabled={revokePending}
                     >
-                      <Trash2 size={16} className="text-zinc-500 hover:text-red-400" />
+                      <Trash2 size={16} className="text-ink-faint hover:text-red-400" />
                     </Button>
                   </td>
                 ) : null}
@@ -403,12 +403,12 @@ function InvitesSection({
 
       {past.length > 0 ? (
         <>
-          <h3 className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wider text-zinc-600">
+          <h3 className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wider text-ink-faint">
             Accepted & revoked
           </h3>
           <ul className="space-y-1">
             {past.map((i) => (
-              <li key={i.id} className="flex items-center gap-2 text-sm text-zinc-500">
+              <li key={i.id} className="flex items-center gap-2 text-sm text-ink-faint">
                 <span className="truncate">{i.email}</span>
                 <Badge tone={inviteStatusTone(i.status)}>{i.status}</Badge>
               </li>
@@ -520,10 +520,10 @@ export function TeamPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
-      <header className="flex items-center justify-between border-b border-zinc-800/80 px-6 py-4">
+      <header className="flex items-center justify-between border-b border-edge px-6 py-4">
         <div>
-          <h1 className="text-lg font-semibold text-zinc-100">Team</h1>
-          <p className="text-sm text-zinc-500">
+          <h1 className="text-lg font-semibold text-ink">Team</h1>
+          <p className="text-sm text-ink-faint">
             Teams group members; conversations route to the team of the WhatsApp number.
           </p>
         </div>
@@ -542,7 +542,7 @@ export function TeamPage() {
         {teamsQuery.isLoading ? (
           <div className="space-y-2">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="flex items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+              <div key={i} className="flex items-center justify-between gap-3 rounded-xl border border-edge bg-panel p-4">
                 <Skeleton className="h-9 w-9 rounded-full" />
                 <div className="flex-1 space-y-2">
                   <Skeleton className="h-3.5 w-40" />
@@ -585,7 +585,7 @@ export function TeamPage() {
         ) : (
           <table className="w-full border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-zinc-800 text-xs uppercase tracking-wider text-zinc-500">
+              <tr className="border-b border-edge text-xs uppercase tracking-wider text-ink-faint">
                 <th className="py-2.5 pr-4 font-medium">Member</th>
                 <th className="py-2.5 pr-4 font-medium">Email</th>
                 <th className="py-2.5 pr-4 font-medium">Role</th>
@@ -598,15 +598,15 @@ export function TeamPage() {
                 const manageable = canManageMember(m)
                 const options = isOwnerOrSuper ? roleOptions : roleOptions.filter((o) => o.id !== 'owner')
                 return (
-                  <tr key={m.id} className="border-b border-zinc-800/60 transition hover:bg-zinc-900/40">
+                  <tr key={m.id} className="border-b border-edge transition hover:bg-panel-hover">
                     <td className="py-3 pr-4">
                       <div className="flex items-center gap-3">
                         <Avatar name={m.name} size={32} />
-                        <span className="font-medium text-zinc-100">{m.name}</span>
+                        <span className="font-medium text-ink">{m.name}</span>
                         {m.id === meId ? <Badge tone="green">You</Badge> : null}
                       </div>
                     </td>
-                    <td className="py-3 pr-4 text-zinc-400">{m.email}</td>
+                    <td className="py-3 pr-4 text-ink-muted">{m.email}</td>
                     <td className="py-3 pr-4">
                       {manageable ? (
                         <SelectField
@@ -637,7 +637,7 @@ export function TeamPage() {
                       ) : m.role === 'owner' ? (
                         <Badge tone="amber">All teams</Badge>
                       ) : (
-                        <span className="text-zinc-400">{m.team_name ?? '—'}</span>
+                        <span className="text-ink-muted">{m.team_name ?? '—'}</span>
                       )}
                     </td>
                     {canManage ? (
@@ -650,7 +650,7 @@ export function TeamPage() {
                             onPress={() => handleDelete(m)}
                             isDisabled={deleteMutation.isPending}
                           >
-                            <Trash2 size={16} className="text-zinc-500 hover:text-red-400" />
+                            <Trash2 size={16} className="text-ink-faint hover:text-red-400" />
                           </Button>
                         ) : null}
                       </td>

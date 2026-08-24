@@ -29,23 +29,23 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-canvas px-4">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex items-center justify-center gap-2.5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-lg font-bold text-white">
             W
           </div>
           <div>
-            <h1 className="text-xl font-semibold tracking-tight text-zinc-100">
+            <h1 className="text-xl font-semibold tracking-tight text-ink">
               WaGo
             </h1>
-            <p className="text-xs text-zinc-500">WhatsApp Business on the Go</p>
+            <p className="text-xs text-ink-faint">WhatsApp Business on the Go</p>
           </div>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 shadow-xl shadow-black/30"
+          className="space-y-4 rounded-2xl border border-edge bg-panel p-6 shadow-xl shadow-black/30"
         >
           <TextField
             label="Email"

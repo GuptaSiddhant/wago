@@ -52,7 +52,7 @@ function ConfigSection({
   children: ReactNode
 }) {
   return (
-    <Disclosure id={id} className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/50">
+    <Disclosure id={id} className="overflow-hidden rounded-xl border border-edge bg-panel">
       {({ isExpanded }: DisclosureRenderProps) => (
         <>
           <RACButton
@@ -60,19 +60,19 @@ function ConfigSection({
             className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
           >
             <span className="flex min-w-0 flex-col gap-0.5">
-              <Heading slot="heading" className="text-sm font-semibold text-zinc-200">
+              <Heading slot="heading" className="text-sm font-semibold text-ink">
                 {title}
               </Heading>
               {description ? (
-                <span className="text-xs text-zinc-500">{description}</span>
+                <span className="text-xs text-ink-faint">{description}</span>
               ) : null}
             </span>
             <ChevronDown
               size={16}
-              className={`shrink-0 text-zinc-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+              className={`shrink-0 text-ink-faint transition-transform ${isExpanded ? 'rotate-180' : ''}`}
             />
           </RACButton>
-          <DisclosurePanel className="flex flex-col gap-4 border-t border-zinc-800 px-4 py-4">
+          <DisclosurePanel className="flex flex-col gap-4 border-t border-edge px-4 py-4">
             {children}
           </DisclosurePanel>
         </>
@@ -144,8 +144,8 @@ export function ConfigPage() {
       <div className="flex-1 overflow-y-auto px-6 py-6">
         <div className="mx-auto flex max-w-2xl flex-col gap-6">
           <div>
-            <h1 className="text-xl font-semibold text-zinc-100">Instance configuration</h1>
-            <p className="mt-1 text-sm text-zinc-500">
+            <h1 className="text-xl font-semibold text-ink">Instance configuration</h1>
+            <p className="mt-1 text-sm text-ink-faint">
               These values are stored in the app database and take effect immediately. Admin
               credentials (email/password) are always read from the environment and can't be
               changed here.
@@ -194,7 +194,7 @@ export function ConfigPage() {
                   title="AI assistant"
                   description="OpenAI-compatible chat provider"
                 >
-                  <label className="flex items-center gap-2 text-sm text-zinc-300">
+                  <label className="flex items-center gap-2 text-sm text-ink-muted">
                     <input
                       type="checkbox"
                       checked={form.ai_enabled}
@@ -243,7 +243,7 @@ export function ConfigPage() {
                       type="number"
                     />
                     <div className="flex items-end pb-1">
-                      <label className="flex items-center gap-2 text-sm text-zinc-300">
+                      <label className="flex items-center gap-2 text-sm text-ink-muted">
                         <input
                           type="checkbox"
                           checked={form.smtp_tls}

@@ -26,7 +26,7 @@ export function SelectOrgPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-canvas px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -34,8 +34,8 @@ export function SelectOrgPage() {
               W
             </div>
             <div>
-              <h1 className="text-xl font-semibold tracking-tight text-zinc-100">WaGo</h1>
-              <p className="text-xs text-zinc-500">{session.user.email}</p>
+              <h1 className="text-xl font-semibold tracking-tight text-ink">WaGo</h1>
+              <p className="text-xs text-ink-faint">{session.user.email}</p>
             </div>
           </div>
           <Button variant="ghost" size="sm" onPress={logout}>
@@ -45,10 +45,10 @@ export function SelectOrgPage() {
 
         {orgs.length > 0 ? (
           <>
-            <h2 className="mb-1 text-sm font-medium text-zinc-100">
+            <h2 className="mb-1 text-sm font-medium text-ink">
               Choose an organization
             </h2>
-            <p className="mb-4 text-xs text-zinc-500">
+            <p className="mb-4 text-xs text-ink-faint">
               Pick the workspace you want to work in.
             </p>
             <ul className="flex flex-col gap-2">
@@ -57,20 +57,20 @@ export function SelectOrgPage() {
                   <button
                     type="button"
                     onClick={() => choose(o.id)}
-                    className="group flex w-full items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 text-left transition hover:border-emerald-600/60 hover:bg-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+                    className="group flex w-full items-center gap-3 rounded-xl border border-edge bg-panel p-3 text-left transition hover:border-emerald-600/60 hover:bg-panel-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
                   >
                     <OrgAvatar org={o} size={36} />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-zinc-100">
+                      <span className="block truncate text-sm font-medium text-ink">
                         {o.name}
                       </span>
-                      <span className="block text-[11px] uppercase tracking-wide text-zinc-500">
+                      <span className="block text-[11px] uppercase tracking-wide text-ink-faint">
                         {o.role}
                       </span>
                     </span>
                     <ArrowRight
                       size={16}
-                      className="shrink-0 text-zinc-600 transition group-hover:text-emerald-400"
+                      className="shrink-0 text-ink-faint transition group-hover:text-emerald-400"
                     />
                   </button>
                 </li>
@@ -79,14 +79,14 @@ export function SelectOrgPage() {
           </>
         ) : session.is_admin ? (
           <>
-            <h2 className="mb-1 text-sm font-medium text-zinc-100">
+            <h2 className="mb-1 text-sm font-medium text-ink">
               Set up your organization
             </h2>
-            <p className="mb-4 text-xs text-zinc-500">
+            <p className="mb-4 text-xs text-ink-faint">
               Create your workspace to start using WaGo. You can change these
               details later.
             </p>
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 shadow-xl shadow-black/30">
+            <div className="rounded-2xl border border-edge bg-panel p-5 shadow-xl shadow-black/30">
               <OrgCreateForm
                 submitLabel="Create & continue"
                 onCreated={() => navigate({ to: '/inbox' })}
@@ -94,10 +94,10 @@ export function SelectOrgPage() {
             </div>
           </>
         ) : (
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 text-center shadow-xl shadow-black/30">
-            <Building2 size={24} className="mx-auto mb-3 text-zinc-600" />
-            <p className="text-sm text-zinc-300">No organization yet</p>
-            <p className="mt-1 text-xs text-zinc-500">
+          <div className="rounded-2xl border border-edge bg-panel p-6 text-center shadow-xl shadow-black/30">
+            <Building2 size={24} className="mx-auto mb-3 text-ink-faint" />
+            <p className="text-sm text-ink-muted">No organization yet</p>
+            <p className="mt-1 text-xs text-ink-faint">
               You're not part of an organization. Ask your administrator to send
               you an invite link.
             </p>

@@ -128,7 +128,7 @@ function AccountDialog({
           onChange={setWabaId}
           placeholder="Optional — required for org analytics"
         />
-        <p className="-mt-2 text-xs text-zinc-500">
+        <p className="-mt-2 text-xs text-ink-faint">
           Add the WABA ID and a token with <code>whatsapp_business_management</code> permission to
           unlock usage and cost analytics for this number.
         </p>
@@ -148,7 +148,7 @@ function AccountDialog({
           placeholder="Webhook verify token"
         />
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-zinc-300">Status</span>
+          <span className="mb-1.5 block text-sm font-medium text-ink-muted">Status</span>
           <SelectField
             options={statusOptions}
             selectedKey={status}
@@ -158,7 +158,7 @@ function AccountDialog({
           />
         </div>
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-zinc-300">Team</span>
+          <span className="mb-1.5 block text-sm font-medium text-ink-muted">Team</span>
           <SelectField
             options={teamOptions}
             selectedKey={teamId}
@@ -167,7 +167,7 @@ function AccountDialog({
             }}
             placeholder="No team — visible to all"
           />
-          <p className="mt-1 text-xs text-zinc-500">
+          <p className="mt-1 text-xs text-ink-faint">
             Conversations on this number route to this team.
           </p>
         </div>
@@ -213,7 +213,7 @@ function WebhookConnect({ accountId }: { accountId: string }) {
   const result = statusQuery.data
   if (statusQuery.isLoading) {
     return (
-      <div className="mt-2 flex items-center gap-2 text-xs text-zinc-600">
+      <div className="mt-2 flex items-center gap-2 text-xs text-ink-faint">
         <Spinner className="h-3 w-3" /> Checking webhook…
       </div>
     )
@@ -224,7 +224,7 @@ function WebhookConnect({ accountId }: { accountId: string }) {
       <div className="mt-2 flex items-center gap-2">
         <Badge tone="green">Webhook connected</Badge>
         {result.callback_url ? (
-          <code className="min-w-0 truncate rounded bg-zinc-800 px-1.5 py-0.5 text-[10px] text-emerald-300">
+          <code className="min-w-0 truncate rounded bg-panel-strong px-1.5 py-0.5 text-[10px] text-emerald-300">
             {result.callback_url}
           </code>
         ) : null}
@@ -240,7 +240,7 @@ function WebhookConnect({ accountId }: { accountId: string }) {
           Webhooks can't be connected until <code>PUBLIC_BASE_URL</code> is set on this instance.
         </p>
       ) : (
-        <p className="text-xs text-zinc-600">
+        <p className="text-xs text-ink-faint">
           Meta isn't delivering messages for this number yet.
         </p>
       )}
@@ -321,13 +321,13 @@ function BusinessProfileSync({ accountId }: { accountId: string }) {
       ) : null}
 
       {profileQuery.isLoading ? (
-        <p className="text-xs text-zinc-600">Fetching WhatsApp profile…</p>
+        <p className="text-xs text-ink-faint">Fetching WhatsApp profile…</p>
       ) : profileQuery.data && !profileQuery.data.ok ? (
-        <p className="text-xs text-zinc-600">
+        <p className="text-xs text-ink-faint">
           Profile unavailable{profileQuery.data.error ? ` — ${profileQuery.data.error}` : ''}
         </p>
       ) : profile ? (
-        <dl className="space-y-1 text-xs text-zinc-500">
+        <dl className="space-y-1 text-xs text-ink-faint">
           <ProfileField label="About" value={stringOf(profile.about)} />
           <ProfileField label="Address" value={stringOf(profile.address)} />
           <ProfileField label="Description" value={stringOf(profile.description)} />
@@ -344,8 +344,8 @@ function ProfileField({ label, value }: { label: string; value: string }) {
   if (!value) return null
   return (
     <div className="flex gap-2">
-      <span className="w-24 shrink-0 text-zinc-600">{label}</span>
-      <span className="min-w-0 truncate text-zinc-400">{value}</span>
+      <span className="w-24 shrink-0 text-ink-faint">{label}</span>
+      <span className="min-w-0 truncate text-ink-muted">{value}</span>
     </div>
   )
 }
@@ -370,7 +370,7 @@ function NumberHealth({ accountId }: { accountId: string }) {
 
   if (metaQuery.isLoading) {
     return (
-      <div className="mt-2 flex items-center gap-2 text-xs text-zinc-600">
+      <div className="mt-2 flex items-center gap-2 text-xs text-ink-faint">
         <Spinner className="h-3 w-3" /> Checking number health…
       </div>
     )
@@ -379,7 +379,7 @@ function NumberHealth({ accountId }: { accountId: string }) {
   const result = metaQuery.data
   if (!result || !result.ok || !result.info) {
     return (
-      <div className="mt-2 text-xs text-zinc-600">
+      <div className="mt-2 text-xs text-ink-faint">
         Meta health unavailable{result?.error ? ` — ${result.error}` : ''}
       </div>
     )
@@ -441,10 +441,10 @@ export function NumbersPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
-      <header className="flex items-center justify-between border-b border-zinc-800/80 px-6 py-4">
+      <header className="flex items-center justify-between border-b border-edge px-6 py-4">
         <div>
-          <h1 className="text-lg font-semibold text-zinc-100">WhatsApp Numbers</h1>
-          <p className="text-sm text-zinc-500">
+          <h1 className="text-lg font-semibold text-ink">WhatsApp Numbers</h1>
+          <p className="text-sm text-ink-faint">
             Meta accounts connected to this organization. Each number routes its conversations
             to the assigned team.
           </p>
@@ -461,7 +461,7 @@ export function NumbersPage() {
         {accountsQuery.isLoading ? (
           <div className="space-y-2">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="flex items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+              <div key={i} className="flex items-center justify-between gap-3 rounded-xl border border-edge bg-panel p-4">
                 <div className="flex items-center gap-3">
                   <Skeleton className="h-10 w-10 rounded-full" />
                   <div className="space-y-2">
@@ -484,22 +484,22 @@ export function NumbersPage() {
             {accounts.map((a) => (
               <li
                 key={a.id}
-                className="flex items-start gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4"
+                className="flex items-start gap-3 rounded-xl border border-edge bg-panel p-4"
               >
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
                   <Smartphone size={17} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-sm font-medium text-zinc-100">
+                    <span className="truncate text-sm font-medium text-ink">
                       {a.display_name || a.phone_number_id}
                     </span>
                     <Badge tone={a.status === 'connected' ? 'green' : 'red'}>{a.status}</Badge>
                   </div>
-                  <p className="mt-0.5 truncate text-xs text-zinc-500">
+                  <p className="mt-0.5 truncate text-xs text-ink-faint">
                     phone_number_id: {a.phone_number_id}
                   </p>
-                  <p className="mt-0.5 truncate text-xs text-zinc-500">
+                  <p className="mt-0.5 truncate text-xs text-ink-faint">
                     Team: {a.team_name ?? 'All'}
                   </p>
                   <NumberHealth accountId={a.id} />
@@ -514,7 +514,7 @@ export function NumbersPage() {
                       aria-label={`Edit ${a.display_name || a.phone_number_id}`}
                       onPress={() => setDialog({ mode: 'edit', account: a })}
                     >
-                      <Pencil size={16} className="text-zinc-500 hover:text-zinc-200" />
+                      <Pencil size={16} className="text-ink-faint hover:text-ink" />
                     </Button>
                     <Button
                       size="icon"
@@ -523,7 +523,7 @@ export function NumbersPage() {
                       onPress={() => handleDelete(a)}
                       isDisabled={deleteMutation.isPending}
                     >
-                      <Trash2 size={16} className="text-zinc-500 hover:text-red-400" />
+                      <Trash2 size={16} className="text-ink-faint hover:text-red-400" />
                     </Button>
                   </div>
                 ) : null}

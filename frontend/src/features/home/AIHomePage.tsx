@@ -71,10 +71,10 @@ export function AIHomePage() {
   return (
     <div className="flex h-full min-h-0 flex-1">
       {/* Active conversations */}
-      <aside className="flex w-72 shrink-0 flex-col border-r border-zinc-800/80">
-        <div className="border-b border-zinc-800/80 px-4 py-3">
-          <h2 className="text-sm font-semibold text-zinc-100">Active conversations</h2>
-          <p className="text-[11px] text-zinc-500">Open conversations in this org</p>
+      <aside className="flex w-72 shrink-0 flex-col border-r border-edge">
+        <div className="border-b border-edge px-4 py-3">
+          <h2 className="text-sm font-semibold text-ink">Active conversations</h2>
+          <p className="text-[11px] text-ink-faint">Open conversations in this org</p>
         </div>
         <div className="flex-1 overflow-y-auto py-2">
           {conversationsQuery.isLoading ? (
@@ -105,20 +105,20 @@ export function AIHomePage() {
                       type="button"
                       onClick={() => setActiveConv(c)}
                       className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 ${
-                        active ? 'bg-zinc-900' : 'hover:bg-zinc-900/50'
+                        active ? 'bg-panel' : 'hover:bg-panel-hover'
                       }`}
                     >
                       <Avatar name={c.contact.name || c.contact.phone} size={36} />
                       <span className="min-w-0 flex-1">
                         <span className="flex items-baseline justify-between gap-2">
-                          <span className="truncate text-sm font-medium text-zinc-100">
+                          <span className="truncate text-sm font-medium text-ink">
                             {c.contact.name || c.contact.phone}
                           </span>
-                          <span className="shrink-0 text-[11px] text-zinc-500">
+                          <span className="shrink-0 text-[11px] text-ink-faint">
                             {timeAgo(c.last_message_at)}
                           </span>
                         </span>
-                        <span className="block truncate text-xs text-zinc-500">
+                        <span className="block truncate text-xs text-ink-faint">
                           {c.last_message?.body || 'No messages yet'}
                         </span>
                       </span>
@@ -133,15 +133,15 @@ export function AIHomePage() {
 
       {/* Chat */}
       <section className="flex min-w-0 flex-1 flex-col px-6 py-5">
-        <div className="flex items-center gap-3 border-b border-zinc-800/80 pb-4">
+        <div className="flex items-center gap-3 border-b border-edge pb-4">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600/15 text-emerald-400">
             <Bot size={18} />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-sm font-semibold text-zinc-100">
+            <div className="text-sm font-semibold text-ink">
               {activeConv ? activeConv.contact.name || activeConv.contact.phone : 'WaGo assistant'}
             </div>
-            <div className="text-[11px] text-zinc-500">
+            <div className="text-[11px] text-ink-faint">
               {activeConv
                 ? `Context: this conversation (${activeConv.contact.phone || 'no phone'})`
                 : 'Answers about your support inbox'}
@@ -180,8 +180,8 @@ export function AIHomePage() {
                   <div
                     className={`max-w-[75%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm ${
                       m.role === 'user'
-                        ? 'bg-emerald-600 text-white'
-                        : 'border border-zinc-800 bg-zinc-900/50 text-zinc-100'
+                        ? 'bg-emerald-700 text-white'
+                        : 'border border-edge bg-panel text-ink'
                     }`}
                   >
                     {renderText(m)}
@@ -190,7 +190,7 @@ export function AIHomePage() {
               ))}
               {isLoading ? (
                 <div className="flex justify-start">
-                  <div className="flex items-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-900/50 px-4 py-3 text-sm text-zinc-500">
+                  <div className="flex items-center gap-2 rounded-2xl border border-edge bg-panel px-4 py-3 text-sm text-ink-faint">
                     <Spinner className="!h-3.5 !w-3.5" />
                     Thinking…
                   </div>
@@ -223,7 +223,7 @@ export function AIHomePage() {
           ) : null}
         </div>
 
-        <form onSubmit={handleSubmit} className="flex items-end gap-2 border-t border-zinc-800/80 pt-4">
+        <form onSubmit={handleSubmit} className="flex items-end gap-2 border-t border-edge pt-4">
           <div className="min-w-0 flex-1">
             <TextField
               label="Message the assistant"

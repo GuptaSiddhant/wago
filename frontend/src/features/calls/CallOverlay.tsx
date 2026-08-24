@@ -31,15 +31,15 @@ function IncomingBanner({
 
   return (
     <div className="fixed inset-x-0 top-4 z-50 flex justify-center px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900/95 p-4 shadow-2xl backdrop-blur">
+      <div className="w-full max-w-sm rounded-2xl border border-edge bg-panel p-4 shadow-2xl backdrop-blur">
         <div className="flex items-center gap-4">
           <Avatar name={contactName} size={44} />
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 text-sm font-semibold text-zinc-100">
+            <div className="flex items-center gap-2 text-sm font-semibold text-ink">
               <PhoneIncoming size={14} className="text-emerald-400" />
               <span className="truncate">{contactName}</span>
             </div>
-            <p className="truncate text-xs text-zinc-500">{ringing?.phone}</p>
+            <p className="truncate text-xs text-ink-faint">{ringing?.phone}</p>
             <p className="mt-0.5 text-[11px] text-emerald-400/80">Incoming call…</p>
           </div>
           <div className="flex shrink-0 gap-2">
@@ -76,19 +76,19 @@ function ActiveCallWindow({
   const CallIcon = outbound ? PhoneOutgoing : PhoneIncoming
 
   return (
-    <div className="fixed right-4 bottom-4 z-50 w-72 rounded-2xl border border-zinc-800 bg-zinc-900/95 p-4 shadow-2xl backdrop-blur">
+    <div className="fixed right-4 bottom-4 z-50 w-72 rounded-2xl border border-edge bg-panel p-4 shadow-2xl backdrop-blur">
       <div className="flex items-center gap-3">
         <Avatar name={contactName} size={40} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 text-sm font-semibold text-zinc-100">
+          <div className="flex items-center gap-2 text-sm font-semibold text-ink">
             <CallIcon size={14} className={outbound ? 'text-sky-400' : 'text-emerald-400'} />
             <span className="truncate">{contactName}</span>
           </div>
-          <p className="truncate text-xs text-zinc-500">{active?.phone}</p>
+          <p className="truncate text-xs text-ink-faint">{active?.phone}</p>
         </div>
       </div>
 
-      <div className="mt-3 rounded-xl bg-zinc-950/60 px-3 py-2 text-center text-xs text-zinc-400">
+      <div className="mt-3 rounded-xl bg-canvas px-3 py-2 text-center text-xs text-ink-muted">
         {connecting ? 'Connecting…' : error ?? 'Call connected'}
       </div>
 

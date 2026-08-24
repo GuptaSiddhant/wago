@@ -18,6 +18,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { ModalDialog } from '../../components/ui/Modal'
+import { Drawer } from '../../components/ui/Drawer'
 import { SearchField } from '../../components/ui/SearchField'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { Spinner } from '../../components/ui/Spinner'
@@ -97,7 +98,7 @@ function ContactDialog({
   )
 }
 
-function ContactDetailDialog({ contact, onClose }: { contact: ContactDTO; onClose: () => void }) {
+function ContactDetailDrawer({ contact, onClose }: { contact: ContactDTO; onClose: () => void }) {
   const { org } = useSession()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -149,20 +150,20 @@ function ContactDetailDialog({ contact, onClose }: { contact: ContactDTO; onClos
   }
 
   return (
-    <ModalDialog isOpen onOpenChange={(open) => !open && onClose()} title="Contact details">
+    <Drawer isOpen onOpenChange={(open) => !open && onClose()} title="Contact details">
       <div className="flex flex-col gap-5">
         <div className="flex items-center gap-3">
           <Avatar name={contact.name || contact.phone} size={44} />
           <div className="min-w-0">
-            <p className="truncate text-base font-semibold text-zinc-100">
+            <p className="truncate text-base font-semibold text-ink">
               {contact.name || 'Unnamed contact'}
             </p>
-            <p className="text-sm text-zinc-400">{contact.phone}</p>
+            <p className="text-sm text-ink-muted">{contact.phone}</p>
           </div>
         </div>
 
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-zinc-300">Tags</span>
+          <span className="mb-1.5 block text-sm font-medium text-ink-muted">Tags</span>
           {tags.length > 0 ? (
             <div className="mb-2 flex flex-wrap gap-1.5">
               {tags.map((t, i) => (
@@ -172,7 +173,7 @@ function ContactDetailDialog({ contact, onClose }: { contact: ContactDTO; onClos
                     type="button"
                     aria-label={`Remove tag ${t}`}
                     onClick={() => setTags(tags.filter((x) => x !== t))}
-                    className="text-blue-300 hover:text-zinc-100"
+                    className="text-blue-300 hover:text-ink"
                   >
                     <X size={12} />
                   </button>
@@ -180,7 +181,7 @@ function ContactDetailDialog({ contact, onClose }: { contact: ContactDTO; onClos
               ))}
             </div>
           ) : (
-            <p className="mb-2 text-sm text-zinc-500">No tags yet.</p>
+            <p className="mb-2 text-sm text-ink-faint">No tags yet.</p>
           )}
           <div className="flex gap-2">
             <input
@@ -193,7 +194,7 @@ function ContactDetailDialog({ contact, onClose }: { contact: ContactDTO; onClos
                 }
               }}
               placeholder="Add a tag…"
-              className="min-w-0 flex-1 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-emerald-500"
+              className="min-w-0 flex-1 rounded-lg border border-edge bg-panel px-3 py-2 text-sm text-ink outline-none focus:border-emerald-500"
             />
             <Button type="button" size="sm" variant="secondary" onPress={addTag}>
               Add
@@ -202,13 +203,13 @@ function ContactDetailDialog({ contact, onClose }: { contact: ContactDTO; onClos
         </div>
 
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-zinc-300">Notes</span>
+          <span className="mb-1.5 block text-sm font-medium text-ink-muted">Notes</span>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
             placeholder="Internal notes about this contact…"
-            className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-emerald-500"
+            className="w-full rounded-lg border border-edge bg-panel px-3 py-2 text-sm text-ink outline-none focus:border-emerald-500"
           />
         </div>
 
@@ -228,8 +229,8 @@ function ContactDetailDialog({ contact, onClose }: { contact: ContactDTO; onClos
           </Button>
         </div>
 
-        <div className="border-t border-zinc-800 pt-4">
-          <span className="mb-2 block text-sm font-semibold uppercase tracking-wider text-zinc-500">
+        <div className="border-t border-edge pt-4">
+          <span className="mb-2 block text-sm font-semibold uppercase tracking-wider text-ink-faint">
             Conversation history
           </span>
           {historyQuery.isLoading ? (
@@ -237,7 +238,7 @@ function ContactDetailDialog({ contact, onClose }: { contact: ContactDTO; onClos
               <Spinner />
             </div>
           ) : conversations.length === 0 ? (
-            <p className="text-sm text-zinc-500">No conversations for this contact yet.</p>
+            <p className="text-sm text-ink-faint">No conversations for this contact yet.</p>
           ) : (
             <ul className="space-y-1.5">
               {conversations.map((c) => (
@@ -245,17 +246,17 @@ function ContactDetailDialog({ contact, onClose }: { contact: ContactDTO; onClos
                   <button
                     type="button"
                     onClick={() => openChat(c.id)}
-                    className="flex w-full items-center justify-between gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-zinc-800/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+                    className="flex w-full items-center justify-between gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-panel-strong-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
                   >
                     <div className="min-w-0">
-                      <p className="truncate text-sm text-zinc-200">
+                      <p className="truncate text-sm text-ink">
                         {c.last_message?.body || (c.status === 'open' ? 'Open conversation' : c.status)}
                       </p>
-                      <p className="truncate text-xs text-zinc-500">{c.whatsapp_account.display_name}</p>
+                      <p className="truncate text-xs text-ink-faint">{c.whatsapp_account.display_name}</p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       {c.unread_count > 0 ? <Badge tone="red">{c.unread_count} new</Badge> : null}
-                      <span className="text-xs text-zinc-500">{formatDate(c.last_message_at)}</span>
+                      <span className="text-xs text-ink-faint">{formatDate(c.last_message_at)}</span>
                     </div>
                   </button>
                 </li>
@@ -264,7 +265,7 @@ function ContactDetailDialog({ contact, onClose }: { contact: ContactDTO; onClos
           )}
         </div>
       </div>
-    </ModalDialog>
+    </Drawer>
   )
 }
 
@@ -307,10 +308,10 @@ export function ContactsPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
-      <header className="flex items-center justify-between border-b border-zinc-800/80 px-6 py-4">
+      <header className="flex items-center justify-between border-b border-edge px-6 py-4">
         <div>
-          <h1 className="text-lg font-semibold text-zinc-100">Contacts</h1>
-          <p className="text-sm text-zinc-500">
+          <h1 className="text-lg font-semibold text-ink">Contacts</h1>
+          <p className="text-sm text-ink-faint">
             People your org has chatted with on WhatsApp.
           </p>
         </div>
@@ -356,7 +357,7 @@ export function ContactsPage() {
         ) : (
           <table className="w-full border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-zinc-800 text-xs uppercase tracking-wider text-zinc-500">
+              <tr className="border-b border-edge text-xs uppercase tracking-wider text-ink-faint">
                 <th className="py-2.5 pr-4 font-medium">Name</th>
                 <th className="py-2.5 font-medium">Phone</th>
                 <th className="py-2.5 pl-4 text-right font-medium">Actions</th>
@@ -368,7 +369,7 @@ export function ContactsPage() {
                   key={c.id}
                   tabIndex={0}
                   aria-label={`Open details for ${c.name || c.phone}`}
-                  className="cursor-pointer border-b border-zinc-800/60 transition hover:bg-zinc-900/40 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-emerald-500/60"
+                  className="cursor-pointer border-b border-edge transition hover:bg-panel-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-emerald-500/60"
                   onClick={() => setDetail(c)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
@@ -380,7 +381,7 @@ export function ContactsPage() {
                   <td className="py-3 pr-4">
                     <div className="flex items-center gap-3">
                       <Avatar name={c.name || c.phone} size={32} />
-                      <span className="font-medium text-zinc-100">{c.name || c.phone}</span>
+                      <span className="font-medium text-ink">{c.name || c.phone}</span>
                       {c.tags && c.tags.length > 0 ? (
                         <div className="hidden gap-1 sm:flex">
                           {c.tags.slice(0, 2).map((t, i) => (
@@ -392,7 +393,7 @@ export function ContactsPage() {
                       ) : null}
                     </div>
                   </td>
-                  <td className="py-3 text-zinc-400">{c.phone}</td>
+                  <td className="py-3 text-ink-muted">{c.phone}</td>
                   <td className="py-3 pl-4 text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-1">
                       <Button
@@ -411,7 +412,7 @@ export function ContactsPage() {
                             aria-label={`Edit ${c.name || c.phone}`}
                             onPress={() => setDialog({ mode: 'edit', contact: c })}
                           >
-                            <Pencil size={16} className="text-zinc-500 hover:text-zinc-200" />
+                            <Pencil size={16} className="text-ink-faint hover:text-ink" />
                           </Button>
                           <Button
                             size="icon"
@@ -420,7 +421,7 @@ export function ContactsPage() {
                             onPress={() => handleDelete(c)}
                             isDisabled={deleteMutation.isPending}
                           >
-                            <Trash2 size={16} className="text-zinc-500 hover:text-red-400" />
+                            <Trash2 size={16} className="text-ink-faint hover:text-red-400" />
                           </Button>
                         </>
                       ) : null}
@@ -434,7 +435,7 @@ export function ContactsPage() {
       </div>
 
       {dialog ? <ContactDialog state={dialog} onDone={() => setDialog(null)} /> : null}
-      {detail ? <ContactDetailDialog contact={detail} onClose={() => setDetail(null)} /> : null}
+      {detail ? <ContactDetailDrawer contact={detail} onClose={() => setDetail(null)} /> : null}
       {sendTo ? <TemplateSendDialog contact={sendTo} onClose={() => setSendTo(null)} /> : null}
     </div>
   )

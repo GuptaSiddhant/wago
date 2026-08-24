@@ -32,12 +32,12 @@ export function ModalDialog({ title, children, ...props }: ModalDialogProps) {
             : isExiting
               ? 'animate-[wago-zoom-out_150ms_ease-in]'
               : ''
-          return `max-h-[calc(var(--visual-viewport-height)*0.9)] w-full max-w-[min(480px,calc(100vw-2rem))] overflow-y-auto rounded-2xl border border-zinc-700/80 bg-zinc-900 p-6 shadow-2xl shadow-black/50 outline-none ${animate}`
+          return `max-h-[calc(var(--visual-viewport-height)*0.9)] w-full max-w-[min(480px,calc(100vw-2rem))] overflow-y-auto rounded-2xl border border-edge-strong bg-panel p-6 shadow-2xl shadow-black/50 outline-none ${animate}`
         }}
       >
         <Dialog className="flex flex-col gap-4 outline-none">
           {title != null ? (
-            <Heading slot="title" className="text-lg font-semibold text-zinc-100">
+            <Heading slot="title" className="text-lg font-semibold text-ink">
               {title}
             </Heading>
           ) : null}

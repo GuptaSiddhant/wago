@@ -125,7 +125,7 @@ export function OrgPage() {
     mutation.mutate()
   }
 
-  const section = 'flex flex-col gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 p-3'
+  const section = 'flex flex-col gap-3 rounded-xl border border-edge bg-panel p-3'
 
   if (!org) return null
 
@@ -134,8 +134,8 @@ export function OrgPage() {
       <div className="flex-1 overflow-y-auto px-6 py-6">
         <div className="mx-auto flex max-w-2xl flex-col gap-6">
           <div>
-            <h1 className="text-xl font-semibold text-zinc-100">Organization</h1>
-            <p className="mt-1 text-sm text-zinc-500">
+            <h1 className="text-xl font-semibold text-ink">Organization</h1>
+            <p className="mt-1 text-sm text-ink-faint">
               Business details shown to WhatsApp contacts and used when syncing
               your number's business profile. {canEdit ? '' : 'Only owners and admins can edit these.'}
             </p>
@@ -156,7 +156,7 @@ export function OrgPage() {
               />
 
               <div>
-                <span className="mb-1.5 block text-sm font-medium text-zinc-300">
+                <span className="mb-1.5 block text-sm font-medium text-ink-muted">
                   Profile picture
                 </span>
                 {picturePreview || (!removePicture && org.profile_picture_url) ? (
@@ -165,13 +165,13 @@ export function OrgPage() {
                       <img
                         src={picturePreview}
                         alt="Profile preview"
-                        className="h-16 w-16 rounded-xl object-cover ring-1 ring-zinc-700"
+                        className="h-16 w-16 rounded-xl object-cover ring-1 ring-edge-strong"
                       />
                     ) : (
                       <OrgAvatar org={org} size={64} />
                     )}
                     <div className="flex flex-col gap-2">
-                      <span className="text-xs text-zinc-400">
+                      <span className="text-xs text-ink-muted">
                         {picture?.name ?? 'Current picture'}
                       </span>
                       {canEdit ? (
@@ -201,13 +201,13 @@ export function OrgPage() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex h-16 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-700 bg-zinc-900 text-sm text-zinc-500 transition hover:border-zinc-600 hover:text-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+                    className="flex h-16 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-edge-strong bg-panel text-sm text-ink-faint transition hover:border-edge-strong hover:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
                   >
                     <ImagePlus size={18} />
                     Upload picture (JPEG/PNG/WebP)
                   </button>
                 ) : (
-                  <p className="text-sm text-zinc-500">No profile picture set.</p>
+                  <p className="text-sm text-ink-faint">No profile picture set.</p>
                 )}
                 <input
                   ref={fileInputRef}
@@ -326,7 +326,7 @@ export function OrgPage() {
                 </div>
               </>
             ) : (
-              <p className="text-sm text-zinc-600">
+              <p className="text-sm text-ink-faint">
                 Your role ({org.role}) is read-only here. Ask an owner or admin
                 to update the organization details.
               </p>

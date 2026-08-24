@@ -15,7 +15,7 @@ export interface WTextFieldProps
 }
 
 const inputBase =
-  'w-full h-10 px-3 rounded-xl bg-zinc-900 border border-zinc-700 text-zinc-100 text-sm placeholder:text-zinc-500 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 disabled:opacity-50'
+  'w-full h-10 px-3 rounded-xl bg-panel border border-edge-strong text-ink text-sm placeholder:text-ink-faint outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 disabled:opacity-50'
 
 export function TextField({
   label,
@@ -35,7 +35,7 @@ export function TextField({
       className="flex flex-col gap-1.5"
     >
       {label != null ? (
-        <Label className="text-sm font-medium text-zinc-300">{label}</Label>
+        <Label className="text-sm font-medium text-ink-muted">{label}</Label>
       ) : null}
       <Input
         type={type}
@@ -48,7 +48,7 @@ export function TextField({
         }}
       />
       {description != null ? (
-        <Text slot="description" className="text-xs text-zinc-500">
+        <Text slot="description" className="text-xs text-ink-faint">
           {description}
         </Text>
       ) : null}

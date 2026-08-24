@@ -47,24 +47,24 @@ export function TemplatePreview({
   const hasButtons = (buttons?.length ?? 0) > 0
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl bg-zinc-950 p-4 ring-1 ring-zinc-800">
-      <div className="flex items-center gap-2 text-xs text-zinc-500">
+    <div className="flex flex-col gap-2 rounded-2xl bg-canvas p-4 ring-1 ring-edge">
+      <div className="flex items-center gap-2 text-xs text-ink-faint">
         <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-bold text-white">
           {businessName.charAt(0).toUpperCase()}
         </span>
-        <span className="font-medium text-zinc-400">{businessName}</span>
+        <span className="font-medium text-ink-muted">{businessName}</span>
         <span className="ml-auto">✓✓</span>
       </div>
 
       <div className="max-w-[280px] overflow-hidden rounded-xl rounded-tr-sm bg-emerald-600/15 ring-1 ring-emerald-500/20">
-        <div className="px-3 py-2 text-sm text-zinc-100">
+        <div className="px-3 py-2 text-sm text-ink">
           {hasMediaHeader ? (
             <>
               <div className="mb-2 flex items-center gap-2 rounded-lg bg-emerald-600/20 px-3 py-2 text-xs text-emerald-300 ring-1 ring-emerald-500/30">
                 <span className="font-semibold uppercase">
                   {headerMedia!.media_type.toUpperCase()}
                 </span>
-                <span className="truncate text-zinc-400">{headerMedia!.filename ?? 'Media'}</span>
+                <span className="truncate text-ink-muted">{headerMedia!.filename ?? 'Media'}</span>
               </div>
               <div className="mb-2 h-px bg-emerald-500/30" />
             </>
@@ -72,7 +72,7 @@ export function TemplatePreview({
 
           {hasTextHeader ? (
             <>
-              <p className="mb-1 whitespace-pre-wrap text-sm font-semibold text-zinc-100">
+              <p className="mb-1 whitespace-pre-wrap text-sm font-semibold text-ink">
                 {headerText}
               </p>
               <div className="mb-2 h-px bg-emerald-500/30" />
@@ -86,7 +86,7 @@ export function TemplatePreview({
           {hasFooter ? (
             <>
               <div className="mt-2 h-px bg-emerald-500/30" />
-              <p className="mt-1 text-xs text-zinc-400">{footer}</p>
+              <p className="mt-1 text-xs text-ink-muted">{footer}</p>
             </>
           ) : null}
         </div>
@@ -112,7 +112,7 @@ export function TemplatePreview({
         ) : null}
       </div>
 
-      <p className="text-xs text-zinc-600">Template preview · variables are highlighted</p>
+      <p className="text-xs text-ink-faint">Template preview · variables are highlighted</p>
     </div>
   )
 }

@@ -3,35 +3,42 @@
 @theme {
   --font-sans:
     system-ui, -apple-system, 'Segoe UI', Roboto, Inter, sans-serif;
+
+  /* Semantic palette. Components must use these roles, never raw zinc shades.
+     Dark values live here; light values override below under
+     prefers-color-scheme. */
+  --color-canvas: #09090b;
+  --color-panel: #18181b;
+  --color-panel-hover: #1f1f23;
+  --color-panel-strong: #27272a;
+  --color-panel-strong-hover: #3f3f46;
+  --color-edge: #27272a;
+  --color-edge-strong: #3f3f46;
+  --color-ink: #f4f4f5;
+  --color-ink-muted: #a1a1aa;
+  --color-ink-faint: #71717a;
 }
 
 /*
  * Light theme.
  *
- * The app is authored against the dark zinc palette (darker zinc = surface,
- * lighter zinc = text). To honor the OS preference without sprinkling `dark:`
- * variants across ~25 components, the theme color variables themselves are
- * redefined under `prefers-color-scheme: light`: surfaces invert to near-white
- * while text inverts to near-black, and accent tints are darkened so they stay
- * readable on light backgrounds. Utilities reference these variables, so every
- * component picks up the light theme automatically.
+ * Only the semantic role variables (and accent tints tuned for readability on
+ * light surfaces) change between modes. Because every component references
+ * these roles instead of raw palette shades, both themes come from this single
+ * place.
  */
 @media (prefers-color-scheme: light) {
   :root {
-    /* Surfaces: invert the zinc ramp (was: bg darkest -> text lightest). */
-    --color-zinc-950: #fafafa;
-    --color-zinc-900: #ffffff;
-    --color-zinc-800: #f1f2f4;
-    --color-zinc-700: #d4d4d8;
-    --color-zinc-600: #b3b4bc;
-    /* Text: darkest zinc = strongest text. Tints also double as light surface
-       borders / badge fills, so the lower shades stay slightly muted. */
-    --color-zinc-500: #8f90a0;
-    --color-zinc-400: #71717a;
-    --color-zinc-300: #52525b;
-    --color-zinc-200: #3f3f46;
-    --color-zinc-100: #18181b;
-    --color-zinc-50: #09090b;
+    --color-canvas: #fafafa;
+    --color-panel: #ffffff;
+    --color-panel-hover: #f4f4f5;
+    --color-panel-strong: #eef0f3;
+    --color-panel-strong-hover: #e3e5e9;
+    --color-edge: #e4e4e7;
+    --color-edge-strong: #d4d4d8;
+    --color-ink: #18181b;
+    --color-ink-muted: #52525b;
+    --color-ink-faint: #71717a;
 
     /* Accent tints tuned for dark backgrounds get darkened for light ones. */
     --color-emerald-400: #059669;
@@ -57,8 +64,8 @@ body,
 
 body {
   margin: 0;
-  background-color: var(--color-zinc-950);
-  color: var(--color-zinc-100);
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -100,6 +107,24 @@ body {
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@keyframes wago-slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes wago-slide-out-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
   }
 }
 

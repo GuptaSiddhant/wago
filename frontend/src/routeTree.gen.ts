@@ -16,15 +16,17 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as SelectOrgRouteImport } from './routes/select-org'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppAnalyticsRouteImport } from './routes/_app/analytics'
-import { Route as AppBroadcastRouteImport } from './routes/_app/broadcast'
 import { Route as AppContactsRouteImport } from './routes/_app/contacts'
 import { Route as AppInboxRouteImport } from './routes/_app/inbox'
-import { Route as AppTemplatesRouteImport } from './routes/_app/templates'
+import { Route as AppBroadcastIndexRouteImport } from './routes/_app/broadcast/index'
+import { Route as AppBroadcastNewRouteImport } from './routes/_app/broadcast/new'
 import { Route as AppSettingsIndexRouteImport } from './routes/_app/settings/index'
 import { Route as AppSettingsConfigRouteImport } from './routes/_app/settings/config'
 import { Route as AppSettingsNumbersRouteImport } from './routes/_app/settings/numbers'
 import { Route as AppSettingsOrgRouteImport } from './routes/_app/settings/org'
 import { Route as AppSettingsTeamRouteImport } from './routes/_app/settings/team'
+import { Route as AppTemplatesIndexRouteImport } from './routes/_app/templates/index'
+import { Route as AppTemplatesNewRouteImport } from './routes/_app/templates/new'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -60,11 +62,6 @@ const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AppRoute,
 } as any)
-const AppBroadcastRoute = AppBroadcastRouteImport.update({
-  id: '/broadcast',
-  path: '/broadcast',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppContactsRoute = AppContactsRouteImport.update({
   id: '/contacts',
   path: '/contacts',
@@ -75,9 +72,14 @@ const AppInboxRoute = AppInboxRouteImport.update({
   path: '/inbox',
   getParentRoute: () => AppRoute,
 } as any)
-const AppTemplatesRoute = AppTemplatesRouteImport.update({
-  id: '/templates',
-  path: '/templates',
+const AppBroadcastIndexRoute = AppBroadcastIndexRouteImport.update({
+  id: '/broadcast/',
+  path: '/broadcast/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBroadcastNewRoute = AppBroadcastNewRouteImport.update({
+  id: '/broadcast/new',
+  path: '/broadcast/new',
   getParentRoute: () => AppRoute,
 } as any)
 const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
@@ -105,6 +107,16 @@ const AppSettingsTeamRoute = AppSettingsTeamRouteImport.update({
   path: '/settings/team',
   getParentRoute: () => AppRoute,
 } as any)
+const AppTemplatesIndexRoute = AppTemplatesIndexRouteImport.update({
+  id: '/templates/',
+  path: '/templates/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTemplatesNewRoute = AppTemplatesNewRouteImport.update({
+  id: '/templates/new',
+  path: '/templates/new',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -113,15 +125,17 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/select-org': typeof SelectOrgRoute
   '/analytics': typeof AppAnalyticsRoute
-  '/broadcast': typeof AppBroadcastRoute
   '/contacts': typeof AppContactsRoute
   '/inbox': typeof AppInboxRoute
-  '/templates': typeof AppTemplatesRoute
+  '/broadcast/new': typeof AppBroadcastNewRoute
   '/settings/config': typeof AppSettingsConfigRoute
   '/settings/numbers': typeof AppSettingsNumbersRoute
   '/settings/org': typeof AppSettingsOrgRoute
   '/settings/team': typeof AppSettingsTeamRoute
+  '/templates/new': typeof AppTemplatesNewRoute
+  '/broadcast/': typeof AppBroadcastIndexRoute
   '/settings/': typeof AppSettingsIndexRoute
+  '/templates/': typeof AppTemplatesIndexRoute
 }
 export interface FileRoutesByTo {
   '/account': typeof AccountRoute
@@ -129,16 +143,18 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/select-org': typeof SelectOrgRoute
   '/analytics': typeof AppAnalyticsRoute
-  '/broadcast': typeof AppBroadcastRoute
   '/contacts': typeof AppContactsRoute
   '/inbox': typeof AppInboxRoute
-  '/templates': typeof AppTemplatesRoute
   '/': typeof AppIndexRoute
+  '/broadcast/new': typeof AppBroadcastNewRoute
   '/settings/config': typeof AppSettingsConfigRoute
   '/settings/numbers': typeof AppSettingsNumbersRoute
   '/settings/org': typeof AppSettingsOrgRoute
   '/settings/team': typeof AppSettingsTeamRoute
+  '/templates/new': typeof AppTemplatesNewRoute
+  '/broadcast': typeof AppBroadcastIndexRoute
   '/settings': typeof AppSettingsIndexRoute
+  '/templates': typeof AppTemplatesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -148,16 +164,18 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/select-org': typeof SelectOrgRoute
   '/_app/analytics': typeof AppAnalyticsRoute
-  '/_app/broadcast': typeof AppBroadcastRoute
   '/_app/contacts': typeof AppContactsRoute
   '/_app/inbox': typeof AppInboxRoute
-  '/_app/templates': typeof AppTemplatesRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/broadcast/new': typeof AppBroadcastNewRoute
   '/_app/settings/config': typeof AppSettingsConfigRoute
   '/_app/settings/numbers': typeof AppSettingsNumbersRoute
   '/_app/settings/org': typeof AppSettingsOrgRoute
   '/_app/settings/team': typeof AppSettingsTeamRoute
+  '/_app/templates/new': typeof AppTemplatesNewRoute
+  '/_app/broadcast/': typeof AppBroadcastIndexRoute
   '/_app/settings/': typeof AppSettingsIndexRoute
+  '/_app/templates/': typeof AppTemplatesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -168,15 +186,17 @@ export interface FileRouteTypes {
     | '/login'
     | '/select-org'
     | '/analytics'
-    | '/broadcast'
     | '/contacts'
     | '/inbox'
-    | '/templates'
+    | '/broadcast/new'
     | '/settings/config'
     | '/settings/numbers'
     | '/settings/org'
     | '/settings/team'
+    | '/templates/new'
+    | '/broadcast/'
     | '/settings/'
+    | '/templates/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/account'
@@ -184,16 +204,18 @@ export interface FileRouteTypes {
     | '/login'
     | '/select-org'
     | '/analytics'
-    | '/broadcast'
     | '/contacts'
     | '/inbox'
-    | '/templates'
     | '/'
+    | '/broadcast/new'
     | '/settings/config'
     | '/settings/numbers'
     | '/settings/org'
     | '/settings/team'
+    | '/templates/new'
+    | '/broadcast'
     | '/settings'
+    | '/templates'
   id:
     | '__root__'
     | '/_app'
@@ -202,16 +224,18 @@ export interface FileRouteTypes {
     | '/login'
     | '/select-org'
     | '/_app/analytics'
-    | '/_app/broadcast'
     | '/_app/contacts'
     | '/_app/inbox'
-    | '/_app/templates'
     | '/_app/'
+    | '/_app/broadcast/new'
     | '/_app/settings/config'
     | '/_app/settings/numbers'
     | '/_app/settings/org'
     | '/_app/settings/team'
+    | '/_app/templates/new'
+    | '/_app/broadcast/'
     | '/_app/settings/'
+    | '/_app/templates/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -273,13 +297,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAnalyticsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/broadcast': {
-      id: '/_app/broadcast'
-      path: '/broadcast'
-      fullPath: '/broadcast'
-      preLoaderRoute: typeof AppBroadcastRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/contacts': {
       id: '/_app/contacts'
       path: '/contacts'
@@ -294,11 +311,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppInboxRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/templates': {
-      id: '/_app/templates'
-      path: '/templates'
-      fullPath: '/templates'
-      preLoaderRoute: typeof AppTemplatesRouteImport
+    '/_app/broadcast/': {
+      id: '/_app/broadcast/'
+      path: '/broadcast'
+      fullPath: '/broadcast/'
+      preLoaderRoute: typeof AppBroadcastIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/broadcast/new': {
+      id: '/_app/broadcast/new'
+      path: '/broadcast/new'
+      fullPath: '/broadcast/new'
+      preLoaderRoute: typeof AppBroadcastNewRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/settings/': {
@@ -336,35 +360,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsTeamRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/templates/': {
+      id: '/_app/templates/'
+      path: '/templates'
+      fullPath: '/templates/'
+      preLoaderRoute: typeof AppTemplatesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/templates/new': {
+      id: '/_app/templates/new'
+      path: '/templates/new'
+      fullPath: '/templates/new'
+      preLoaderRoute: typeof AppTemplatesNewRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
   AppAnalyticsRoute: typeof AppAnalyticsRoute
-  AppBroadcastRoute: typeof AppBroadcastRoute
   AppContactsRoute: typeof AppContactsRoute
   AppInboxRoute: typeof AppInboxRoute
-  AppTemplatesRoute: typeof AppTemplatesRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppBroadcastNewRoute: typeof AppBroadcastNewRoute
   AppSettingsConfigRoute: typeof AppSettingsConfigRoute
   AppSettingsNumbersRoute: typeof AppSettingsNumbersRoute
   AppSettingsOrgRoute: typeof AppSettingsOrgRoute
   AppSettingsTeamRoute: typeof AppSettingsTeamRoute
+  AppTemplatesNewRoute: typeof AppTemplatesNewRoute
+  AppBroadcastIndexRoute: typeof AppBroadcastIndexRoute
   AppSettingsIndexRoute: typeof AppSettingsIndexRoute
+  AppTemplatesIndexRoute: typeof AppTemplatesIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAnalyticsRoute: AppAnalyticsRoute,
-  AppBroadcastRoute: AppBroadcastRoute,
   AppContactsRoute: AppContactsRoute,
   AppInboxRoute: AppInboxRoute,
-  AppTemplatesRoute: AppTemplatesRoute,
   AppIndexRoute: AppIndexRoute,
+  AppBroadcastNewRoute: AppBroadcastNewRoute,
   AppSettingsConfigRoute: AppSettingsConfigRoute,
   AppSettingsNumbersRoute: AppSettingsNumbersRoute,
   AppSettingsOrgRoute: AppSettingsOrgRoute,
   AppSettingsTeamRoute: AppSettingsTeamRoute,
+  AppTemplatesNewRoute: AppTemplatesNewRoute,
+  AppBroadcastIndexRoute: AppBroadcastIndexRoute,
   AppSettingsIndexRoute: AppSettingsIndexRoute,
+  AppTemplatesIndexRoute: AppTemplatesIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

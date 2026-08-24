@@ -117,7 +117,7 @@ export function OrgCreateForm({ onCreated, onCancel, submitLabel }: OrgCreateFor
   }
 
   const section =
-    'flex flex-col gap-3 rounded-xl border border-zinc-800 bg-zinc-950/40 p-3'
+    'flex flex-col gap-3 rounded-xl border border-edge bg-canvas p-3'
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -132,7 +132,7 @@ export function OrgCreateForm({ onCreated, onCancel, submitLabel }: OrgCreateFor
         />
 
         <div>
-          <span className="mb-1.5 block text-sm font-medium text-zinc-300">
+          <span className="mb-1.5 block text-sm font-medium text-ink-muted">
             Profile picture
           </span>
           {picturePreview ? (
@@ -140,10 +140,10 @@ export function OrgCreateForm({ onCreated, onCancel, submitLabel }: OrgCreateFor
               <img
                 src={picturePreview}
                 alt="Profile preview"
-                className="h-16 w-16 rounded-xl object-cover ring-1 ring-zinc-700"
+                className="h-16 w-16 rounded-xl object-cover ring-1 ring-edge-strong"
               />
               <div className="flex flex-col gap-2">
-                <span className="text-xs text-zinc-400">
+                <span className="text-xs text-ink-muted">
                   {picture?.name} ({Math.max(1, Math.round((picture?.size ?? 0) / 1024))} KB)
                 </span>
                 <Button
@@ -164,7 +164,7 @@ export function OrgCreateForm({ onCreated, onCancel, submitLabel }: OrgCreateFor
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex h-16 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-700 bg-zinc-900 text-sm text-zinc-500 transition hover:border-zinc-600 hover:text-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+              className="flex h-16 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-edge-strong bg-panel text-sm text-ink-faint transition hover:border-edge-strong hover:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
             >
               <ImagePlus size={18} />
               Upload picture (JPEG/PNG/WebP)

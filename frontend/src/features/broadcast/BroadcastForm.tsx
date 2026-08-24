@@ -9,13 +9,12 @@ import { useTemplateVariables } from '../../lib/useTemplateVariables'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { FormError } from '../../components/ui/FormError'
-import { ModalDialog } from '../../components/ui/Modal'
 import { SearchField } from '../../components/ui/SearchField'
 import { SelectField } from '../../components/ui/Select'
 import { TextField } from '../../components/ui/TextField'
 import { TemplatePreview } from '../templates/TemplatePreview'
 
-export function BroadcastForm({
+export function NewBroadcastForm({
   accounts,
   templates,
   onDone,
@@ -129,12 +128,7 @@ export function BroadcastForm({
   }
 
   return (
-    <ModalDialog
-      isOpen
-      onOpenChange={(open) => !open && onDone()}
-      title="New broadcast"
-    >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <TextField
           label="Broadcast name"
           value={name}
@@ -165,7 +159,7 @@ export function BroadcastForm({
 
         {selectedTemplate ? (
           <div>
-            <span className="text-sm font-medium text-zinc-300">Template</span>
+            <span className="text-sm font-medium text-ink-muted">Template</span>
             <div className="mt-2">
               <TemplatePreview
                 headerText={selectedTemplate.header_type === 'TEXT' ? selectedTemplate.header_text : undefined}
@@ -186,25 +180,25 @@ export function BroadcastForm({
             </div>
 
             {canOverrideMedia ? (
-              <div className="mt-3 rounded-xl border border-zinc-800 bg-zinc-900/40 p-3">
-                <span className="text-sm font-medium text-zinc-300">Header media</span>
-                <p className="mt-0.5 text-xs text-zinc-500">
+              <div className="mt-3 rounded-xl border border-edge bg-panel p-3">
+                <span className="text-sm font-medium text-ink-muted">Header media</span>
+                <p className="mt-0.5 text-xs text-ink-faint">
                   Uses the template's
-                  <span className="ml-1 font-medium uppercase text-zinc-400">
+                  <span className="ml-1 font-medium uppercase text-ink-muted">
                     {overrideMediaType || selectedTemplate.header_media_type}
                   </span>{' '}
                   header. Optionally overwrite it for this broadcast only.
                 </p>
                 {overrideMediaId ? (
-                  <div className="mt-2 flex items-center gap-2 rounded-lg bg-zinc-900 border border-zinc-700 px-3 py-2">
+                  <div className="mt-2 flex items-center gap-2 rounded-lg bg-panel border border-edge-strong px-3 py-2">
                     <ImageIcon size={14} className="shrink-0 text-emerald-400" />
-                    <span className="min-w-0 flex-1 truncate text-sm text-zinc-200">
+                    <span className="min-w-0 flex-1 truncate text-sm text-ink">
                       {overrideMediaName}
                     </span>
                     <button
                       type="button"
                       aria-label="Use template media instead"
-                      className="shrink-0 rounded-full p-1 text-zinc-500 hover:bg-zinc-800 hover:text-red-400"
+                      className="shrink-0 rounded-full p-1 text-ink-faint hover:bg-panel-strong-hover hover:text-red-400"
                       onClick={() => {
                         setOverrideMediaId('')
                         setOverrideMediaType('')
@@ -219,7 +213,7 @@ export function BroadcastForm({
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploadMutation.isPending}
-                    className="mt-2 flex items-center justify-center gap-2 rounded-lg border border-dashed border-zinc-600 bg-zinc-900 px-3 py-2 text-sm text-zinc-400 transition hover:border-emerald-500 hover:text-emerald-400 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+                    className="mt-2 flex items-center justify-center gap-2 rounded-lg border border-dashed border-edge-strong bg-panel px-3 py-2 text-sm text-ink-muted transition hover:border-emerald-500 hover:text-emerald-400 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
                   >
                     <Paperclip size={14} />
                     {uploadMutation.isPending ? 'Uploading…' : 'Overwrite with a file'}
@@ -268,7 +262,7 @@ export function BroadcastForm({
         </div>
 
         <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-zinc-300">Recipients</span>
+          <span className="text-sm font-medium text-ink-muted">Recipients</span>
           <div className="flex gap-2">
             <Button
               size="sm"
@@ -287,7 +281,7 @@ export function BroadcastForm({
           </div>
 
           {allContacts ? (
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-ink-faint">
               The template will be sent to every contact in this workspace.
             </p>
           ) : (
@@ -298,31 +292,31 @@ export function BroadcastForm({
                 value={contactSearch}
                 onChange={setContactSearch}
               />
-              <div className="max-h-48 overflow-y-auto rounded-xl border border-zinc-800">
+              <div className="max-h-48 overflow-y-auto rounded-xl border border-edge">
                 {contactsQuery.isLoading ? (
-                  <p className="p-3 text-xs text-zinc-500">Loading contacts…</p>
+                  <p className="p-3 text-xs text-ink-faint">Loading contacts…</p>
                 ) : contacts.length === 0 ? (
-                  <p className="p-3 text-xs text-zinc-500">No contacts found.</p>
+                  <p className="p-3 text-xs text-ink-faint">No contacts found.</p>
                 ) : (
-                  <ul className="divide-y divide-zinc-800">
+                  <ul className="divide-y divide-edge">
                     {contacts.map((c) => (
                       <li key={c.id}>
                         <button
                           type="button"
                           onClick={() => toggleContact(c.id)}
-                          className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left hover:bg-zinc-900"
+                          className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left hover:bg-panel-hover"
                         >
                           <span className="min-w-0">
-                            <span className="block truncate text-sm text-zinc-200">
+                            <span className="block truncate text-sm text-ink">
                               {c.name || c.phone}
                             </span>
-                            <span className="block truncate text-xs text-zinc-500">{c.phone}</span>
+                            <span className="block truncate text-xs text-ink-faint">{c.phone}</span>
                           </span>
                           <span
                             className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs ${
                               selected.has(c.id)
                                 ? 'border-emerald-500 bg-emerald-500 text-white'
-                                : 'border-zinc-600 text-transparent'
+                                : 'border-edge-strong text-transparent'
                             }`}
                           >
                             ✓
@@ -333,7 +327,7 @@ export function BroadcastForm({
                   </ul>
                 )}
               </div>
-              <p className="text-xs text-zinc-500">{selected.size} selected</p>
+              <p className="text-xs text-ink-faint">{selected.size} selected</p>
             </>
           )}
         </div>
@@ -356,6 +350,5 @@ export function BroadcastForm({
           </Button>
         </div>
       </form>
-    </ModalDialog>
   )
 }

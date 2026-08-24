@@ -78,7 +78,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
       >
         <Modal
           className={({ isEntering, isExiting }: ModalRenderProps) =>
-            `w-full max-w-md rounded-2xl border border-zinc-700/80 bg-zinc-900 p-6 shadow-2xl shadow-black/50 outline-none ${
+            `w-full max-w-md rounded-2xl border border-edge-strong bg-panel p-6 shadow-2xl shadow-black/50 outline-none ${
               isEntering
                 ? "animate-[wago-zoom-in_200ms_ease-out]"
                 : isExiting
@@ -91,10 +91,10 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
             role="alertdialog"
             className="flex flex-col gap-3 outline-none"
           >
-            <Heading slot="title" className="text-lg font-semibold text-zinc-100">
+            <Heading slot="title" className="text-lg font-semibold text-ink">
               {req?.title}
             </Heading>
-            <p slot="subtitle" className="text-sm leading-relaxed text-zinc-400">
+            <p slot="subtitle" className="text-sm leading-relaxed text-ink-muted">
               {req?.message}
             </p>
             <div className="mt-2 flex justify-end gap-2">

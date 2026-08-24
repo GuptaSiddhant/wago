@@ -21,16 +21,16 @@ export function OrgSwitcher() {
       className="w-full"
     >
       <Label className="sr-only">Organization</Label>
-      <Button className="flex h-10 w-full items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900 px-3 text-sm text-zinc-100 outline-none transition hover:border-zinc-700 focus-visible:ring-2 focus-visible:ring-emerald-500/50">
+      <Button className="flex h-10 w-full items-center gap-2 rounded-xl border border-edge bg-panel px-3 text-sm text-ink outline-none transition hover:border-edge-strong focus-visible:ring-2 focus-visible:ring-emerald-500/50">
         {org ? <OrgAvatar org={org} size={20} /> : <Building2 size={16} className="shrink-0 text-emerald-500" />}
         <SelectValue className="truncate text-left font-medium">
           {({ selectedText }: SelectValueRenderProps<unknown>) =>
             selectedText ?? 'Select org'
           }
         </SelectValue>
-        <ChevronsUpDown size={14} className="ml-auto shrink-0 text-zinc-500" />
+        <ChevronsUpDown size={14} className="ml-auto shrink-0 text-ink-faint" />
       </Button>
-      <Popover className="w-56 rounded-xl border border-zinc-700 bg-zinc-900 p-1 shadow-xl shadow-black/40">
+      <Popover className="w-56 rounded-xl border border-edge-strong bg-panel p-1 shadow-xl shadow-black/40">
         <ListBox className="max-h-72 overflow-auto outline-none" items={session.orgs ?? []}>
           {(o: OrgSummary) => (
             <ListBoxItem
@@ -38,8 +38,8 @@ export function OrgSwitcher() {
               textValue={o.name}
               className={({ isFocused, isSelected }: ListBoxItemRenderProps) =>
                 `flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm outline-none ${
-                  isFocused ? 'bg-zinc-800' : ''
-                } ${isSelected ? 'text-emerald-400' : 'text-zinc-200'}`
+                  isFocused ? 'bg-panel-strong' : ''
+                } ${isSelected ? 'text-emerald-400' : 'text-ink'}`
               }
             >
               {({ isSelected }: ListBoxItemRenderProps) => (
@@ -47,7 +47,7 @@ export function OrgSwitcher() {
                   <span className="flex min-w-0 items-center gap-2">
                     <OrgAvatar org={o} size={20} />
                     <span className="truncate">{o.name}</span>
-                    <span className="text-[10px] uppercase tracking-wide text-zinc-500">
+                    <span className="text-[10px] uppercase tracking-wide text-ink-faint">
                       {o.role}
                     </span>
                   </span>

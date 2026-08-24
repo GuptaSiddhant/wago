@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
 import { FileText, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import {
   deleteTemplate,
-  listAccounts,
   listTemplates,
   syncTemplates,
 } from '../../api/client'
@@ -15,7 +15,6 @@ import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { FormError } from '../../components/ui/FormError'
 import { Skeleton } from '../../components/ui/Skeleton'
-import { TemplateForm } from './TemplateForm'
 import { TemplatePreview } from './TemplatePreview'
 
 const statusTone: Record<string, 'green' | 'amber' | 'red' | 'blue' | 'zinc'> = {
@@ -29,8 +28,8 @@ const statusTone: Record<string, 'green' | 'amber' | 'red' | 'blue' | 'zinc'> = 
 export function TemplatesPage() {
   const { org } = useSession()
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const orgId = org?.id ?? ''
-  const [showCreate, setShowCreate] = useState(false)
   const [syncError, setSyncError] = useState<string | null>(null)
 
   const templatesQuery = useQuery({
@@ -38,12 +37,6 @@ export function TemplatesPage() {
     queryFn: listTemplates,
     enabled: orgId !== '',
   })
-  const accountsQuery = useQuery({
-    queryKey: ['accounts', orgId],
-    queryFn: listAccounts,
-    enabled: orgId !== '',
-  })
-
   const deleteMutation = useMutation({
     mutationFn: deleteTemplate,
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['templates', orgId] }),
@@ -65,7 +58,6 @@ export function TemplatesPage() {
   })
 
   const templates = templatesQuery.data?.items ?? []
-  const accounts = accountsQuery.data?.items ?? []
   const confirm = useConfirm()
 
   async function handleDelete(t: MessageTemplateDTO) {
@@ -80,10 +72,10 @@ export function TemplatesPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
-      <header className="flex items-center justify-between gap-3 border-b border-zinc-800/80 px-6 py-4">
+      <header className="flex items-center justify-between gap-3 border-b border-edge px-6 py-4">
         <div>
-          <h1 className="text-lg font-semibold text-zinc-100">Message templates</h1>
-          <p className="text-sm text-zinc-500">
+          <h1 className="text-lg font-semibold text-ink">Message templates</h1>
+          <p className="text-sm text-ink-faint">
             Reusable WhatsApp templates submitted for Meta approval. Use approved templates to
             broadcast.
           </p>
@@ -99,7 +91,7 @@ export function TemplatesPage() {
             <RefreshCw size={14} className={syncMutation.isPending ? 'animate-spin' : ''} />
             Sync status
           </Button>
-          <Button size="sm" onPress={() => setShowCreate(true)}>
+          <Button size="sm" onPress={() => navigate({ to: '/templates/new' })}>
             <Plus size={14} />
             New template
           </Button>
@@ -118,7 +110,7 @@ export function TemplatesPage() {
             {Array.from({ length: 6 }).map((_, i) => (
               <li
                 key={i}
-                className="flex flex-col gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4"
+                className="flex flex-col gap-3 rounded-xl border border-edge bg-panel p-4"
               >
                 <Skeleton className="h-4 w-2/3" />
                 <Skeleton className="h-3 w-1/3" />
@@ -140,17 +132,17 @@ export function TemplatesPage() {
             {templates.map((t) => (
               <li
                 key={t.id}
-                className="flex flex-col gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4"
+                className="flex flex-col gap-3 rounded-xl border border-edge bg-panel p-4"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="truncate font-mono text-sm font-medium text-zinc-100">
+                      <span className="truncate font-mono text-sm font-medium text-ink">
                         {t.name}
                       </span>
                       <Badge tone={statusTone[t.status] ?? 'zinc'}>{t.status}</Badge>
                     </div>
-                    <p className="mt-0.5 truncate text-xs text-zinc-500">
+                    <p className="mt-0.5 truncate text-xs text-ink-faint">
                       {t.account_name || t.account_id} · {t.language} · {t.category}
                     </p>
                   </div>
@@ -161,7 +153,7 @@ export function TemplatesPage() {
                     onPress={() => handleDelete(t)}
                     isDisabled={deleteMutation.isPending}
                   >
-                    <Trash2 size={15} className="text-zinc-500 hover:text-red-400" />
+                    <Trash2 size={15} className="text-ink-faint hover:text-red-400" />
                   </Button>
                 </div>
 
@@ -186,9 +178,6 @@ export function TemplatesPage() {
         )}
       </div>
 
-      {showCreate ? (
-        <TemplateForm accounts={accounts} onDone={() => setShowCreate(false)} />
-      ) : null}
     </div>
   )
 }

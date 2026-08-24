@@ -15,18 +15,18 @@ const mainNav = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/inbox', label: 'Inbox', icon: MessageSquare },
   { to: '/contacts', label: 'Contacts', icon: Users },
-  { to: '/broadcast', label: 'Broadcast', icon: Megaphone },
+  { to: '/broadcast', label: 'Broadcasts', icon: Megaphone },
   { to: '/templates', label: 'Templates', icon: FileText },
+  { to: '/analytics', label: 'Analytics', icon: BarChart3 },
 ]
 
 const settingsNav = [
   { to: '/settings/org', label: 'Organization' },
   { to: '/settings/team', label: 'Team' },
   { to: '/settings/numbers', label: 'WhatsApp Numbers' },
-  { to: '/analytics', label: 'Analytics', icon: BarChart3 },
 ]
 
-const adminNav = [{ to: '/settings/config', label: 'Instance Config' }]
+const adminNav = [{ to: '/settings/config', label: 'Instance' }]
 
 function NavLink({
   to,
@@ -44,13 +44,13 @@ function NavLink({
       to={to}
       activeOptions={{ exact: to === '/inbox' }}
       onClick={onNavigate}
-      className="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-400 transition hover:bg-zinc-900 hover:text-zinc-100"
+      className="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-ink-muted transition hover:bg-panel-hover hover:text-ink"
       activeProps={{
         className:
-          'bg-zinc-900 text-zinc-100 font-medium [&>svg]:text-emerald-500',
+          'bg-panel text-ink font-medium [&>svg]:text-emerald-500',
       }}
     >
-      {Icon ? <Icon size={17} className="text-zinc-500 transition group-hover:text-zinc-300" /> : null}
+      {Icon ? <Icon size={17} className="text-ink-faint transition group-hover:text-ink-muted" /> : null}
       {label}
     </Link>
   )
@@ -67,11 +67,11 @@ export function AppShell() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-zinc-950 text-zinc-100">
+    <div className="flex h-screen overflow-hidden bg-canvas text-ink">
       {/* Skip to main content link for keyboard users */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only fixed top-4 left-4 z-50 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium z-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/60"
+        className="sr-only focus:not-sr-only fixed top-4 left-4 z-50 px-4 py-2 rounded-lg bg-emerald-700 text-white text-sm font-medium z-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/60"
       >
         Skip to main content
       </a>
@@ -85,7 +85,7 @@ export function AppShell() {
       ) : null}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col border-r border-zinc-800/80 bg-zinc-950 transition-transform duration-200 ease-out md:static md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col border-r border-edge bg-canvas transition-transform duration-200 ease-out md:static md:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         role="navigation"
@@ -107,7 +107,7 @@ export function AppShell() {
             )}
             <div className="min-w-0 flex-1">
               <div className="text-sm font-semibold tracking-tight">WaGo</div>
-              <div className="truncate text-[11px] text-zinc-500">{org?.name ?? 'Support inbox'}</div>
+              <div className="truncate text-[11px] text-ink-faint">{org?.name ?? 'Support inbox'}</div>
             </div>
           </Link>
           <NotificationBell />
@@ -124,7 +124,7 @@ export function AppShell() {
               aria-label="New organization"
               onPress={() => setShowNewOrg(true)}
             >
-              <Plus size={16} className="text-zinc-500 hover:text-emerald-400" />
+              <Plus size={16} className="text-ink-faint hover:text-emerald-400" />
             </Button>
           ) : null}
         </div>
@@ -140,7 +140,7 @@ export function AppShell() {
             />
           ))}
 
-          <div className="mt-5 flex items-center gap-2 px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-600">
+          <div className="mt-5 flex items-center gap-2 px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
             <Settings size={12} />
             Settings
           </div>
@@ -164,21 +164,21 @@ export function AppShell() {
             : null}
         </nav>
 
-        <div className="border-t border-zinc-800/80 p-3">
+        <div className="border-t border-edge p-3">
           <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
             <Link
               to="/account"
               onClick={closeSidebar}
               aria-label="Your account"
               title="Your account"
-              className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg outline-none transition hover:bg-zinc-900 focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+              className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg outline-none transition hover:bg-panel-hover focus-visible:ring-2 focus-visible:ring-emerald-500/60"
             >
               <Avatar name={session?.user.name} size={32} />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm text-zinc-200">
+                <span className="block truncate text-sm text-ink">
                   {session?.user.name || session?.user.email}
                 </span>
-                <span className="block truncate text-[11px] text-zinc-500">{session?.user.email}</span>
+                <span className="block truncate text-[11px] text-ink-faint">{session?.user.email}</span>
               </span>
             </Link>
             <button
@@ -186,7 +186,7 @@ export function AppShell() {
               onClick={logout}
               aria-label="Log out"
               title="Log out"
-              className="rounded-lg p-2 text-zinc-500 transition hover:bg-zinc-900 hover:text-red-400"
+              className="rounded-lg p-2 text-ink-faint transition hover:bg-panel-hover hover:text-red-400"
             >
               <LogOut size={16} />
             </button>
@@ -200,16 +200,16 @@ export function AppShell() {
         role="main"
       >
         {/* Mobile top bar with hamburger menu */}
-        <div className="flex items-center gap-2 border-b border-zinc-800/80 px-3 py-2.5 md:hidden">
+        <div className="flex items-center gap-2 border-b border-edge px-3 py-2.5 md:hidden">
           <Button
             size="icon"
             variant="ghost"
             aria-label="Open navigation"
             onPress={() => setSidebarOpen(true)}
           >
-            <Menu size={18} className="text-zinc-400" />
+            <Menu size={18} className="text-ink-muted" />
           </Button>
-          <div className="min-w-0 flex-1 truncate text-sm font-semibold text-zinc-100">
+          <div className="min-w-0 flex-1 truncate text-sm font-semibold text-ink">
             {org?.name ?? 'WaGo'}
           </div>
         </div>

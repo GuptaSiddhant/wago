@@ -94,7 +94,7 @@ export function InboxPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-1">
-      <aside className="flex w-80 shrink-0 flex-col border-r border-zinc-800/80">
+      <aside className="flex w-80 shrink-0 flex-col border-r border-edge">
         <div className="space-y-2 p-3">
           <SearchField
             label="Search conversations"
@@ -120,7 +120,7 @@ export function InboxPage() {
               className={`h-9 shrink-0 rounded-lg border px-2.5 text-xs font-medium transition ${
                 unassigned
                   ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
-                  : 'border-zinc-700 text-zinc-400 hover:bg-zinc-900'
+                  : 'border-edge-strong text-ink-muted hover:bg-panel-hover'
               }`}
             >
               Unassigned
@@ -211,23 +211,23 @@ function ConversationRow({
         type="button"
         onClick={onSelect}
         className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 ${
-          active ? 'bg-zinc-900' : 'hover:bg-zinc-900/50'
+          active ? 'bg-panel' : 'hover:bg-panel-hover'
         }`}
       >
         <Avatar name={contact.name || contact.phone} size={40} />
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-2">
-            <span className="truncate text-sm font-medium text-zinc-100">
+            <span className="truncate text-sm font-medium text-ink">
               {contact.name || contact.phone}
             </span>
-            <span className="shrink-0 text-[11px] text-zinc-500">
+            <span className="shrink-0 text-[11px] text-ink-faint">
               {timeAgo(last_message_at)}
             </span>
           </div>
           <div className="mt-0.5 flex items-center justify-between gap-2">
-            <span className="truncate text-[13px] text-zinc-500">
+            <span className="truncate text-[13px] text-ink-faint">
               {last_message?.direction === 'outbound' ? (
-                <CheckCheck size={12} className="mr-0.5 inline text-zinc-500" />
+                <CheckCheck size={12} className="mr-0.5 inline text-ink-faint" />
               ) : null}
               {last_message?.body ?? 'No messages yet'}
             </span>
@@ -237,7 +237,7 @@ function ConversationRow({
               </span>
             ) : null}
           </div>
-          <div className="mt-0.5 text-[11px] text-zinc-600">{whatsapp_account.display_name}</div>
+          <div className="mt-0.5 text-[11px] text-ink-faint">{whatsapp_account.display_name}</div>
         </div>
       </button>
     </li>
@@ -300,17 +300,17 @@ function Thread({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex items-center gap-3 border-b border-zinc-800/80 px-5 py-3">
+      <header className="flex items-center gap-3 border-b border-edge px-5 py-3">
         <Avatar name={contact.name || contact.phone} size={36} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h2 className="truncate text-sm font-semibold text-zinc-100">
+            <h2 className="truncate text-sm font-semibold text-ink">
               {contact.name || contact.phone}
             </h2>
             <Badge tone={statusTone(status)}>{status}</Badge>
             {isAssignedToMe ? <Badge tone="blue">You</Badge> : null}
           </div>
-          <p className="truncate text-xs text-zinc-500">
+          <p className="truncate text-xs text-ink-faint">
             {contact.phone} · {whatsapp_account.display_name}
           </p>
         </div>
@@ -404,7 +404,7 @@ function MessageBubble({ message }: { message: MessageDTO }) {
             ? failed
               ? 'rounded-br-md bg-red-950 text-red-100 ring-1 ring-inset ring-red-500/40'
               : 'rounded-br-md bg-emerald-600 text-emerald-50'
-            : 'rounded-bl-md bg-zinc-800 text-zinc-100'
+            : 'rounded-bl-md bg-panel-strong text-ink'
         }`}
       >
         {media?.url ? <MediaPreview message={message} /> : null}
@@ -413,7 +413,7 @@ function MessageBubble({ message }: { message: MessageDTO }) {
         ) : null}
         <div
           className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${
-            outbound ? (failed ? 'text-red-300/80' : 'text-emerald-200/80') : 'text-zinc-500'
+            outbound ? (failed ? 'text-red-300/80' : 'text-emerald-200/80') : 'text-ink-faint'
           }`}
         >
           <span>{formatTime(message.created)}</span>
@@ -475,14 +475,14 @@ function MediaPreview({ message }: { message: MessageDTO }) {
       href={downloadUrl}
       target="_blank"
       rel="noreferrer"
-      className="mb-2 flex items-center gap-2 rounded-lg border border-zinc-600/60 bg-zinc-900/60 px-3 py-2.5 text-xs text-zinc-200 hover:border-emerald-500/50"
+      className="mb-2 flex items-center gap-2 rounded-lg border border-edge-strong bg-panel px-3 py-2.5 text-xs text-ink hover:border-emerald-500/50"
     >
       <FileText size={16} className="shrink-0 text-emerald-400" />
       <span className="min-w-0 flex-1 truncate">
         {media.filename ?? 'Attachment'}
         {caption ? ` — ${caption}` : ''}
       </span>
-      <Download size={14} className="shrink-0 text-zinc-400" />
+      <Download size={14} className="shrink-0 text-ink-muted" />
     </a>
   )
 }
@@ -606,7 +606,7 @@ function Composer({
   const sendingMedia = mediaMutation.isPending
 
   return (
-    <form onSubmit={handleSubmit} className="border-t border-zinc-800/80 p-3">
+    <form onSubmit={handleSubmit} className="border-t border-edge p-3">
       {error ? (
         <p
           role="alert"
@@ -649,7 +649,7 @@ function Composer({
               rows={2}
               placeholder="Type a message… (Enter to send)"
               aria-label="Message"
-              className="min-h-10 flex-1 resize-none rounded-xl border border-zinc-700 bg-zinc-900 px-3.5 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30"
+              className="min-h-10 flex-1 resize-none rounded-xl border border-edge-strong bg-panel px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-faint outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30"
             />
             <Button
               type="submit"
@@ -723,9 +723,9 @@ function TemplateParameters({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-zinc-300">
+        <span className="text-sm font-medium text-ink-muted">
           Parameters{' '}
-          <span className="text-xs text-zinc-500">{'({{1}}, {{2}}, …)'}</span>
+          <span className="text-xs text-ink-faint">{'({{1}}, {{2}}, …)'}</span>
         </span>
         <Button type="button" size="sm" variant="ghost" onPress={add}>
           <Plus size={14} />
@@ -739,7 +739,7 @@ function TemplateParameters({
             onChange={(e) => update(i, e.target.value)}
             placeholder={`Value for {{${i + 1}}}`}
             aria-label={`Template parameter ${i + 1}`}
-            className="h-10 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30"
+            className="h-10 w-full rounded-xl border border-edge-strong bg-panel px-3 text-sm text-ink placeholder:text-ink-faint outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30"
           />
           {params.length > 1 ? (
             <Button
@@ -749,7 +749,7 @@ function TemplateParameters({
               aria-label={`Remove parameter ${i + 1}`}
               onPress={() => remove(i)}
             >
-              <X size={14} className="text-zinc-500 hover:text-red-400" />
+              <X size={14} className="text-ink-faint hover:text-red-400" />
             </Button>
           ) : null}
         </div>
@@ -784,44 +784,44 @@ function ContactSidebar({
   }
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col border-l border-zinc-800/80">
-      <div className="border-b border-zinc-800/80 px-4 py-3">
-        <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Contact</p>
-        <h3 className="mt-1 truncate text-sm font-semibold text-zinc-100">
+    <aside className="flex w-72 shrink-0 flex-col border-l border-edge">
+      <div className="border-b border-edge px-4 py-3">
+        <p className="text-xs font-medium uppercase tracking-wider text-ink-faint">Contact</p>
+        <h3 className="mt-1 truncate text-sm font-semibold text-ink">
           {contact.name || contact.phone}
         </h3>
-        <p className="truncate text-xs text-zinc-500">{contact.phone}</p>
+        <p className="truncate text-xs text-ink-faint">{contact.phone}</p>
       </div>
 
       <div className="flex-1 space-y-5 overflow-y-auto px-4 py-4">
         <section aria-labelledby="sidebar-status">
-          <p id="sidebar-status" className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-500">
+          <p id="sidebar-status" className="mb-2 text-xs font-medium uppercase tracking-wider text-ink-faint">
             Conversation
           </p>
           <dl className="space-y-1.5 text-[13px]">
             <div className="flex items-center justify-between gap-2">
-              <dt className="text-zinc-500">Account</dt>
-              <dd className="truncate text-zinc-300">
+              <dt className="text-ink-faint">Account</dt>
+              <dd className="truncate text-ink-muted">
                 {detail?.whatsapp_account.display_name ?? '—'}
               </dd>
             </div>
             <div className="flex items-center justify-between gap-2">
-              <dt className="text-zinc-500">Assignee</dt>
-              <dd className="truncate text-zinc-300">
+              <dt className="text-ink-faint">Assignee</dt>
+              <dd className="truncate text-ink-muted">
                 {detail?.assignee_name ?? (detail?.assignee_id ? 'Unknown' : 'Unassigned')}
               </dd>
             </div>
             {detail?.team_name ? (
               <div className="flex items-center justify-between gap-2">
-                <dt className="text-zinc-500">Team</dt>
-                <dd className="truncate text-zinc-300">{detail.team_name}</dd>
+                <dt className="text-ink-faint">Team</dt>
+                <dd className="truncate text-ink-muted">{detail.team_name}</dd>
               </div>
             ) : null}
           </dl>
         </section>
 
         <section aria-labelledby="sidebar-tags">
-          <p id="sidebar-tags" className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-500">
+          <p id="sidebar-tags" className="mb-2 text-xs font-medium uppercase tracking-wider text-ink-faint">
             Tags
           </p>
           <TagEditor
@@ -889,7 +889,7 @@ function TagEditor({
           ))}
         </ul>
       ) : (
-        <p className="text-xs text-zinc-600">{disabled ? 'No tags.' : 'No tags yet.'}</p>
+        <p className="text-xs text-ink-faint">{disabled ? 'No tags.' : 'No tags yet.'}</p>
       )}
       {!disabled ? (
         <form onSubmit={submit} className="mt-2 flex gap-1.5">
@@ -898,7 +898,7 @@ function TagEditor({
             onChange={(e) => setValue(e.target.value)}
             placeholder="Add a tag…"
             aria-label="New tag"
-            className="h-9 w-full rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 text-xs text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30"
+            className="h-9 w-full rounded-lg border border-edge-strong bg-panel px-2.5 text-xs text-ink placeholder:text-ink-faint outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30"
           />
           <Button
             type="submit"
@@ -947,9 +947,9 @@ function NotesEditor({
   return (
     <form onSubmit={submit} aria-label="Notes">
       <div className="mb-2 flex items-center justify-between">
-        <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">Notes</p>
+        <p className="text-xs font-medium uppercase tracking-wider text-ink-faint">Notes</p>
         {canEdit && !saved ? (
-          <span className="text-[11px] text-zinc-500">Unsaved</span>
+          <span className="text-[11px] text-ink-faint">Unsaved</span>
         ) : null}
       </div>
       <textarea
@@ -962,7 +962,7 @@ function NotesEditor({
         rows={4}
         placeholder={canEdit ? 'Add internal notes…' : 'No notes.'}
         aria-label="Notes"
-        className="w-full resize-none rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 read-only:opacity-70"
+        className="w-full resize-none rounded-xl border border-edge-strong bg-panel px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30 read-only:opacity-70"
       />
       {canEdit ? (
         <div className="mt-2 flex justify-end">

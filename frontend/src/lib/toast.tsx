@@ -60,10 +60,10 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
   const Icon = ICONS[toast.type];
   return (
     <div
-      className={`pointer-events-auto flex items-start gap-3 rounded-xl border ${CARD_STYLES[toast.type]} bg-zinc-900/95 p-3 shadow-xl shadow-black/50`}
+      className={`pointer-events-auto flex items-start gap-3 rounded-xl border ${CARD_STYLES[toast.type]} bg-panel p-3 shadow-xl shadow-black/50`}
     >
       <Icon size={18} className={`mt-0.5 shrink-0 ${ICON_COLORS[toast.type]}`} aria-hidden="true" />
-      <p className="min-w-0 flex-1 text-sm text-zinc-100">{toast.message}</p>
+      <p className="min-w-0 flex-1 text-sm text-ink">{toast.message}</p>
       {toast.action && (
         <button
           type="button"
@@ -80,7 +80,7 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
         type="button"
         onClick={onDismiss}
         aria-label="Dismiss notification"
-        className="shrink-0 rounded p-0.5 text-zinc-500 transition hover:text-zinc-200 focus-visible:outline-2 focus-visible:outline-zinc-400"
+        className="shrink-0 rounded p-0.5 text-ink-faint transition hover:text-ink focus-visible:outline-2 focus-visible:outline-ink-faint"
       >
         <X size={16} aria-hidden="true" />
       </button>

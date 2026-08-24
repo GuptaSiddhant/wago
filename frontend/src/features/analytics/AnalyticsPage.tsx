@@ -5,6 +5,7 @@ import { analytics } from '../../api/client'
 import { useSession } from '../../lib/session'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
+import { HBarChart } from '../../components/ui/HBarChart'
 import { SelectField } from '../../components/ui/Select'
 import { Skeleton } from '../../components/ui/Skeleton'
 import type { AnalyticsCategory } from '../../api/types'
@@ -23,35 +24,8 @@ function formatCost(cost: number): string {
   }).format(cost)
 }
 
-function CategoryBreakdown({ categories }: { categories: AnalyticsCategory[] }) {
-  const max = Math.max(...categories.map((c) => c.cost), 0)
-  return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
-      <h2 className="text-sm font-semibold text-zinc-100">By category</h2>
-      <ul className="mt-4 space-y-3">
-        {categories.length === 0 ? (
-          <li className="text-sm text-zinc-500">No data for this period</li>
-        ) : (
-          categories.map((c) => (
-            <li key={c.category}>
-              <div className="mb-1 flex items-center justify-between text-sm">
-                <span className="text-zinc-300">{c.category}</span>
-                <span className="text-zinc-400">
-                  {c.conversations} · {formatCost(c.cost)}
-                </span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-zinc-800">
-                <div
-                  className="h-full rounded-full bg-emerald-500"
-                  style={{ width: max > 0 ? `${Math.max(4, (c.cost / max) * 100)}%` : '0%' }}
-                />
-              </div>
-            </li>
-          ))
-        )}
-      </ul>
-    </div>
-  )
+function formatCount(value: number): string {
+  return value.toLocaleString()
 }
 
 export function AnalyticsPage() {
@@ -70,10 +44,10 @@ export function AnalyticsPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
-      <header className="flex items-center justify-between gap-3 border-b border-zinc-800/80 px-6 py-4">
+      <header className="flex items-center justify-between gap-3 border-b border-edge px-6 py-4">
         <div>
-          <h1 className="text-lg font-semibold text-zinc-100">Analytics</h1>
-          <p className="text-sm text-zinc-500">
+          <h1 className="text-lg font-semibold text-ink">Analytics</h1>
+          <p className="text-sm text-ink-faint">
             WhatsApp usage and cost for this organization, from Meta&apos;s conversation analytics.
           </p>
         </div>
@@ -110,9 +84,9 @@ export function AnalyticsPage() {
         ) : data ? (
           <div className="space-y-6">
             {!hasNumbers ? (
-              <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5 text-sm text-zinc-400">
+              <div className="rounded-xl border border-edge bg-panel p-5 text-sm text-ink-muted">
                 No WhatsApp numbers are connected yet. Connect a number on the{' '}
-                <span className="font-medium text-zinc-200">Numbers</span> page to see usage
+                <span className="font-medium text-ink">Numbers</span> page to see usage
                 analytics.
               </div>
             ) : null}
@@ -134,42 +108,53 @@ export function AnalyticsPage() {
             {hasNumbers ? (
               <>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
-                    <div className="text-xs uppercase tracking-wider text-zinc-500">Conversations</div>
-                    <div className="mt-1 text-3xl font-semibold text-zinc-100">
+                  <div className="rounded-xl border border-edge bg-panel p-5">
+                    <div className="text-xs uppercase tracking-wider text-ink-faint">Conversations</div>
+                    <div className="mt-1 text-3xl font-semibold text-ink">
                       {data.totals.conversations.toLocaleString()}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
-                    <div className="text-xs uppercase tracking-wider text-zinc-500">Meta cost</div>
-                    <div className="mt-1 text-3xl font-semibold text-zinc-100">
+                  <div className="rounded-xl border border-edge bg-panel p-5">
+                    <div className="text-xs uppercase tracking-wider text-ink-faint">Meta cost</div>
+                    <div className="mt-1 text-3xl font-semibold text-ink">
                       {formatCost(data.totals.cost)}
                     </div>
                   </div>
                 </div>
 
                 <div className="grid gap-4 lg:grid-cols-2">
-                  <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
-                    <h2 className="text-sm font-semibold text-zinc-100">Per number</h2>
-                    <ul className="mt-4 divide-y divide-zinc-800">
-                      {data.accounts.map((a) => (
-                        <li key={a.id} className="flex items-center justify-between gap-2 py-2.5">
-                          <div className="min-w-0">
-                            <div className="truncate text-sm text-zinc-200">
-                              {a.display_name || a.phone_number_id}
-                            </div>
-                            <div className="truncate text-xs text-zinc-500">
-                              {a.conversations.toLocaleString()} conversations
-                            </div>
-                          </div>
-                          <span className="text-sm font-medium text-zinc-300">
-                            {formatCost(a.cost)}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <CategoryBreakdown categories={data.categories} />
+                  <HBarChart
+                    title="Conversations by number"
+                    data={data.accounts.map((a) => ({
+                      label: a.display_name || a.phone_number_id,
+                      value: a.conversations,
+                    }))}
+                    formatValue={formatCount}
+                  />
+                  <HBarChart
+                    title="Cost by number"
+                    data={data.accounts.map((a) => ({
+                      label: a.display_name || a.phone_number_id,
+                      value: a.cost,
+                    }))}
+                    formatValue={formatCost}
+                  />
+                  <HBarChart
+                    title="Conversations by category"
+                    data={data.categories.map((c: AnalyticsCategory) => ({
+                      label: c.category,
+                      value: c.conversations,
+                    }))}
+                    formatValue={formatCount}
+                  />
+                  <HBarChart
+                    title="Cost by category"
+                    data={data.categories.map((c: AnalyticsCategory) => ({
+                      label: c.category,
+                      value: c.cost,
+                    }))}
+                    formatValue={formatCost}
+                  />
                 </div>
               </>
             ) : (
